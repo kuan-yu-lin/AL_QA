@@ -2,7 +2,7 @@
 
 ## run
 ```
-  python Random.py \
+  python main.py \
       -a RandomSampling \
       -s 100 \
       -q 100 \
