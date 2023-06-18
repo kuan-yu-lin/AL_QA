@@ -21,9 +21,9 @@ import datetime
 
 import arguments
 from preprocess import *
-from evaluation import *
+from evaluations import *
 from utils import *
-import query_strategies as qs
+from query import *
 
 CACHE_DIR=os.path.abspath(os.path.expanduser('cache'))
 os.environ['TRANSFORMERS_CACHE'] = CACHE_DIR
@@ -45,7 +45,7 @@ DATA_NAME = args_input.dataset_name
 STRATEGY_NAME = args_input.ALstrategy
 
 ## load data
-squad = load_dataset("squad")
+squad = load_dataset(DATA_NAME.lower())
 # squad["train"] = squad["train"].shuffle(42).select(range(2000))
 squad["train"] = squad["train"].select(range(3000))
 squad["validation"] = squad["validation"].select(range(1000))
@@ -64,14 +64,12 @@ val_dataset = squad["validation"].map(
 
 ## seed
 SEED = 4666
-os.environ['TORCH_HOME']='./basicmodel'
+# os.environ['TORCH_HOME']='./basicmodel'
 os.environ["CUDA_VISIBLE_DEVICES"] = str(args_input.gpu)
 
 # fix random seed
 np.random.seed(SEED)
 torch.manual_seed(SEED)
-# torch.backends.cudnn.enabled  = True
-# torch.backends.cudnn.benchmark= True
 
 ## device
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -125,7 +123,7 @@ while (iteration > 0):
 	run_0_labeled_idxs = np.arange(n_pool)[labeled_idxs]
 
 	## record acc performance 
-	acc = np.zeros(NUM_ROUND + 1) # build 3 runs + run_0 # origin 10 runs + run_0
+	acc = np.zeros(NUM_ROUND + 1) # quota/batch runs + run_0
 
 	trainer_0 = Trainer(
 						model=net,
@@ -138,17 +136,20 @@ while (iteration > 0):
 		
 	## print info
 	print(DATA_NAME)
-	# print('RANDOM SEED {}'.format(SEED))
-	print(STRATEGY_NAME) # print(type(strategy).__name__)
+	print(STRATEGY_NAME)
 	
 	## round 0 accuracy
 	trainer_0.train()
-	model_saved_name = 'train_bert_squad_0'
-	trainer_0.save_model(model_saved_name)
+
+	timestamp = re.sub('\.[0-9]*','_',str(datetime.datetime.now())).replace(" ", "_").replace("-", "").replace(":","")
+	model_saved_dir = 'models/' + timestamp + '/' + DATA_NAME + '_' + STRATEGY_NAME + '_' + str(NUM_QUERY) + '_' + str(NUM_INIT_LB) + '_' + str(args_input.quota) + '_0'
+	trainer_0.save_model(model_saved_dir)
 
 	preds, _, _ = trainer_0.predict(val_dataset)
 	start_logits, end_logits = preds
 	acc[0] = compute_metrics(start_logits, end_logits, val_dataset, squad["validation"])['exact_match']
+
+	trainer_qs = trainer_0
 
 	print('Round 0\ntesting accuracy {}'.format(acc[0]))
 	print('\n')
@@ -159,19 +160,27 @@ while (iteration > 0):
 
 		## query
 		if STRATEGY_NAME == 'RandomSampling':
-			q_idxs = qs.random_sampling.query(labeled_idxs)
-		# elif STRATEGY_NAME == 'MarginSampling':
+			q_idxs = random_sampling_query(labeled_idxs)
+		elif STRATEGY_NAME == 'MarginSampling':
 			# get unlable data
+			unlabeled_idxs = np.arange(n_pool)[~labeled_idxs]
+			unlabeled_data = train_dataset.select(indices=unlabeled_idxs)
+
 			# predict with unlable data
-			# 
-			# q_idxs = qs.margin_sampling.query()
+			preds, _, _ = trainer_qs.predict(unlabeled_data)
+			start_logits, end_logits = preds
+			print('start to get q_idxs')
+
+			# get q_idxs
+			q_idxs = margin_sampling_query(start_logits, end_logits, unlabeled_data, squad['train'])
+			print('complete to get q_idxs:', len(q_idxs))
 
 		## update
 		labeled_idxs[q_idxs] = True
 		run_rd_labeled_idxs = np.arange(n_pool)[labeled_idxs]
 
 		trainer_rd = Trainer(
-						model=AutoModelForQuestionAnswering.from_pretrained(model_saved_name).to(device),
+						model=AutoModelForQuestionAnswering.from_pretrained(model_saved_dir).to(device),
 						args=training_args,
 						train_dataset=train_dataset.select(indices=run_rd_labeled_idxs),
 						eval_dataset=val_dataset, # maybe comment out
@@ -181,8 +190,8 @@ while (iteration > 0):
 
 		## train
 		trainer_rd.train()
-		model_saved_name = 'train_bert_squad_' + rd
-		trainer_rd.save_model(model_saved_name)
+		model_saved_dir = 'models/' + timestamp + '/train_bert_squad_' + str(rd)
+		trainer_rd.save_model(model_saved_dir)
 
 		## round rd accuracy
 		preds, _, _ = trainer_rd.predict(val_dataset)
@@ -199,9 +208,7 @@ while (iteration > 0):
 	print(acc)
 	all_acc.append(acc)
 	
-	## save model
-	timestamp = re.sub('\.[0-9]*','_',str(datetime.datetime.now())).replace(" ", "_").replace("-", "").replace(":","")
-	model_path = './modelpara/' + timestamp + DATA_NAME+ '_'  + STRATEGY_NAME + '_' + str(NUM_QUERY) + '_' + str(NUM_INIT_LB) +  '_' + str(args_input.quota)  +'.params'
+	## record acq time
 	end = datetime.datetime.now()
 	acq_time.append(round(float((end-start).seconds),3))
 
@@ -234,7 +241,6 @@ file_res_tot.writelines('mean acc: '+str(mean_acc)+'. std dev acc: '+str(stddev_
 file_res_tot.writelines('mean time: '+str(mean_time)+'. std dev acc: '+str(stddev_time)+'\n')
 
 # save result
-
 file_name_res = DATA_NAME+ '_'  + STRATEGY_NAME + '_' + str(NUM_QUERY) + '_' + str(NUM_INIT_LB) +  '_' + str(args_input.quota) + '_normal_res.txt'
 file_res =  open(os.path.join(os.path.abspath('') + '/results', '%s' % file_name_res),'w')
 
