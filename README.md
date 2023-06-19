@@ -78,7 +78,7 @@
       -t 1 \
       -g 2
 ```
-```
+<!-- ```
   python main.py \
       -a VarRatio \
       -s 100 \
@@ -88,7 +88,7 @@
       --seed 4666 \
       -t 1 \
       -g 2
-```
+``` -->
 ```
   python main.py \
       -a KMeansSampling \

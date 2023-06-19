@@ -173,8 +173,8 @@ while (iteration > 0):
 			q_idxs = least_confidence_dropout_query()
 		elif STRATEGY_NAME == 'EntropySamplingDropout':
 			q_idxs = entropy_dropout_query()
-		elif STRATEGY_NAME == 'VarRatio':
-			q_idxs = var_ratio_query(n_pool, labeled_idxs, train_dataset, trainer_qs, squad['train'])
+		# elif STRATEGY_NAME == 'VarRatio':
+		# 	q_idxs = var_ratio_query(n_pool, labeled_idxs, train_dataset, trainer_qs, squad['train'])
 		elif STRATEGY_NAME == 'KMeansSampling':
 			q_idxs = kmeans_query()
 		elif STRATEGY_NAME == 'KCenterGreedy':
