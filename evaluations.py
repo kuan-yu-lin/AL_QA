@@ -59,8 +59,11 @@ def compute_metrics(start_logits, end_logits, features, examples):
     theoretical_answers = [{"id": ex["id"], "answers": ex["answers"]} for ex in examples]
     return metric.compute(predictions=predicted_answers, references=theoretical_answers)
 
-def get_prob(start_logits, end_logits, features, examples):
+def get_prob(trainer_qs, features, examples):
     # thinking the posibility of get rid of 'examples'
+    preds, _, _ = trainer_qs.predict(features)
+    start_logits, end_logits = preds
+
     prob_list_dict = []
     example_to_features = collections.defaultdict(list)
     max_answer_length = 30

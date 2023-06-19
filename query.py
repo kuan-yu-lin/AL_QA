@@ -3,7 +3,7 @@ import collections
 from tqdm.auto import tqdm
 
 import arguments
-from utils import get_preds, get_unlabel_data
+from utils import get_unlabel_data
 from evaluations import get_prob
 
 args_input = arguments.get_args()
@@ -15,8 +15,7 @@ def random_sampling_query(labeled_idxs):
 def margin_sampling_query(n_pool, labeled_idxs, train_dataset, trainer_qs, example):
     
     unlabeled_idxs, unlabeled_data = get_unlabel_data(n_pool, labeled_idxs, train_dataset)
-    start_logits, end_logits, = get_preds(trainer_qs, unlabeled_data)
-    prob_list_dict = get_prob(start_logits, end_logits, unlabeled_data, example)
+    prob_list_dict = get_prob(trainer_qs, unlabeled_data, example)
 
     uncertainties_list_dict = []
     for d in prob_list_dict:
@@ -37,8 +36,7 @@ def margin_sampling_query(n_pool, labeled_idxs, train_dataset, trainer_qs, examp
 
 def least_confidence_query(n_pool, labeled_idxs, train_dataset, trainer_qs, example):
     unlabeled_idxs, unlabeled_data = get_unlabel_data(n_pool, labeled_idxs, train_dataset)
-    start_logits, end_logits, = get_preds(trainer_qs, unlabeled_data)
-    probs_list_dict = get_prob(start_logits, end_logits, unlabeled_data, example)
+    prob_list_dict = get_prob(trainer_qs, unlabeled_data, example)
 
     confidence_list_dict = []
     for d in probs_list_dict:
