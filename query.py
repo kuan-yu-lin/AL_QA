@@ -36,7 +36,6 @@ def margin_sampling_query(n_pool, labeled_idxs, train_dataset, trainer_qs, examp
     return [uncertainties_dict['idx'][0] for uncertainties_dict in sorted_uncertainties_dict[:NUM_QUERY]]
 
 def least_confidence_query(n_pool, labeled_idxs, train_dataset, trainer_qs, example):
-
     unlabeled_data = get_unlabel_data(n_pool, labeled_idxs, train_dataset)
     start_logits, end_logits, = get_preds(trainer_qs, unlabeled_data)
     probs_list_dict = get_prob(start_logits, end_logits, unlabeled_data, example)
@@ -59,8 +58,28 @@ def least_confidence_query(n_pool, labeled_idxs, train_dataset, trainer_qs, exam
     sorted_confidence_dict = sorted(confidence_list_dict, key=lambda d: d['confidence'])
     return [confidence_dict['idx'][0] for confidence_dict in sorted_confidence_dict[:NUM_QUERY]]
 
-def var_ratio_query(start_logits, end_logits, features, examples):
-    pass
+# def var_ratio_query(start_logits, end_logits, features, examples):
+#     unlabeled_data = get_unlabel_data(n_pool, labeled_idxs, train_dataset)
+#     start_logits, end_logits, = get_preds(trainer_qs, unlabeled_data)
+#     probs_list_dict = get_prob(start_logits, end_logits, unlabeled_data, example)
+
+#     confidence_list_dict = []
+#     for d in probs_list_dict:
+#         if len(d['probs']) > 1: # if prob_dict['probs'] is not 0
+#             # uncertainties_d = d['probs']
+#             confidence = max(d['probs'])
+#             confidence_list_dict.append(
+#                 {'idx': d['idx'], 
+#                     'confidence': 1 - confidence}
+#                     )
+#         elif d['idx']:
+#             confidence_list_dict.append(
+#                 {'idx': d['idx'], 
+#                     'confidence': np.array([0])}
+#                     )
+
+#     sorted_confidence_dict = sorted(confidence_list_dict, key=lambda d: d['confidence'], reverse=True)
+#     return [confidence_dict['idx'][0] for confidence_dict in sorted_confidence_dict[:n]]
 
 def entropy_query():
     # probs = self.predict_prob(unlabeled_data) # I always get score instead
