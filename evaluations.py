@@ -3,6 +3,8 @@ import collections
 from tqdm.auto import tqdm
 import numpy as np
 
+from utils import softmax
+
 metric = evaluate.load("squad")
 
 def compute_metrics(start_logits, end_logits, features, examples):
@@ -57,18 +59,19 @@ def compute_metrics(start_logits, end_logits, features, examples):
     theoretical_answers = [{"id": ex["id"], "answers": ex["answers"]} for ex in examples]
     return metric.compute(predictions=predicted_answers, references=theoretical_answers)
 
-def get_margin(start_logits, end_logits, features, examples):
-    
+def get_prob(start_logits, end_logits, features, examples):
+    # thinking the posibility of get rid of 'examples'
+    prob_list_dict = []
     example_to_features = collections.defaultdict(list)
     max_answer_length = 30
-    n_best = 20
+    n_best = 20 # TODO: if set n_best as 5, will it effect the time??
+    
     for idx, feature in enumerate(features):
         example_to_features[feature["example_id"]].append(idx)
 
-    predicted_answers = []
     for example in tqdm(examples):
         example_id = example["id"]
-        context = example["context"]
+        # context = example["context"]
         answers = []
 
         # Loop through all features associated with that example
@@ -91,20 +94,22 @@ def get_margin(start_logits, end_logits, features, examples):
                     ):
                         continue
 
-                    answer = {
-                        "text": context[offsets[start_index][0] : offsets[end_index][1]],
-                        "logit_score": start_logit[start_index] + end_logit[end_index],
-                    }
-                    answers.append(answer)
+                    answers.append(start_logit[start_index] + end_logit[end_index])
+        
+        if len(answers) > 1:
+            answers.sort(reverse=True)
+            n_best_sorted_answers = answers[:n_best]
 
-        # Select the answer with the best score
-        if len(answers) > 0:
-            best_answer = max(answers, key=lambda x: x["logit_score"])
-            predicted_answers.append(
-                {"id": example_id, "prediction_text": best_answer["text"]}
+            n_best_sorted_prob = softmax(n_best_sorted_answers)
+            prob_list_dict.append(
+                {'idx': example_to_features[example_id], 
+                 'probs': n_best_sorted_prob}
             )
-        else:
-            predicted_answers.append({"id": example_id, "prediction_text": ""})
 
-    theoretical_answers = [{"id": ex["id"], "answers": ex["answers"]} for ex in examples]
-    return metric.compute(predictions=predicted_answers, references=theoretical_answers)
+        elif example_to_features[example_id]:
+            prob_list_dict.append(
+                {'idx': example_to_features[example_id], 
+                 'probs': np.array([0])}
+            )
+    
+    return prob_list_dict

@@ -31,3 +31,17 @@ def get_aubc(quota, bsize, resseq):
 
 def get_mean_stddev(datax):
 	return round(np.mean(datax),4),round(np.std(datax),4)
+
+def get_unlabel_data(n_pool, labeled_idxs, train_dataset):
+    unlabeled_idxs = np.arange(n_pool)[~labeled_idxs]
+    unlabeled_data = train_dataset.select(indices=unlabeled_idxs)
+    return unlabeled_data
+
+def get_preds(trainer_qs, unlabeled_data):
+	preds, _, _ = trainer_qs.predict(unlabeled_data)
+	start_logits, end_logits = preds
+	return start_logits, end_logits
+
+def softmax(x):
+    """Compute softmax values for each sets of scores in x."""
+    return np.exp(x) / np.sum(np.exp(x), axis=0)

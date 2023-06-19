@@ -162,18 +162,39 @@ while (iteration > 0):
 		if STRATEGY_NAME == 'RandomSampling':
 			q_idxs = random_sampling_query(labeled_idxs)
 		elif STRATEGY_NAME == 'MarginSampling':
-			# get unlable data
-			unlabeled_idxs = np.arange(n_pool)[~labeled_idxs]
-			unlabeled_data = train_dataset.select(indices=unlabeled_idxs)
-
-			# predict with unlable data
-			preds, _, _ = trainer_qs.predict(unlabeled_data)
-			start_logits, end_logits = preds
-			print('start to get q_idxs')
-
-			# get q_idxs
-			q_idxs = margin_sampling_query(start_logits, end_logits, unlabeled_data, squad['train'])
-			print('complete to get q_idxs:', len(q_idxs))
+			q_idxs = margin_sampling_query(n_pool, labeled_idxs, train_dataset, trainer_qs, squad['train'])
+		elif STRATEGY_NAME == 'LeastConfidence':
+			q_idxs = least_confidence_query(n_pool, labeled_idxs, train_dataset, trainer_qs, squad['train'])
+		elif STRATEGY_NAME == 'EntropySampling':
+			q_idxs = entropy_query()
+		elif STRATEGY_NAME == 'MarginSamplingDropout':
+			q_idxs = margin_sampling_dropout_query()
+		elif STRATEGY_NAME == 'LeastConfidenceDropout':
+			q_idxs = least_confidence_dropout_query()
+		elif STRATEGY_NAME == 'EntropySamplingDropout':
+			q_idxs = entropy_dropout_query()
+		elif STRATEGY_NAME == 'VarRatio':
+			q_idxs = var_ratio_query(n_pool, labeled_idxs, train_dataset, trainer_qs, squad['train'])
+		elif STRATEGY_NAME == 'KMeansSampling':
+			q_idxs = kmeans_query()
+		elif STRATEGY_NAME == 'KCenterGreedy':
+			q_idxs = kcenter_query()
+		# elif STRATEGY_NAME == 'KCenterGreedyPCA': # not sure
+		# 	q_idxs = 
+		elif STRATEGY_NAME == 'BALDDropout':
+			q_idxs = bayesian_query()
+		elif STRATEGY_NAME == 'MeanSTD':
+			q_idxs = mean_std_query()
+		elif STRATEGY_NAME == 'BadgeSampling':
+			q_idxs = badge_query()
+		elif STRATEGY_NAME == 'LossPredictionLoss':
+			# different net!
+			q_idxs = loss_prediction_query()
+		elif STRATEGY_NAME == 'CEALSampling':
+			# why use 'CEALSampling' in STRATEGY_NAME
+			q_idxs = ceal_query()
+		else:
+			raise NotImplementedError
 
 		## update
 		labeled_idxs[q_idxs] = True

@@ -3,6 +3,8 @@ import collections
 from tqdm.auto import tqdm
 
 import arguments
+from utils import get_preds, get_unlabel_data
+from evaluations import get_prob
 
 args_input = arguments.get_args()
 NUM_QUERY = args_input.batch
@@ -10,59 +12,91 @@ NUM_QUERY = args_input.batch
 def random_sampling_query(labeled_idxs):
     return np.random.choice(np.where(labeled_idxs==0)[0], NUM_QUERY, replace=False)
 
-def margin_sampling_query(start_logits, end_logits, features, examples):
-    # thinking the posibility of get rid of 'examples'
-    margin_dict = []
-    example_to_features = collections.defaultdict(list)
-    max_answer_length = 30
-    n_best = 20 # TODO: if set n_best as 5, will it effect the time??
+def margin_sampling_query(n_pool, labeled_idxs, train_dataset, trainer_qs, example):
     
-    for idx, feature in enumerate(features):
-        example_to_features[feature["example_id"]].append(idx)
+    unlabeled_data = get_unlabel_data(n_pool, labeled_idxs, train_dataset)
+    start_logits, end_logits, = get_preds(trainer_qs, unlabeled_data)
+    prob_list_dict = get_prob(start_logits, end_logits, unlabeled_data, example)
 
-    predicted_answers = []
-    for example in tqdm(examples):
-        example_id = example["id"]
-        # context = example["context"]
-        answers = []
+    uncertainties_list_dict = []
+    for d in prob_list_dict:
+        if len(d['probs']) > 1: # if prob_dict['probs'] is not 0
+            uncertainties = d['probs'][0] - d['probs'][1]
+            uncertainties_list_dict.append(
+                {'idx': d['idx'], 
+                 'uncertainties': uncertainties}
+                 )
+        elif d['idx']:
+            uncertainties_list_dict.append(
+                {'idx': d['idx'], 
+                 'uncertainties': np.array([0])}
+                 )
+    
+    sorted_uncertainties_dict = sorted(uncertainties_list_dict, key=lambda d: d['uncertainties']) # TODO: check smallest or largest, now is smallest    
+    return [uncertainties_dict['idx'][0] for uncertainties_dict in sorted_uncertainties_dict[:NUM_QUERY]]
 
-        # Loop through all features associated with that example
-        for feature_index in example_to_features[example_id]:
-            start_logit = start_logits[feature_index]
-            end_logit = end_logits[feature_index]
-            offsets = features[feature_index]["offset_mapping"]
+def least_confidence_query(n_pool, labeled_idxs, train_dataset, trainer_qs, example):
 
-            start_indexes = np.argsort(start_logit)[-1 : -n_best - 1 : -1].tolist()
-            end_indexes = np.argsort(end_logit)[-1 : -n_best - 1 : -1].tolist()
-            for start_index in start_indexes:
-                for end_index in end_indexes:
-                    # Skip answers that are not fully in the context
-                    if offsets[start_index] is None or offsets[end_index] is None:
-                        continue
-                    # Skip answers with a length that is either < 0 or > max_answer_length
-                    if (
-                        end_index < start_index
-                        or end_index - start_index + 1 > max_answer_length
-                    ):
-                        continue
+    unlabeled_data = get_unlabel_data(n_pool, labeled_idxs, train_dataset)
+    start_logits, end_logits, = get_preds(trainer_qs, unlabeled_data)
+    probs_list_dict = get_prob(start_logits, end_logits, unlabeled_data, example)
 
-                    answers.append(start_logit[start_index] + end_logit[end_index])
-        
-        if len(answers) > 1:
-            answers.sort(reverse=True)
-            n_best_sorted_answers = answers[:n_best]
-            margin = n_best_sorted_answers[0] - n_best_sorted_answers[1]
-            margin_dict.append(
-                {'idx': example_to_features[example_id], 
-                 'margin': margin}
-            )
+    confidence_list_dict = []
+    for d in probs_list_dict:
+        if len(d['probs']) > 1: # if prob_dict['probs'] is not 0
+            # uncertainties_d = d['probs']
+            confidence = max(d['probs'])
+            confidence_list_dict.append(
+                {'idx': d['idx'], 
+                    'confidence': confidence}
+                    )
+        elif d['idx']:
+            confidence_list_dict.append(
+                {'idx': d['idx'], 
+                    'confidence': np.array([0])}
+                    )
 
-        else:
-            margin_dict.append(
-                {'idx': example_to_features[example_id], 
-                 'margin': 0}
-            )
+    sorted_confidence_dict = sorted(confidence_list_dict, key=lambda d: d['confidence'])
+    return [confidence_dict['idx'][0] for confidence_dict in sorted_confidence_dict[:NUM_QUERY]]
 
-    sorted_margin_dict = sorted(margin_dict, key=lambda d: d['margin'], reverse=True)
+def var_ratio_query(start_logits, end_logits, features, examples):
+    pass
 
-    return [margin_dict['idx'][0] for margin_dict in sorted_margin_dict[:NUM_QUERY]]
+def entropy_query():
+    # probs = self.predict_prob(unlabeled_data) # I always get score instead
+    # log_probs = torch.log(probs)
+    # uncertainties = (probs*log_probs).sum(1)
+    # return unlabeled_idxs[uncertainties.sort()[1][:n]] # same as other query, the n smallest
+    pass
+
+def margin_sampling_dropout_query():
+    # print to see the size difference, what was dropped
+    # probs /= n_drop
+    pass
+
+def least_confidence_dropout_query():
+    pass
+
+def entropy_dropout_query():
+    pass
+
+def kmeans_query():
+    pass
+
+def kcenter_query():
+    pass
+
+def bayesian_query():
+    pass
+
+def mean_std_query():
+    pass
+
+def badge_query():
+    pass
+
+def loss_prediction_query():
+    pass
+
+def ceal_query():
+    pass
