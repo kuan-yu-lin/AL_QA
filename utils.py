@@ -35,7 +35,7 @@ def get_mean_stddev(datax):
 def get_unlabel_data(n_pool, labeled_idxs, train_dataset):
     unlabeled_idxs = np.arange(n_pool)[~labeled_idxs]
     unlabeled_data = train_dataset.select(indices=unlabeled_idxs)
-    return unlabeled_data
+    return unlabeled_idxs, unlabeled_data
 
 def get_preds(trainer_qs, unlabeled_data):
 	preds, _, _ = trainer_qs.predict(unlabeled_data)

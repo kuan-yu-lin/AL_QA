@@ -14,7 +14,7 @@ def random_sampling_query(labeled_idxs):
 
 def margin_sampling_query(n_pool, labeled_idxs, train_dataset, trainer_qs, example):
     
-    unlabeled_data = get_unlabel_data(n_pool, labeled_idxs, train_dataset)
+    unlabeled_idxs, unlabeled_data = get_unlabel_data(n_pool, labeled_idxs, train_dataset)
     start_logits, end_logits, = get_preds(trainer_qs, unlabeled_data)
     prob_list_dict = get_prob(start_logits, end_logits, unlabeled_data, example)
 
@@ -33,10 +33,10 @@ def margin_sampling_query(n_pool, labeled_idxs, train_dataset, trainer_qs, examp
                  )
     
     sorted_uncertainties_dict = sorted(uncertainties_list_dict, key=lambda d: d['uncertainties']) # TODO: check smallest or largest, now is smallest    
-    return [uncertainties_dict['idx'][0] for uncertainties_dict in sorted_uncertainties_dict[:NUM_QUERY]]
+    return unlabeled_idxs[[uncertainties_dict['idx'][0] for uncertainties_dict in sorted_uncertainties_dict[:NUM_QUERY]]]
 
 def least_confidence_query(n_pool, labeled_idxs, train_dataset, trainer_qs, example):
-    unlabeled_data = get_unlabel_data(n_pool, labeled_idxs, train_dataset)
+    unlabeled_idxs, unlabeled_data = get_unlabel_data(n_pool, labeled_idxs, train_dataset)
     start_logits, end_logits, = get_preds(trainer_qs, unlabeled_data)
     probs_list_dict = get_prob(start_logits, end_logits, unlabeled_data, example)
 
@@ -56,7 +56,7 @@ def least_confidence_query(n_pool, labeled_idxs, train_dataset, trainer_qs, exam
                     )
 
     sorted_confidence_dict = sorted(confidence_list_dict, key=lambda d: d['confidence'])
-    return [confidence_dict['idx'][0] for confidence_dict in sorted_confidence_dict[:NUM_QUERY]]
+    return unlabeled_idxs[[confidence_dict['idx'][0] for confidence_dict in sorted_confidence_dict[:NUM_QUERY]]]
 
 # def var_ratio_query(start_logits, end_logits, features, examples):
 #     unlabeled_data = get_unlabel_data(n_pool, labeled_idxs, train_dataset)
