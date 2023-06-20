@@ -116,3 +116,62 @@ def get_prob(trainer_qs, features, examples):
             )
     
     return prob_list_dict
+
+def get_prob_dropout(trainer_qs, features, examples):
+    # thinking the posibility of get rid of 'examples'
+    preds, _, _ = trainer_qs.predict(features)
+    start_logits, end_logits = preds
+
+    prob_list_dict = []
+    example_to_features = collections.defaultdict(list)
+    max_answer_length = 30
+    n_best = 20 # TODO: if set n_best as 5, will it effect the time??
+    
+    for idx, feature in enumerate(features):
+        example_to_features[feature["example_id"]].append(idx)
+
+    for example in tqdm(examples):
+        example_id = example["id"]
+        # context = example["context"]
+        answers = []
+
+        # Loop through all features associated with that example
+        for feature_index in example_to_features[example_id]:
+            start_logit = start_logits[feature_index]
+            end_logit = end_logits[feature_index]
+            offsets = features[feature_index]["offset_mapping"]
+
+            start_indexes = np.argsort(start_logit)[-1 : -n_best - 1 : -1].tolist()
+            end_indexes = np.argsort(end_logit)[-1 : -n_best - 1 : -1].tolist()
+            for start_index in start_indexes:
+                for end_index in end_indexes:
+                    # Skip answers that are not fully in the context
+                    if offsets[start_index] is None or offsets[end_index] is None:
+                        continue
+                    # Skip answers with a length that is either < 0 or > max_answer_length
+                    if (
+                        end_index < start_index
+                        or end_index - start_index + 1 > max_answer_length
+                    ):
+                        continue
+
+                    answers.append(start_logit[start_index] + end_logit[end_index])
+        
+        if len(answers) > 1:
+            answers.sort(reverse=True)
+            n_best_sorted_answers = answers[:n_best]
+
+            n_best_sorted_prob = softmax(n_best_sorted_answers)
+            n_best_sorted_prob /= n_best # the number of dropout is the number of classes
+            prob_list_dict.append(
+                {'idx': example_to_features[example_id], 
+                 'probs': n_best_sorted_prob}
+            )
+
+        elif example_to_features[example_id]:
+            prob_list_dict.append(
+                {'idx': example_to_features[example_id], 
+                 'probs': np.array([0])}
+            )
+    
+    return prob_list_dict
