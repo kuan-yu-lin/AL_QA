@@ -57,7 +57,6 @@ def least_confidence_query(n_pool, labeled_idxs, train_dataset, trainer_qs, exam
 
 def var_ratio_query(n_pool, labeled_idxs, train_dataset, trainer_qs, example):
     unlabeled_data = get_unlabel_data(n_pool, labeled_idxs, train_dataset)
-    start_logits, end_logits, = get_preds(trainer_qs, unlabeled_data)
     probs_list_dict = get_prob(trainer_qs, unlabeled_data, example)
 
     confidence_list_dict = []
@@ -75,7 +74,7 @@ def var_ratio_query(n_pool, labeled_idxs, train_dataset, trainer_qs, example):
                     )
 
     sorted_confidence_dict = sorted(confidence_list_dict, key=lambda d: d['confidence'], reverse=True)
-    return [confidence_dict['idx'][0] for confidence_dict in sorted_confidence_dict[:n]]
+    return [confidence_dict['idx'][0] for confidence_dict in sorted_confidence_dict[:NUM_QUERY]]
 
 def entropy_query(n_pool, labeled_idxs, train_dataset, trainer_qs, example):
     # deepAL+: unlabeled_idxs, unlabeled_data = self.dataset.get_unlabeled_data()
@@ -148,7 +147,7 @@ def least_confidence_dropout_query(n_pool, labeled_idxs, train_dataset, trainer_
 
 def entropy_dropout_query(n_pool, labeled_idxs, train_dataset, trainer_qs, example):
     unlabeled_idxs, unlabeled_data = get_unlabel_data(n_pool, labeled_idxs, train_dataset)
-    prob_list_dict = get_prob_dropout(trainer_qs, unlabeled_data, example, dropout)
+    prob_list_dict = get_prob_dropout(trainer_qs, unlabeled_data, example)
     entropy_list_dict = []
     for d in prob_list_dict:
         if len(d['probs']) > 1: # if prob_dict['probs'] is not 0
