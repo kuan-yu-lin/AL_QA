@@ -157,16 +157,16 @@ def entropy_dropout_query(n_pool, labeled_idxs, train_dataset, trainer_qs, examp
     sorted_entropy_dict = sorted(entropy_list_dict, key=lambda d: d['entropy'], reverse=True) # use largest Entropy, different from deepAL+ code
     return unlabeled_idxs[[entropy_dict['idx'][0] for entropy_dict in sorted_entropy_dict[:n]]]
 
-def kmeans_query():
-    pass
-
-def kcenter_query():
-    pass
-
 def bayesian_query():
     pass
 
 def mean_std_query():
+    pass
+
+def kmeans_query():
+    pass
+
+def kcenter_query():
     pass
 
 def badge_query():
