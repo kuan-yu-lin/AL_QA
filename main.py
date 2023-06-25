@@ -1,16 +1,13 @@
 from datasets import load_dataset
 from transformers import (
-    # AutoTokenizer,
-    DefaultDataCollator,
-    AutoModelForQuestionAnswering,
-    TrainingArguments,
-    Trainer
+	default_data_collator,
+	get_scheduler,
+    AutoModelForQuestionAnswering
 )
+from torch.utils.data import DataLoader
+from torch.optim import AdamW
 import torch
 
-import evaluate
-import collections
-from tqdm.auto import tqdm
 import numpy as np
 
 import warnings
@@ -21,11 +18,13 @@ import datetime
 
 import arguments
 from preprocess import *
-from evaluations import *
+from model import *
 from utils import *
 from query import *
 
-CACHE_DIR=os.path.abspath(os.path.expanduser('cache'))
+model_dir = '/mount/arbeitsdaten31/studenten1/linku/models'
+
+CACHE_DIR = '/mount/arbeitsdaten31/studenten1/linku/cache'
 os.environ['TRANSFORMERS_CACHE'] = CACHE_DIR
 os.environ['HF_MODULES_CACHE'] = CACHE_DIR
 os.environ['HF_DATASETS_CACHE'] = CACHE_DIR
@@ -56,11 +55,27 @@ train_dataset = squad["train"].map(
     batched=True,
     remove_columns=squad["train"].column_names,
 )
+train_features = squad["train"].map(
+    preprocess_training_features,
+    batched=True,
+    remove_columns=squad["train"].column_names,
+)
 val_dataset = squad["validation"].map(
     preprocess_validation_examples,
     batched=True,
     remove_columns=squad["validation"].column_names,
 )
+val_features = squad["validation"].map(
+    preprocess_validation_examples,
+    batched=True,
+    remove_columns=squad["validation"].column_names,
+)
+
+train_dataset.set_format("torch")
+train_features.set_format("torch")
+val_dataset = val_dataset.remove_columns(["offset_mapping"])
+val_dataset.set_format("torch")
+val_features.set_format("torch")
 
 ## seed
 SEED = 4666
@@ -80,6 +95,7 @@ warnings.filterwarnings('ignore')
 ## start experiment
 iteration = args_input.iteration
 model_batch = args_input.model_batch
+NUM_TRAIN_EPOCH = args_input.train_epochs
 
 all_acc = []
 acq_time = []
@@ -89,26 +105,8 @@ while (iteration > 0):
 	iteration = iteration - 1
 
 	## data, network, strategy
-	net = AutoModelForQuestionAnswering.from_pretrained("bert-base-uncased").to(device)
-
-	## set up training
-	training_args = TrainingArguments(
-		output_dir="./models",
-		evaluation_strategy="no",
-		eval_steps=100,
-		logging_steps=100,
-		learning_rate=1e-4,
-		per_device_train_batch_size=model_batch,
-		per_device_eval_batch_size=model_batch, 
-		gradient_accumulation_steps=1,
-		num_train_epochs=3,  # max_steps will override this value
-		# max_steps=1000,  # comment out if this is not wanted
-		weight_decay=0.01,
-		report_to="none",
-	)
-
-	## data collator for batching
-	data_collator = DefaultDataCollator()
+	model = AutoModelForQuestionAnswering.from_pretrained("bert-base-uncased").to(device)
+	optimizer = AdamW(model.parameters(), lr=1e-4)
 
 	start = datetime.datetime.now()
 
@@ -125,31 +123,38 @@ while (iteration > 0):
 	## record acc performance 
 	acc = np.zeros(NUM_ROUND + 1) # quota/batch runs + run_0
 
-	trainer_0 = Trainer(
-						model=net,
-						args=training_args,
-						train_dataset=train_dataset.select(indices=run_0_labeled_idxs),
-						eval_dataset=val_dataset, # maybe comment out
-						tokenizer=tokenizer,
-						data_collator=data_collator
-						)	
-		
+	## load the selected train data to DataLoader
+	train_dataloader = DataLoader(
+		train_dataset.select(indices=run_0_labeled_idxs),
+		shuffle=True,
+		collate_fn=default_data_collator,
+		batch_size=8,
+	)
+
+	eval_dataloader = DataLoader(
+		val_dataset, 
+		collate_fn=default_data_collator, 
+		batch_size=8
+	)
+
+	num_update_steps_per_epoch = len(train_dataloader)
+	num_training_steps = NUM_TRAIN_EPOCH * num_update_steps_per_epoch
+
+	lr_scheduler = get_scheduler(
+		"linear",
+		optimizer=optimizer,
+		num_warmup_steps=0,
+		num_training_steps=num_training_steps,
+	)
+
 	## print info
 	print(DATA_NAME)
 	print(STRATEGY_NAME)
 	
 	## round 0 accuracy
-	trainer_0.train()
+	to_train(num_training_steps, NUM_TRAIN_EPOCH, train_dataloader, device, model, optimizer, lr_scheduler)
 
-	timestamp = re.sub('\.[0-9]*','_',str(datetime.datetime.now())).replace(" ", "_").replace("-", "").replace(":","")
-	model_saved_dir = 'models/' + timestamp + '/' + DATA_NAME + '_' + STRATEGY_NAME + '_' + str(NUM_QUERY) + '_' + str(NUM_INIT_LB) + '_' + str(args_input.quota) + '_0'
-	trainer_0.save_model(model_saved_dir)
-
-	preds, _, _ = trainer_0.predict(val_dataset)
-	start_logits, end_logits = preds
-	acc[0] = compute_metrics(start_logits, end_logits, val_dataset, squad["validation"])['exact_match']
-
-	trainer_qs = trainer_0
+	acc[0] = get_pred(model, eval_dataloader, device, val_dataset, squad['validation'])['f1']
 
 	print('Round 0\ntesting accuracy {}'.format(acc[0]))
 	print('\n')
@@ -211,8 +216,7 @@ while (iteration > 0):
 
 		## train
 		trainer_rd.train()
-		model_saved_dir = 'models/' + timestamp + '/train_bert_squad_' + str(rd)
-		trainer_rd.save_model(model_saved_dir)
+
 
 		## round rd accuracy
 		preds, _, _ = trainer_rd.predict(val_dataset)
@@ -229,9 +233,12 @@ while (iteration > 0):
 	print(acc)
 	all_acc.append(acc)
 	
-	## record acq time
+	## save model and record acq time
+	timestamp = re.sub('\.[0-9]*','_',str(datetime.datetime.now())).replace(" ", "_").replace("-", "").replace(":","")
+	model_saved_dir = model_dir + '/' + timestamp + '/train_bert_squad_' + str(rd)
 	end = datetime.datetime.now()
-	acq_time.append(round(float((end-start).seconds),3))
+	acq_time.append(round(float((end-start).seconds), 3))
+	torch.save(model, model_saved_dir)
 
 # cal mean & standard deviation
 acc_m = []

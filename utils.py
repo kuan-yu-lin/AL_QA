@@ -1,5 +1,6 @@
 import numpy as np
 import sys
+from tqdm.auto import tqdm
 
 class Logger(object):
 	def __init__(self, filename="Default.log"):

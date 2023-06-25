@@ -3,7 +3,7 @@ import collections
 from tqdm.auto import tqdm
 
 from utils import get_unlabel_data
-from evaluations import get_prob, get_prob_dropout
+from model import get_prob, get_prob_dropout
 
 def random_sampling_query(labeled_idxs, n):
     return np.random.choice(np.where(labeled_idxs==0)[0], n, replace=False)

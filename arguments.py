@@ -26,7 +26,7 @@ def get_args():
 	# ceal
 	parser.add_argument('--delta', type=float, default=5 * 1e-5, help='value of delta in ceal sampling')
 	#hyper parameters
-	parser.add_argument('--train_epochs', type=int, default=100, help='Number of training epochs')
+	parser.add_argument('--train_epochs', type=int, default=3, help='Number of training epochs')
 
 	#specific parameters
 	parser.add_argument('--latent_dim', type=int, default=32, help='The dimensionality of the VAE latent dimension')
