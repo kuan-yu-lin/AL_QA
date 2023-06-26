@@ -242,10 +242,14 @@ while (iteration > 0):
 	
 	## save model and record acq time
 	timestamp = re.sub('\.[0-9]*','_',str(datetime.datetime.now())).replace(" ", "_").replace("-", "").replace(":","")
-	# model_saved_dir = model_dir + '/' + timestamp + '/train_bert_squad_' + str(rd)
+	final_model_dir = model_dir + '/' + timestamp + DATA_NAME+ '_'  + STRATEGY_NAME + '_' + str(NUM_QUERY) + '_' + str(NUM_INIT_LB) +  '_' + str(args_input.quota)
+	os.makedirs(final_model_dir, exist_ok=True)
 	end = datetime.datetime.now()
 	acq_time.append(round(float((end-start).seconds), 3))
-	# torch.save(model, model_saved_dir)
+
+	final_model = AutoModelForQuestionAnswering.from_pretrained(model_dir).to(device)
+	model_to_save = final_model.module if hasattr(final_model, 'module') else final_model 
+	model_to_save.save_pretrained(final_model_dir)
 
 # cal mean & standard deviation
 acc_m = []

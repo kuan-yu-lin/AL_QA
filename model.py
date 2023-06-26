@@ -24,9 +24,9 @@ def to_train(num_train_epochs, train_dataloader, device, model, optimizer, lr_sc
 			optimizer.step()
 			lr_scheduler.step()
 			optimizer.zero_grad()
-    
-		model_to_save = model.module if hasattr(model, 'module') else model
-		model_to_save.save_pretrained(model_dir)
+	# TODO: check to save in which loop!
+	model_to_save = model.module if hasattr(model, 'module') else model 
+	model_to_save.save_pretrained(model_dir)
 	print('TRAIN done!')
 
 def compute_metrics(start_logits, end_logits, features, examples):
