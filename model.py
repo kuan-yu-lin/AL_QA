@@ -3,17 +3,19 @@ import collections
 from tqdm.auto import tqdm
 import numpy as np
 import torch
+from transformers import AutoModelForQuestionAnswering
 
 from utils import softmax
 
 metric = evaluate.load("squad")
 
-def to_train(num_training_steps, num_train_epochs, train_dataloader, device, model, optimizer, lr_scheduler):
-	progress_bar = tqdm(range(num_training_steps))
+model_dir = '/mount/arbeitsdaten31/studenten1/linku/models'
+
+def to_train(num_train_epochs, train_dataloader, device, model, optimizer, lr_scheduler):
+	print('num of train dataset', len(train_dataloader.dataset))
 	for epoch in range(num_train_epochs):
-		# Training
 		model.train()
-		for step, batch in enumerate(train_dataloader):
+		for step, batch in enumerate(tqdm(train_dataloader, desc="Training")):
 			batch = {key: value.to(device) for key, value in batch.items()}
 			outputs = model(**batch)
 			loss = outputs.loss
@@ -22,7 +24,10 @@ def to_train(num_training_steps, num_train_epochs, train_dataloader, device, mod
 			optimizer.step()
 			lr_scheduler.step()
 			optimizer.zero_grad()
-			progress_bar.update(1)
+    
+		model_to_save = model.module if hasattr(model, 'module') else model
+		model_to_save.save_pretrained(model_dir)
+	print('TRAIN done!')
 
 def compute_metrics(start_logits, end_logits, features, examples):
     
@@ -76,12 +81,13 @@ def compute_metrics(start_logits, end_logits, features, examples):
     theoretical_answers = [{"id": ex["id"], "answers": ex["answers"]} for ex in examples]
     return metric.compute(predictions=predicted_answers, references=theoretical_answers)
 
-def get_pred(model, eval_dataloader, device, features, examples):
+def get_pred(eval_dataloader, device, features, examples):
+    model = AutoModelForQuestionAnswering.from_pretrained(model_dir).to(device)
+    
     model.eval()
     start_logits = []
     end_logits = []
-    # accelerator.print("Evaluation!")
-    for batch in tqdm(eval_dataloader):
+    for batch in tqdm(eval_dataloader, desc="Evaluating_pred"):
         batch = {key: value.to(device) for key, value in batch.items()}
         with torch.no_grad():
             outputs = model(**batch)
@@ -96,12 +102,14 @@ def get_pred(model, eval_dataloader, device, features, examples):
 
     return compute_metrics(start_logits, end_logits, features, examples)
 
-def get_prob(model, eval_dataloader, device, features, examples):
+def get_prob(eval_dataloader, device, features, examples):
+    model = AutoModelForQuestionAnswering.from_pretrained(model_dir).to(device)
+
     model.eval()
     start_logits = []
     end_logits = []
-    # accelerator.print("Evaluation!")
-    for batch in tqdm(eval_dataloader):
+
+    for batch in tqdm(eval_dataloader, desc="Evaluating_prob"):
         batch = {key: value.to(device) for key, value in batch.items()}
         with torch.no_grad():
             outputs = model(**batch)
@@ -160,18 +168,16 @@ def get_prob(model, eval_dataloader, device, features, examples):
     
     return prob_dict
 
-def get_prob_dropout(model, eval_dataloader, device, features, examples, n_drop=10):
-    model.train()
+def get_prob_dropout(eval_dataloader, device, features, examples, n_drop=10):
+    model = AutoModelForQuestionAnswering.from_pretrained(model_dir).to(device)
     
+    model.train()
     prob_dict = {}
-    for_check = []
     
     for i in range(n_drop):
-        
         start_logits = []
         end_logits = []
-        # accelerator.print("Evaluation!")
-        for batch in tqdm(eval_dataloader):
+        for batch in tqdm(eval_dataloader, desc="Evaluating_prob_dropout"):
             batch = {key: value.to(device) for key, value in batch.items()}
             with torch.no_grad():
                 outputs = model(**batch)
@@ -194,7 +200,6 @@ def get_prob_dropout(model, eval_dataloader, device, features, examples, n_drop=
         n = 0
         for example in tqdm(examples):
             example_id = example["id"]
-            # context = example["context"]
             answers = []
 
             # Loop through all features associated with that example
