@@ -30,7 +30,6 @@ def to_train(num_train_epochs, train_dataloader, device, model, optimizer, lr_sc
 	print('TRAIN done!')
 
 def compute_metrics(start_logits, end_logits, features, examples):
-    
     example_to_features = collections.defaultdict(list)
     max_answer_length = 30
     n_best = 20
@@ -38,7 +37,7 @@ def compute_metrics(start_logits, end_logits, features, examples):
         example_to_features[feature["example_id"]].append(idx)
 
     predicted_answers = []
-    for example in tqdm(examples):
+    for example in tqdm(examples, desc="Computing metrics"):
         example_id = example["id"]
         context = example["context"]
         answers = []
@@ -224,11 +223,11 @@ def get_prob_dropout(eval_dataloader, device, features, examples, n_drop=10):
 
                         answers.append(start_logit[start_index] + end_logit[end_index])
 
-            if 1 < len(answers) < 150: # pad to same numbers of possible answers
-                zero_list = [0] * (150 - len(answers))
+            if 1 < len(answers) < 200: # pad to same numbers of possible answers
+                zero_list = [0] * (200 - len(answers))
                 answers.extend(zero_list)
-            else:
-                answers[:150]
+            elif len(answers) >= 200:
+                answers = answers[:200]
 
             if len(answers) > 1:
                 if example_to_features[example_id][0] not in prob_dict:
