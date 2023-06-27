@@ -41,3 +41,7 @@ def get_unlabel_data(n_pool, labeled_idxs, train_dataset):
 def softmax(x):
     """Compute softmax values for each sets of scores in x."""
     return np.exp(x) / np.sum(np.exp(x), axis=0)
+
+def get_model(m):
+	if m == 'Bert':
+		return 'bert-base-uncased'

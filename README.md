@@ -1,5 +1,14 @@
 # ActiveLearning_QuestionAnswering
 
+## pretrain
+```
+  python pretrain.py \
+      -a RandomSampling \
+      -s 4000 \
+      -d SQuAD \
+      --seed 4666 \
+      -g 2
+```
 ## run
 ```
   python main.py \
