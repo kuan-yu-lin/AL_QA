@@ -185,18 +185,18 @@ while (iteration > 0):
 		# 	q_idxs = kcenter_query()
 		# elif STRATEGY_NAME == 'KCenterGreedyPCA': # not sure
 		# 	q_idxs = 
-		elif STRATEGY_NAME == 'BALDDropout':
-			q_idxs = bayesian_query()
-		elif STRATEGY_NAME == 'MeanSTD':
-			q_idxs = mean_std_query()
-		elif STRATEGY_NAME == 'BadgeSampling':
-			q_idxs = badge_query()
-		elif STRATEGY_NAME == 'LossPredictionLoss':
-			# different net!
-			q_idxs = loss_prediction_query()
-		elif STRATEGY_NAME == 'CEALSampling':
-			# why use 'CEALSampling' in STRATEGY_NAME
-			q_idxs = ceal_query()
+		# elif STRATEGY_NAME == 'BALDDropout':
+		# 	q_idxs = bayesian_query()
+		# elif STRATEGY_NAME == 'MeanSTD':
+		# 	q_idxs = mean_std_query()
+		# elif STRATEGY_NAME == 'BadgeSampling':
+		# 	q_idxs = badge_query()
+		# elif STRATEGY_NAME == 'LossPredictionLoss':
+		# 	# different net!
+		# 	q_idxs = loss_prediction_query()
+		# elif STRATEGY_NAME == 'CEALSampling':
+		# 	# why use 'CEALSampling' in STRATEGY_NAME
+		# 	q_idxs = ceal_query()
 		else:
 			raise NotImplementedError
 
