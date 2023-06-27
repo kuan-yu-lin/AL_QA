@@ -2,11 +2,12 @@ from torch.utils.data import DataLoader
 from transformers import default_data_collator
 
 import numpy as np
+import torch
 import collections
 from tqdm.auto import tqdm
 
 from utils import get_unlabel_data
-from model import get_prob, get_prob_dropout
+from model import get_prob, get_prob_dropout, get_prob_dropout_split
 
 def random_sampling_query(labeled_idxs, n):
     return np.random.choice(np.where(labeled_idxs==0)[0], n, replace=False)
@@ -183,11 +184,44 @@ def entropy_dropout_query(n_pool, labeled_idxs, train_dataset, train_features, e
     sorted_entropy_list = sorted(entropy_dict.items(), key=lambda x: x[1])
     return unlabeled_idxs[[idx for (idx, entropy) in sorted_entropy_list[:n]]]
 
-def bayesian_query():
-    pass
+def bayesian_query(n_pool, labeled_idxs, train_dataset, train_features, examples, device, n):
+    unlabeled_idxs, unlabeled_data = get_unlabel_data(n_pool, labeled_idxs, train_dataset)
+    unlabeled_features = train_features.select(unlabeled_idxs)
+    unlabeled_dataloader = DataLoader(
+      unlabeled_data,
+      shuffle=True,
+      collate_fn=default_data_collator,
+      batch_size=8,
+    )
+    # TODO: print for recording
+    print('BALD querying starts!')
+    probs = get_prob_dropout_split(unlabeled_dataloader, device, unlabeled_features, examples)
+    # TODO: print for recording
+    print('Got probability!')
+    probs_mean = probs.mean(0)
+    entropy1 = (-probs_mean*torch.log(probs_mean)).sum(1)
+    entropy2 = (-probs*torch.log(probs)).sum(2).mean(0)
+    uncertainties = entropy2 - entropy1
+    # later on, we can use batch
+    return unlabeled_idxs[uncertainties.sort()[1][:n]]
 
-def mean_std_query():
-    pass
+def mean_std_query(n_pool, labeled_idxs, train_dataset, train_features, examples, device, n):
+    unlabeled_idxs, unlabeled_data = get_unlabel_data(n_pool, labeled_idxs, train_dataset)
+    unlabeled_features = train_features.select(unlabeled_idxs)
+    unlabeled_dataloader = DataLoader(
+  		unlabeled_data,
+      shuffle=True,
+      collate_fn=default_data_collator,
+      batch_size=8,
+    )
+    # TODO: print for recording
+    print('Mean STD querying starts!')
+    probs = get_prob_dropout_split(unlabeled_dataloader, device, unlabeled_features, examples).numpy()
+    # TODO: print for recording
+    print('Got probability!')
+    sigma_c = np.std(probs, axis=0)
+    uncertainties = torch.from_numpy(np.mean(sigma_c, axis=-1)) # use tensor.sort() will sort the data and produce sorted indexes
+    return unlabeled_idxs[uncertainties.sort(descending=True)[1][:n]]
 
 def kmeans_query():
     pass
