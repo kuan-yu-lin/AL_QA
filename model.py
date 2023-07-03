@@ -3,13 +3,22 @@ import collections
 from tqdm.auto import tqdm
 import numpy as np
 import torch
-from transformers import AutoModelForQuestionAnswering
+from transformers import (
+    AutoModelForQuestionAnswering,
+    BertConfig
+)
 
 from utils import softmax
+import arguments
 
 metric = evaluate.load("squad")
 
+args_input = arguments.get_args()
+DATA_NAME = args_input.dataset_name
+NUM_INIT_LB = args_input.initseed
+
 model_dir = '/mount/arbeitsdaten31/studenten1/linku/models'
+pretrain_model_dir = model_dir + '/' + DATA_NAME + '_' + str(NUM_INIT_LB) + '_' + args_input.model
 
 def to_train(num_train_epochs, train_dataloader, device, model, optimizer, lr_scheduler, record_loss=False):
 	print('Num of train dataset:', len(train_dataloader.dataset))
@@ -83,17 +92,24 @@ def compute_metrics(start_logits, end_logits, features, examples):
     theoretical_answers = [{"id": ex["id"], "answers": ex["answers"]} for ex in examples]
     return metric.compute(predictions=predicted_answers, references=theoretical_answers)
 
-def get_pred(eval_dataloader, device, features, examples):
-    model = AutoModelForQuestionAnswering.from_pretrained(model_dir).to(device)
+def get_pred(eval_dataloader, device, features, examples, record_loss=False, rd_0=False):
+    if rd_0:
+        config = BertConfig.from_pretrained(pretrain_model_dir, output_hidden_states=True)
+    else:
+        config = BertConfig.from_pretrained(model_dir, output_hidden_states=True)
+    model = AutoModelForQuestionAnswering.from_config(config).to(device)
     
+    test_loss = []
     model.eval()
-    test_loss = 0
     start_logits = []
     end_logits = []
     for batch in tqdm(eval_dataloader, desc="Evaluating_pred"):
         batch = {key: value.to(device) for key, value in batch.items()}
         with torch.no_grad():
             outputs = model(**batch)
+            print(outputs)
+            print(outputs.loss)
+            test_loss.append(outputs.loss)
 
         start_logits.append(outputs.start_logits.cpu().numpy())
         end_logits.append(outputs.end_logits.cpu().numpy())
@@ -102,6 +118,10 @@ def get_pred(eval_dataloader, device, features, examples):
     end_logits = np.concatenate(end_logits)
     start_logits = start_logits[: len(features)]
     end_logits = end_logits[: len(features)]
+
+    if record_loss:
+        test_loss /= len(eval_dataloader.dataset)
+    print('\nTest set: Average loss: {:.4f}\n'.format(test_loss))
 
     return compute_metrics(start_logits, end_logits, features, examples)
 

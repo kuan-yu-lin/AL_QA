@@ -22,26 +22,19 @@ from model import *
 from utils import *
 from query import *
 
-model_dir = '/mount/arbeitsdaten31/studenten1/linku/models'
-
 CACHE_DIR = '/mount/arbeitsdaten31/studenten1/linku/cache'
 os.environ['TRANSFORMERS_CACHE'] = CACHE_DIR
 os.environ['HF_MODULES_CACHE'] = CACHE_DIR
 os.environ['HF_DATASETS_CACHE'] = CACHE_DIR
 
-# args_input_ALstrategy = 'RandomSampling'
-# args_input_initseed = 100 # 1000
-# args_input_quota = 100 # 1000
-# args_input_batch = 35 # 128
-# args_input_dataset_name = 'SQuAD'
-# args_input_iteration = 3
-
 args_input = arguments.get_args()
-NUM_QUERY = args_input.batch
-NUM_INIT_LB = args_input.initseed
-NUM_ROUND = int(args_input.quota / args_input.batch)
-DATA_NAME = args_input.dataset_name
+NUM_QUERY = args_input.batch # my_query_test: 35 # deepAL+: 128
+NUM_INIT_LB = args_input.initseed # my_query_test: 100 # deepAL+: 1000
+NUM_ROUND = int(args_input.quota / args_input.batch) # my_query_test: 100 / 35 # deepAL+: 1000 / 128
+DATA_NAME = args_input.dataset_name # my_query_test: 'SQuAD'
 STRATEGY_NAME = args_input.ALstrategy
+
+model_dir = '/mount/arbeitsdaten31/studenten1/linku/models'
 
 ## load data
 squad = load_dataset(DATA_NAME.lower())
@@ -103,10 +96,6 @@ acq_time = []
 while (iteration > 0): 
 	iteration = iteration - 1
 
-	## data, network, strategy
-	model = AutoModelForQuestionAnswering.from_pretrained("bert-base-uncased").to(device)
-	optimizer = AdamW(model.parameters(), lr=1e-4)
-
 	start = datetime.datetime.now()
 
 	## generate initial labeled pool
@@ -122,28 +111,11 @@ while (iteration > 0):
 	## record acc performance 
 	acc = np.zeros(NUM_ROUND + 1) # quota/batch runs + run_0
 
-	## load the selected train data to DataLoader
-	train_dataloader = DataLoader(
-		train_dataset.select(indices=run_0_labeled_idxs),
-		shuffle=True,
-		collate_fn=default_data_collator,
-		batch_size=8,
-	)
-
+	## load the selected data to DataLoader
 	eval_dataloader = DataLoader(
 		val_dataset, 
 		collate_fn=default_data_collator, 
 		batch_size=8
-	)
-
-	num_update_steps_per_epoch = len(train_dataloader)
-	num_training_steps = NUM_TRAIN_EPOCH * num_update_steps_per_epoch
-
-	lr_scheduler = get_scheduler(
-		"linear",
-		optimizer=optimizer,
-		num_warmup_steps=0,
-		num_training_steps=num_training_steps,
 	)
 
 	## print info
@@ -151,9 +123,8 @@ while (iteration > 0):
 	print(STRATEGY_NAME)
 	
 	## round 0 accuracy
-	to_train(NUM_TRAIN_EPOCH, train_dataloader, device, model, optimizer, lr_scheduler)
-
-	acc[0] = get_pred(eval_dataloader, device, val_features, squad['validation'])['f1']
+	acc[0] = get_pred(eval_dataloader, device, val_features, squad['validation'], rd_0=True)['f1']
+	# print(acc) # 77.96450701
 
 	print('Round 0\ntesting accuracy {}'.format(acc[0]))
 	print('\n')
@@ -183,8 +154,8 @@ while (iteration > 0):
 			q_idxs = bayesian_query(n_pool, labeled_idxs, train_dataset, train_features, squad['train'], device, NUM_QUERY)
 		elif STRATEGY_NAME == 'MeanSTD':
 			q_idxs = mean_std_query(n_pool, labeled_idxs, train_dataset, train_features, squad['train'], device, NUM_QUERY)
-		# elif STRATEGY_NAME == 'KMeansSampling':
-		# 	q_idxs = kmeans_query()
+		elif STRATEGY_NAME == 'KMeansSampling':
+			q_idxs = KMeans_query(n_pool, labeled_idxs, train_dataset, train_features, squad['train'], device, NUM_QUERY)
 		# elif STRATEGY_NAME == 'KCenterGreedy':
 		# 	q_idxs = kcenter_query()
 		# elif STRATEGY_NAME == 'KCenterGreedyPCA': # not sure

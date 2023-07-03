@@ -46,8 +46,10 @@ DATA_NAME = args_input.dataset_name
 ## load data
 squad = load_dataset(DATA_NAME.lower())
 # squad["train"] = squad["train"].shuffle(42).select(range(2000))
-squad["train"] = squad["train"]
-squad["validation"] = squad["validation"]
+# squad["train"] = squad["train"] # for init=4000
+# squad["validation"] = squad["validation"] for init=4000
+squad["train"] = squad["train"].select(range(4000))
+squad["validation"] = squad["validation"].select(range(1500))
 
 ## preprocess data
 train_dataset = squad["train"].map(
@@ -55,11 +57,6 @@ train_dataset = squad["train"].map(
     batched=True,
     remove_columns=squad["train"].column_names,
 )
-# train_features = squad["train"].map(
-#     preprocess_training_features,
-#     batched=True,
-#     remove_columns=squad["train"].column_names,
-# )
 val_dataset = squad["validation"].map(
     preprocess_validation_examples,
     batched=True,
@@ -72,7 +69,6 @@ val_features = squad["validation"].map(
 )
 
 train_dataset.set_format("torch")
-# train_features.set_format("torch")
 val_dataset = val_dataset.remove_columns(["offset_mapping"])
 val_dataset.set_format("torch")
 val_features.set_format("torch")
@@ -88,12 +84,6 @@ torch.manual_seed(SEED)
 ## device
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# sys.stdout = Logger(os.path.abspath('') + '/logfile/' + DATA_NAME + '_'  + STRATEGY_NAME + '_' + str(NUM_QUERY) + '_' + str(NUM_INIT_LB) +  '_' + str(1000) + '_normal_log.txt')
-# warnings.filterwarnings('ignore')
-
-## start experiment
-# iteration = args_input.iteration
-# model_batch = args_input.model_batch
 NUM_TRAIN_EPOCH = args_input.train_epochs
 model_name = get_model(args_input.model)
 
@@ -112,9 +102,6 @@ np.random.shuffle(tmp_idxs)
 labeled_idxs[tmp_idxs[:NUM_INIT_LB]] = True
 
 run_0_labeled_idxs = np.arange(n_pool)[labeled_idxs]
-
-# ## record acc performance 
-# acc = np.zeros(NUM_ROUND + 1) # quota/batch runs + run_0
 
 ## load the selected train data to DataLoader
 train_dataloader = DataLoader(
@@ -146,7 +133,7 @@ print(DATA_NAME)
 ## round 0 accuracy
 to_train(NUM_TRAIN_EPOCH, train_dataloader, device, model, optimizer, lr_scheduler, record_loss=True)
 
-acc = get_pred(eval_dataloader, device, val_features, squad['validation'])['f1']
+acc = get_pred(eval_dataloader, device, val_features, squad['validation'], record_loss=True)['f1']
 print('\nTest set: F1 score: {:.4f}\n'.format(acc))
 
 ## save model and record acq time

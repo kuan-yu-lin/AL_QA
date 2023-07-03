@@ -1,9 +1,11 @@
 from transformers import AutoTokenizer
+import arguments
 
 # load tokenizer for dataset preprocessing
 tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
 
-max_length = 384
+args_input = arguments.get_args()
+MAX_LENGTH = args_input.max_length
 stride = 128
 
 def preprocess_training_examples(examples):
@@ -12,7 +14,7 @@ def preprocess_training_examples(examples):
     inputs = tokenizer(
         questions,
         examples["context"],
-        max_length=max_length,
+        max_length=MAX_LENGTH,
         truncation="only_second",
         stride=stride,
         return_overflowing_tokens=True,
@@ -71,7 +73,7 @@ def preprocess_training_features(examples):
     inputs = tokenizer(
         questions,
         examples["context"],
-        max_length=max_length,
+        max_length=MAX_LENGTH,
         truncation="only_second",
         stride=stride,
         return_overflowing_tokens=True,
@@ -130,7 +132,7 @@ def preprocess_validation_examples(examples):
     inputs = tokenizer(
         questions,
         examples["context"],
-        max_length=max_length,
+        max_length=MAX_LENGTH,
         truncation="only_second",
         stride=stride,
         return_overflowing_tokens=True,
