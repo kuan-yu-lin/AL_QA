@@ -103,10 +103,6 @@ acq_time = []
 while (iteration > 0): 
 	iteration = iteration - 1
 
-	## data, network, strategy
-	model = AutoModelForQuestionAnswering.from_pretrained("bert-base-uncased").to(device)
-	optimizer = AdamW(model.parameters(), lr=1e-4)
-
 	start = datetime.datetime.now()
 
 	## generate initial labeled pool
@@ -122,7 +118,7 @@ while (iteration > 0):
 	## record acc performance 
 	acc = np.zeros(NUM_ROUND + 1) # quota/batch runs + run_0
 
-	## load the selected train data to DataLoader
+	## load the selected data to DataLoader
 	train_dataloader = DataLoader(
 		train_dataset.select(indices=run_0_labeled_idxs),
 		shuffle=True,
@@ -139,6 +135,9 @@ while (iteration > 0):
 	num_update_steps_per_epoch = len(train_dataloader)
 	num_training_steps = NUM_TRAIN_EPOCH * num_update_steps_per_epoch
 
+	## data, network, strategy
+	model = AutoModelForQuestionAnswering.from_pretrained("bert-base-uncased").to(device)
+	optimizer = AdamW(model.parameters(), lr=1e-4)
 	lr_scheduler = get_scheduler(
 		"linear",
 		optimizer=optimizer,
