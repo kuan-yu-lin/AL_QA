@@ -5,9 +5,10 @@ import numpy as np
 import torch
 import collections
 from tqdm.auto import tqdm
+from sklearn.cluster import KMeans
 
 from utils import get_unlabel_data
-from model import get_prob, get_prob_dropout, get_prob_dropout_split
+from model import get_prob, get_prob_dropout, get_prob_dropout_split, get_embeddings
 
 def random_sampling_query(labeled_idxs, n):
     return np.random.choice(np.where(labeled_idxs==0)[0], n, replace=False)
@@ -193,10 +194,8 @@ def bayesian_query(n_pool, labeled_idxs, train_dataset, train_features, examples
       collate_fn=default_data_collator,
       batch_size=8,
     )
-    # TODO: print for recording
     print('BALD querying starts!')
     probs = get_prob_dropout_split(unlabeled_dataloader, device, unlabeled_features, examples)
-    # TODO: print for recording
     print('Got probability!')
     probs_mean = probs.mean(0)
     entropy1 = (-probs_mean*torch.log(probs_mean)).sum(1)
@@ -214,17 +213,36 @@ def mean_std_query(n_pool, labeled_idxs, train_dataset, train_features, examples
       collate_fn=default_data_collator,
       batch_size=8,
     )
-    # TODO: print for recording
     print('Mean STD querying starts!')
     probs = get_prob_dropout_split(unlabeled_dataloader, device, unlabeled_features, examples).numpy()
-    # TODO: print for recording
     print('Got probability!')
     sigma_c = np.std(probs, axis=0)
     uncertainties = torch.from_numpy(np.mean(sigma_c, axis=-1)) # use tensor.sort() will sort the data and produce sorted indexes
     return unlabeled_idxs[uncertainties.sort(descending=True)[1][:n]]
 
-def kmeans_query():
-    pass
+def kmeans_query(n_pool, labeled_idxs, train_dataset, train_features, examples, device, n, rd):
+    unlabeled_idxs, unlabeled_data = get_unlabel_data(n_pool, labeled_idxs, train_dataset)
+    unlabeled_features = train_features.select(unlabeled_idxs)
+    unlabeled_dataloader = DataLoader(
+  		unlabeled_data,
+      shuffle=True,
+      collate_fn=default_data_collator,
+      batch_size=8,
+    )
+    print('KMean querying starts!')
+    embeddings = get_embeddings(unlabeled_dataloader, device, unlabeled_features, examples, rd=1)
+    print('Got embeddings!')
+    embeddings = embeddings.numpy()
+
+    cluster_learner = KMeans(n_clusters=n)
+    cluster_learner.fit(embeddings)
+    cluster_idxs = cluster_learner.predict(embeddings)
+    centers = cluster_learner.cluster_centers_[cluster_idxs]
+    dis = (embeddings - centers)**2
+    dis = dis.sum(axis=1)
+    q_idxs = np.array([np.arange(embeddings.shape[0])[cluster_idxs==i][dis[cluster_idxs==i].argmin()] for i in range(n)])
+
+    return unlabeled_idxs[q_idxs]
 
 def kcenter_query():
     pass

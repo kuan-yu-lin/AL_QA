@@ -331,3 +331,37 @@ def get_prob_dropout_split(eval_dataloader, device, features, examples, n_drop=1
                 probs[i][feature_index] += torch.tensor(softmax(answers))
 
     return probs
+
+def get_embeddings(eval_dataloader, device, features, examples, rd):
+    if rd == 1:
+        config = BertConfig.from_pretrained(pretrain_model_dir, output_hidden_states=True)
+    else: 
+        config = BertConfig.from_pretrained(model_dir, output_hidden_states=True)
+    model = AutoModelForQuestionAnswering.from_config(config).to(device)
+
+    model.eval()
+    embeddings = torch.zeros([len(eval_dataloader.dataset), model.config.to_dict()['hidden_size']])
+    idxs_start = 0
+
+    for batch in tqdm(eval_dataloader, desc="Evaluating_prob"):
+        batch = {key: value.to(device) for key, value in batch.items()}
+        with torch.no_grad():
+            outputs = model(**batch)
+            # print('len_output:', len(outputs)) # 4
+            # print('outputs:', outputs) # (loss, start_logits, end_logits, hidden_states)
+
+        hidden_states = outputs.hidden_states
+        # print('len_hidden_states:', len(hidden_states)) # 13 # each one has: (batch_size, sequence_length, hidden_size)
+        # # hidden_states[0] -> last hidden states
+        # print('len_hidden_states[0]:', len(hidden_states[0])) # 8, 8, 4
+        # print('len_hidden_states[0][0]:', len(hidden_states[0][0])) # 384, 384, 384 # tokens in each sequence
+        # print('len_hidden_states[0][0][0]:', len(hidden_states[0][0][0])) # 768, 768, 768 # number of hidden units
+        # print('hidden_states:', hidden_states) 
+
+        embedding_of_last_layer = hidden_states[0][:, 1, :] # [:, 0, :] -> to get [cls], but all the same
+        # print(embedding_of_last_layer[0][0])
+        idxs_end = idxs_start + len(hidden_states[0])
+        embeddings[idxs_start:idxs_end] = embedding_of_last_layer.cpu()
+        idxs_start = idxs_end
+        
+    return embeddings
