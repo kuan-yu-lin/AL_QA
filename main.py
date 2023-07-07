@@ -156,10 +156,10 @@ while (iteration > 0):
 			q_idxs = mean_std_query(n_pool, labeled_idxs, train_dataset, train_features, squad['train'], device, NUM_QUERY)
 		elif STRATEGY_NAME == 'KMeansSampling':
 			q_idxs = kmeans_query(n_pool, labeled_idxs, train_dataset, train_features, squad['train'], device, NUM_QUERY, rd)
-		# elif STRATEGY_NAME == 'KCenterGreedy':
-		# 	q_idxs = kcenter_query()
-		# elif STRATEGY_NAME == 'KCenterGreedyPCA': # not sure
-		# 	q_idxs = 
+		elif STRATEGY_NAME == 'KCenterGreedy':
+			q_idxs = kcenter_greedy_query(n_pool, labeled_idxs, train_dataset, train_features, squad['train'], device, NUM_QUERY, rd)
+		elif STRATEGY_NAME == 'KCenterGreedyPCA': # not sure
+			q_idxs = kcenter_greedy_PCA_query((n_pool, labeled_idxs, train_dataset, train_features, squad['train'], device, NUM_QUERY, rd))
 		# elif STRATEGY_NAME == 'BadgeSampling':
 		# 	q_idxs = badge_query()
 		# elif STRATEGY_NAME == 'LossPredictionLoss':

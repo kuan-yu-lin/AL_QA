@@ -6,6 +6,7 @@ import torch
 import collections
 from tqdm.auto import tqdm
 from sklearn.cluster import KMeans
+from sklearn.decomposition import PCA
 
 from utils import get_unlabel_data
 from model import get_prob, get_prob_dropout, get_prob_dropout_split, get_embeddings
@@ -244,8 +245,109 @@ def kmeans_query(n_pool, labeled_idxs, train_dataset, train_features, examples, 
 
     return unlabeled_idxs[q_idxs]
 
-def kcenter_query():
-    pass
+def kcenter_greedy_query(n_pool, labeled_idxs, train_dataset, train_features, examples, device, n, rd):
+    # deepAL+: labeled_idxs, train_data = self.dataset.get_train_data()
+    labeled_idxs_in_query = labeled_idxs.copy()
+    # train_data = train_dataset
+    train_dataloader = DataLoader(
+      train_dataset,
+      shuffle=True,
+      collate_fn=default_data_collator,
+      batch_size=8,
+    )
+    # deepAL+: embeddings = self.get_embeddings(train_data)
+    embeddings = get_embeddings(train_dataloader, device, train_features, examples, rd)
+    # deepAL+: embeddings = embeddings.numpy()
+    embeddings = embeddings.numpy()
+    # deepAL+: dist_mat = np.matmul(embeddings, embeddings.transpose())
+    dist_mat = np.matmul(embeddings, embeddings.transpose())
+    # deepAL+: sq = np.array(dist_mat.diagonal()).reshape(len(labeled_idxs), 1)
+    sq = np.array(dist_mat.diagonal()).reshape(len(labeled_idxs_in_query), 1)
+    # deepAL+: dist_mat *= -2
+    dist_mat *= -2
+    # deepAL+: dist_mat += sq
+    dist_mat += sq
+    # deepAL+: dist_mat += sq.transpose()
+    dist_mat += sq.transpose()
+    # deepAL+: dist_mat = np.sqrt(dist_mat)
+    dist_mat = np.sqrt(dist_mat)
+
+    # deepAL+: mat = dist_mat[~labeled_idxs, :][:, labeled_idxs]
+    mat = dist_mat[~labeled_idxs_in_query, :][:, labeled_idxs_in_query]
+
+    # deepAL+: for i in tqdm(range(n), ncols=100):
+    for i in tqdm(range(n), ncols=100):
+    # deepAL+:     mat_min = mat.min(axis=1)
+        mat_min = mat.min(axis=1)
+    # deepAL+:     q_idx_ = mat_min.argmax()
+        q_idx_ = mat_min.argmax()
+    # deepAL+:     q_idx = np.arange(self.dataset.n_pool)[~labeled_idxs][q_idx_]
+        q_idx = np.arange(n_pool)[~labeled_idxs_in_query][q_idx_]
+    # deepAL+:     labeled_idxs[q_idx] = True
+        labeled_idxs_in_query[q_idx] = True
+    # deepAL+:     mat = np.delete(mat, q_idx_, 0)
+        mat = np.delete(mat, q_idx_, 0)
+    # deepAL+:     mat = np.append(mat, dist_mat[~labeled_idxs, q_idx][:, None], axis=1)
+        mat = np.append(mat, dist_mat[~labeled_idxs_in_query, q_idx][:, None], axis=1)
+        
+    # deepAL+: return np.arange(self.dataset.n_pool)[(self.dataset.labeled_idxs ^ labeled_idxs)]
+    return np.arange(n_pool)[(labeled_idxs ^ labeled_idxs_in_query)]
+
+def kcenter_greedy_PCA_query(n_pool, labeled_idxs, train_dataset, train_features, examples, device, n, rd):
+    # deepAL+: labeled_idxs, train_data = self.dataset.get_train_data()
+    labeled_idxs_in_query = labeled_idxs.copy()
+    # train_data = train_dataset
+    train_dataloader = DataLoader(
+      train_dataset,
+      shuffle=True,
+      collate_fn=default_data_collator,
+      batch_size=8,
+    )
+    # deepAL+: embeddings = self.get_embeddings(train_data)
+    embeddings = get_embeddings(train_dataloader, device, train_features, examples, rd)
+    # deepAL+: embeddings = embeddings.numpy()
+    embeddings = embeddings.numpy()
+    # deepAL+: dist_mat = np.matmul(embeddings, embeddings.transpose())
+    dist_mat = np.matmul(embeddings, embeddings.transpose())
+
+    # deepAL+: downsampling embeddings if feature dim > 50
+    # deepAL+: 
+    if len(embeddings[0]) > 50:
+        pca = PCA(n_components=50)
+        embeddings = pca.fit_transform(embeddings)
+    embeddings = embeddings.astype(np.float16)
+
+    # deepAL+: sq = np.array(dist_mat.diagonal()).reshape(len(labeled_idxs), 1)
+    sq = np.array(dist_mat.diagonal()).reshape(len(labeled_idxs_in_query), 1)
+    # deepAL+: dist_mat *= -2
+    dist_mat *= -2
+    # deepAL+: dist_mat += sq
+    dist_mat += sq
+    # deepAL+: dist_mat += sq.transpose()
+    dist_mat += sq.transpose()
+    # deepAL+: dist_mat = np.sqrt(dist_mat)
+    dist_mat = np.sqrt(dist_mat)
+
+    # deepAL+: mat = dist_mat[~labeled_idxs, :][:, labeled_idxs]
+    mat = dist_mat[~labeled_idxs_in_query, :][:, labeled_idxs_in_query]
+
+    # deepAL+: for i in tqdm(range(n), ncols=100):
+    for i in tqdm(range(n), ncols=100):
+    # deepAL+:     mat_min = mat.min(axis=1)
+        mat_min = mat.min(axis=1)
+    # deepAL+:     q_idx_ = mat_min.argmax()
+        q_idx_ = mat_min.argmax()
+    # deepAL+:     q_idx = np.arange(self.dataset.n_pool)[~labeled_idxs][q_idx_]
+        q_idx = np.arange(n_pool)[~labeled_idxs_in_query][q_idx_]
+    # deepAL+:     labeled_idxs[q_idx] = True
+        labeled_idxs_in_query[q_idx] = True
+    # deepAL+:     mat = np.delete(mat, q_idx_, 0)
+        mat = np.delete(mat, q_idx_, 0)
+    # deepAL+:     mat = np.append(mat, dist_mat[~labeled_idxs, q_idx][:, None], axis=1)
+        mat = np.append(mat, dist_mat[~labeled_idxs_in_query, q_idx][:, None], axis=1)
+        
+    # deepAL+: return np.arange(self.dataset.n_pool)[(self.dataset.labeled_idxs ^ labeled_idxs)]
+    return np.arange(n_pool)[(labeled_idxs ^ labeled_idxs_in_query)]
 
 def badge_query():
     pass
