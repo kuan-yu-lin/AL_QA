@@ -22,7 +22,6 @@ def margin_sampling_query(n_pool, labeled_idxs, train_dataset, train_features, e
                                       collate_fn=default_data_collator,
                                       batch_size=8,
                                     )
-    # TODO: print for recording
     print('Margin querying starts!')
     prob_dict = get_prob(unlabeled_dataloader, device, unlabeled_features, examples)
     # TODO: print for recording
