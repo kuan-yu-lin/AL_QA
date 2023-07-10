@@ -29,23 +29,18 @@ os.environ['TRANSFORMERS_CACHE'] = CACHE_DIR
 os.environ['HF_MODULES_CACHE'] = CACHE_DIR
 os.environ['HF_DATASETS_CACHE'] = CACHE_DIR
 
-# args_input_ALstrategy = 'RandomSampling'
-# args_input_initseed = 100 # 1000
-# args_input_quota = 100 # 1000
-# args_input_batch = 35 # 128
-# args_input_dataset_name = 'SQuAD'
-# args_input_iteration = 3
-
 args_input = arguments.get_args()
 NUM_QUERY = args_input.batch
 NUM_INIT_LB = args_input.initseed
 NUM_ROUND = int(args_input.quota / args_input.batch)
 DATA_NAME = args_input.dataset_name
 STRATEGY_NAME = args_input.ALstrategy
+strategy_model_dir = model_dir + '/' + DATA_NAME + '_'  + STRATEGY_NAME + '_' + str(NUM_QUERY) + '_' + str(NUM_INIT_LB) +  '_' + str(args_input.quota)
 
 ## load data
 squad = load_dataset(DATA_NAME.lower())
-# squad["train"] = squad["train"].shuffle(42).select(range(2000))
+# squad["train"] = squad["train"].select(range(60000))
+# squad["validation"] = squad["validation"].select(range(10000))
 squad["train"] = squad["train"].select(range(4000))
 squad["validation"] = squad["validation"].select(range(1500))
 
@@ -117,6 +112,7 @@ while (iteration > 0):
 
 	## record acc performance 
 	acc = np.zeros(NUM_ROUND + 1) # quota/batch runs + run_0
+	acc_em = np.zeros(NUM_ROUND + 1)
 
 	## load the selected data to DataLoader
 	train_dataloader = DataLoader(
@@ -135,9 +131,10 @@ while (iteration > 0):
 	num_update_steps_per_epoch = len(train_dataloader)
 	num_training_steps = NUM_TRAIN_EPOCH * num_update_steps_per_epoch
 
-	## data, network, strategy
+	## network
 	model = AutoModelForQuestionAnswering.from_pretrained("bert-base-uncased").to(device)
 	optimizer = AdamW(model.parameters(), lr=1e-4)
+
 	lr_scheduler = get_scheduler(
 		"linear",
 		optimizer=optimizer,
@@ -152,9 +149,16 @@ while (iteration > 0):
 	## round 0 accuracy
 	to_train(NUM_TRAIN_EPOCH, train_dataloader, device, model, optimizer, lr_scheduler)
 
-	acc[0] = get_pred(eval_dataloader, device, val_features, squad['validation'])['f1']
+	print('rd_0 get_pred!')
+	
+	acc_scores_0 = get_pred(eval_dataloader, device, val_features, squad['validation'], rd=1)
+	acc[0] = acc_scores_0['f1']
+	acc_em[0] = acc_scores_0['exact_match']
 
 	print('Round 0\ntesting accuracy {}'.format(acc[0]))
+	print('testing accuracy em {}'.format(acc_em[0]))
+	time = datetime.datetime.now()
+	print('Time spent so far:', (time - start))
 	print('\n')
 	
 	## round 1 to rd
@@ -165,23 +169,23 @@ while (iteration > 0):
 		if STRATEGY_NAME == 'RandomSampling':
 			q_idxs = random_sampling_query(labeled_idxs, NUM_QUERY)
 		elif STRATEGY_NAME == 'MarginSampling':
-			q_idxs = margin_sampling_query(n_pool, labeled_idxs, train_dataset, train_features, squad['train'], device, NUM_QUERY)
+			q_idxs = margin_sampling_query(n_pool, labeled_idxs, train_dataset, train_features, squad['train'], device, NUM_QUERY, rd)
 		elif STRATEGY_NAME == 'LeastConfidence':
 			q_idxs = least_confidence_query(n_pool, labeled_idxs, train_dataset, train_features, squad['train'], device, NUM_QUERY)
 		elif STRATEGY_NAME == 'EntropySampling':
 			q_idxs = entropy_query(n_pool, labeled_idxs, train_dataset, train_features, squad['train'], device, NUM_QUERY)
-		elif STRATEGY_NAME == 'MarginSamplingDropout':
-			q_idxs = margin_sampling_dropout_query(n_pool, labeled_idxs, train_dataset, train_features, squad['train'], device, NUM_QUERY)
-		elif STRATEGY_NAME == 'LeastConfidenceDropout':
-			q_idxs = least_confidence_dropout_query(n_pool, labeled_idxs, train_dataset, train_features, squad['train'], device, NUM_QUERY)
-		elif STRATEGY_NAME == 'EntropySamplingDropout':
-			q_idxs = entropy_dropout_query(n_pool, labeled_idxs, train_dataset, train_features, squad['train'], device, NUM_QUERY)
-		elif STRATEGY_NAME == 'VarRatio':
-			q_idxs = var_ratio_query(n_pool, labeled_idxs, train_dataset, train_features, squad['train'], device, NUM_QUERY)
-		elif STRATEGY_NAME == 'BALDDropout':
-			q_idxs = bayesian_query(n_pool, labeled_idxs, train_dataset, train_features, squad['train'], device, NUM_QUERY)
-		elif STRATEGY_NAME == 'MeanSTD':
-			q_idxs = mean_std_query(n_pool, labeled_idxs, train_dataset, train_features, squad['train'], device, NUM_QUERY)
+		# elif STRATEGY_NAME == 'MarginSamplingDropout':
+		# 	q_idxs = margin_sampling_dropout_query(n_pool, labeled_idxs, train_dataset, train_features, squad['train'], device, NUM_QUERY)
+		# elif STRATEGY_NAME == 'LeastConfidenceDropout':
+		# 	q_idxs = least_confidence_dropout_query(n_pool, labeled_idxs, train_dataset, train_features, squad['train'], device, NUM_QUERY)
+		# elif STRATEGY_NAME == 'EntropySamplingDropout':
+		# 	q_idxs = entropy_dropout_query(n_pool, labeled_idxs, train_dataset, train_features, squad['train'], device, NUM_QUERY)
+		# elif STRATEGY_NAME == 'VarRatio':
+		# 	q_idxs = var_ratio_query(n_pool, labeled_idxs, train_dataset, train_features, squad['train'], device, NUM_QUERY)
+		# elif STRATEGY_NAME == 'BALDDropout':
+		# 	q_idxs = bayesian_query(n_pool, labeled_idxs, train_dataset, train_features, squad['train'], device, NUM_QUERY)
+		# elif STRATEGY_NAME == 'MeanSTD':
+		# 	q_idxs = mean_std_query(n_pool, labeled_idxs, train_dataset, train_features, squad['train'], device, NUM_QUERY)
 		# elif STRATEGY_NAME == 'KMeansSampling':
 		# 	q_idxs = kmeans_query()
 		# elif STRATEGY_NAME == 'KCenterGreedy':
@@ -213,22 +217,28 @@ while (iteration > 0):
 		num_update_steps_per_epoch_rd = len(train_dataloader_rd)
 		num_training_steps_rd = NUM_TRAIN_EPOCH * num_update_steps_per_epoch_rd
 
+		model_rd = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir).to(device)
+		optimizer_rd = AdamW(model_rd.parameters(), lr=1e-4)
+
 		lr_scheduler_rd = get_scheduler(
 			"linear",
-			optimizer=optimizer,
+			optimizer=optimizer_rd,
 			num_warmup_steps=0,
 			num_training_steps=num_training_steps_rd,
 		)
-
-		model_rd = AutoModelForQuestionAnswering.from_pretrained(model_dir).to(device)
-		optimizer_rd = AdamW(model_rd.parameters(), lr=1e-4)
 
 		## train
 		to_train(NUM_TRAIN_EPOCH, train_dataloader_rd, device, model_rd, optimizer_rd, lr_scheduler_rd)
 
 		## round rd accuracy
-		acc[rd] = get_pred(eval_dataloader, device, val_features, squad['validation'])['f1']
+		print('rd_{} get_pred!'.format(rd))
+		acc_scores_rd = get_pred(eval_dataloader, device, val_features, squad['validation'], rd)
+		acc[rd] = acc_scores_rd['f1']
+		acc_em[rd] = acc_scores_rd['exact_match']
 		print('testing accuracy {}'.format(acc[rd]))
+		print('testing accuracy em {}'.format(acc_em[rd]))
+		print('Time spent so far:', (datetime.datetime.now() - time))
+		time = datetime.datetime.now()
 		print('\n')
 
 		torch.cuda.empty_cache()
@@ -241,7 +251,7 @@ while (iteration > 0):
 	
 	## save model and record acq time
 	timestamp = re.sub('\.[0-9]*','_',str(datetime.datetime.now())).replace(" ", "_").replace("-", "").replace(":","")
-	final_model_dir = model_dir + '/' + timestamp + DATA_NAME+ '_'  + STRATEGY_NAME + '_' + str(NUM_QUERY) + '_' + str(NUM_INIT_LB) +  '_' + str(args_input.quota)
+	final_model_dir = model_dir + '/' + timestamp + DATA_NAME + '_'  + STRATEGY_NAME + '_' + str(NUM_QUERY) + '_' + str(NUM_INIT_LB) +  '_' + str(args_input.quota)
 	os.makedirs(final_model_dir, exist_ok=True)
 	end = datetime.datetime.now()
 	acq_time.append(round(float((end-start).seconds), 3))

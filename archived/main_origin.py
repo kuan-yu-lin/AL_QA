@@ -1,8 +1,3 @@
-#######################
-# test random to dropout
-# delete shuffle in query
-# 
-
 from datasets import load_dataset
 from transformers import (
 	default_data_collator,
@@ -44,10 +39,10 @@ strategy_model_dir = model_dir + '/' + DATA_NAME + '_'  + STRATEGY_NAME + '_' + 
 
 ## load data
 squad = load_dataset(DATA_NAME.lower())
-# squad["train"] = squad["train"].select(range(60000))
-# squad["validation"] = squad["validation"].select(range(10000))
-squad["train"] = squad["train"].select(range(4000))
-squad["validation"] = squad["validation"].select(range(1500))
+squad["train"] = squad["train"].select(range(60000))
+squad["validation"] = squad["validation"].select(range(10000))
+# squad["train"] = squad["train"].select(range(4000))
+# squad["validation"] = squad["validation"].select(range(1500))
 
 ## preprocess data
 train_dataset = squad["train"].map(

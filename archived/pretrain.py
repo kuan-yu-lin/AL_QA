@@ -18,7 +18,7 @@ import datetime
 
 import arguments
 from preprocess import *
-from model import *
+from model_origin import *
 from utils import *
 # from query import *
 
@@ -28,13 +28,6 @@ CACHE_DIR = '/mount/arbeitsdaten31/studenten1/linku/cache'
 os.environ['TRANSFORMERS_CACHE'] = CACHE_DIR
 os.environ['HF_MODULES_CACHE'] = CACHE_DIR
 os.environ['HF_DATASETS_CACHE'] = CACHE_DIR
-
-# args_input_ALstrategy = 'RandomSampling'
-# args_input_initseed = 100 # 1000
-# args_input_quota = 100 # 1000
-# args_input_batch = 35 # 128
-# args_input_dataset_name = 'SQuAD'
-# args_input_iteration = 3
 
 args_input = arguments.get_args()
 # NUM_QUERY = args_input.batch
@@ -133,8 +126,10 @@ print(DATA_NAME)
 ## round 0 accuracy
 to_train(NUM_TRAIN_EPOCH, train_dataloader, device, model, optimizer, lr_scheduler, record_loss=True)
 
-acc = get_pred(eval_dataloader, device, val_features, squad['validation'], record_loss=True)['f1']
-print('\nTest set: F1 score: {:.4f}\n'.format(acc))
+acc_scores = get_pred(eval_dataloader, device, val_features, squad['validation'])
+
+print('Round 0\ntesting accuracy {}'.format(acc_scores['f1']))
+print('testing accuracy em {}'.format(acc_scores['exact_match']))
 
 ## save model and record acq time
 timestamp = re.sub('\.[0-9]*','_',str(datetime.datetime.now())).replace(" ", "_").replace("-", "").replace(":","")

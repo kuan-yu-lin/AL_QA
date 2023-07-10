@@ -9,21 +9,21 @@ from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 
 from utils import get_unlabel_data, init_centers
-from model_origin import get_prob, get_prob_dropout, get_prob_dropout_split, get_embeddings, get_grad_embeddings
+from model import get_prob, get_prob_dropout, get_prob_dropout_split, get_embeddings, get_grad_embeddings
 
 def random_sampling_query(labeled_idxs, n):
     return np.random.choice(np.where(labeled_idxs==0)[0], n, replace=False)
 
-def margin_sampling_query(n_pool, labeled_idxs, train_dataset, train_features, examples, device, n):
+def margin_sampling_query(n_pool, labeled_idxs, train_dataset, train_features, examples, device, n, rd):
     unlabeled_idxs, unlabeled_data = get_unlabel_data(n_pool, labeled_idxs, train_dataset)
     unlabeled_features = train_features.select(unlabeled_idxs)
-    unlabeled_dataloader = DataLoader(
-		unlabeled_data,
-		collate_fn=default_data_collator,
-		batch_size=8,
-	)
+    unlabeled_dataloader = DataLoader(unlabeled_data,
+                                      shuffle=False,
+                                      collate_fn=default_data_collator,
+                                      batch_size=8,
+                                    )
     print('Margin querying starts!')
-    prob_dict = get_prob(unlabeled_dataloader, device, unlabeled_features, examples)
+    prob_dict = get_prob(unlabeled_dataloader, device, unlabeled_features, examples, rd)
     print('Got probability!')
     uncertainties_dict = {}
     for idx, probs in prob_dict.items():
@@ -36,17 +36,16 @@ def margin_sampling_query(n_pool, labeled_idxs, train_dataset, train_features, e
     sorted_uncertainties_list = sorted(uncertainties_dict.items(), key=lambda x: x[1], reverse=True)
     return unlabeled_idxs[[idx for (idx, uncertainties) in sorted_uncertainties_list[:n]]]
 
-def least_confidence_query(n_pool, labeled_idxs, train_dataset, train_features, examples, device, n):
+def least_confidence_query(n_pool, labeled_idxs, train_dataset, train_features, examples, device, n, rd):
     unlabeled_idxs, unlabeled_data = get_unlabel_data(n_pool, labeled_idxs, train_dataset)
     unlabeled_features = train_features.select(unlabeled_idxs)
-    unlabeled_dataloader = DataLoader(
-		unlabeled_data,
-		collate_fn=default_data_collator,
-		batch_size=8,
-	)
-
+    unlabeled_dataloader = DataLoader(unlabeled_data,
+                                      shuffle=False,
+                                      collate_fn=default_data_collator,
+                                      batch_size=8,
+                                    )
     print('LC querying starts!')
-    prob_dict = get_prob(unlabeled_dataloader, device, unlabeled_features, examples)
+    prob_dict = get_prob(unlabeled_dataloader, device, unlabeled_features, examples, rd)
     print('Got probability!')
 
     confidence_dict = {}
@@ -59,18 +58,16 @@ def least_confidence_query(n_pool, labeled_idxs, train_dataset, train_features, 
     sorted_confidence_list = sorted(confidence_dict.items(), key=lambda x: x[1])
     return unlabeled_idxs[[idx for (idx, confidence) in sorted_confidence_list[:n]]]
 
-def var_ratio_query(n_pool, labeled_idxs, train_dataset, train_features, examples, device, n):
+def var_ratio_query(n_pool, labeled_idxs, train_dataset, train_features, examples, device, n, rd):
     unlabeled_idxs, unlabeled_data = get_unlabel_data(n_pool, labeled_idxs, train_dataset)
     unlabeled_features = train_features.select(unlabeled_idxs)
-    unlabeled_dataloader = DataLoader(
-		unlabeled_data,
-		collate_fn=default_data_collator,
-		batch_size=8,
-	)
-    # TODO: print for recording
+    unlabeled_dataloader = DataLoader(unlabeled_data,
+                                      shuffle=False,
+                                      collate_fn=default_data_collator,
+                                      batch_size=8,
+                                    )
     print('Var Ratio querying starts!')
-    prob_dict = get_prob(unlabeled_dataloader, device, unlabeled_features, examples)
-    # TODO: print for recording
+    prob_dict = get_prob(unlabeled_dataloader, device, unlabeled_features, examples, rd)
     print('Got probability!')
     confidence_dict = {}
     for idx, probs in prob_dict.items():
@@ -82,18 +79,16 @@ def var_ratio_query(n_pool, labeled_idxs, train_dataset, train_features, example
     sorted_confidence_list = sorted(confidence_dict.items(), key=lambda x: x[1], reverse=True)
     return unlabeled_idxs[[idx for (idx, confidence) in sorted_confidence_list[:n]]]
 
-def entropy_query(n_pool, labeled_idxs, train_dataset, train_features, examples, device, n):
+def entropy_query(n_pool, labeled_idxs, train_dataset, train_features, examples, device, n, rd):
     unlabeled_idxs, unlabeled_data = get_unlabel_data(n_pool, labeled_idxs, train_dataset)
     unlabeled_features = train_features.select(unlabeled_idxs)
-    unlabeled_dataloader = DataLoader(
-		unlabeled_data,
-		collate_fn=default_data_collator,
-		batch_size=8,
-	)
-    # TODO: print for recording
+    unlabeled_dataloader = DataLoader(unlabeled_data,
+                                      shuffle=False,
+                                      collate_fn=default_data_collator,
+                                      batch_size=8,
+                                    )
     print('Entropy querying starts!')
-    prob_dict = get_prob(unlabeled_dataloader, device, unlabeled_features, examples)
-    # TODO: print for recording
+    prob_dict = get_prob(unlabeled_dataloader, device, unlabeled_features, examples, rd)
     print('Got probability!')
     entropy_dict = {}
     for idx, probs in prob_dict.items():
@@ -105,18 +100,16 @@ def entropy_query(n_pool, labeled_idxs, train_dataset, train_features, examples,
     sorted_entropy_list = sorted(entropy_dict.items(), key=lambda x: x[1])
     return unlabeled_idxs[[idx for (idx, entropy) in sorted_entropy_list[:n]]]
 
-def margin_sampling_dropout_query(n_pool, labeled_idxs, train_dataset, train_features, examples, device, n):
+def margin_sampling_dropout_query(n_pool, labeled_idxs, train_dataset, train_features, examples, device, n, rd):
     unlabeled_idxs, unlabeled_data = get_unlabel_data(n_pool, labeled_idxs, train_dataset)
     unlabeled_features = train_features.select(unlabeled_idxs)
-    unlabeled_dataloader = DataLoader(
-		unlabeled_data,
-		collate_fn=default_data_collator,
-		batch_size=8,
-	)
-    # TODO: print for recording
+    unlabeled_dataloader = DataLoader(unlabeled_data,
+                                      shuffle=False,
+                                      collate_fn=default_data_collator,
+                                      batch_size=8,
+                                    )
     print('Margin dropout querying starts!')
-    prob_dict = get_prob_dropout(unlabeled_dataloader, device, unlabeled_features, examples)
-    # TODO: print for recording
+    prob_dict = get_prob_dropout(unlabeled_dataloader, device, unlabeled_features, examples, rd)
     print('Got probability!')
     uncertainties_dict = {}
     for idx, probs in prob_dict.items():
@@ -129,18 +122,16 @@ def margin_sampling_dropout_query(n_pool, labeled_idxs, train_dataset, train_fea
     sorted_uncertainties_list = sorted(uncertainties_dict.items(), key=lambda x: x[1], reverse=True)
     return unlabeled_idxs[[idx for (idx, uncertainties) in sorted_uncertainties_list[:n]]]
 
-def least_confidence_dropout_query(n_pool, labeled_idxs, train_dataset, train_features, examples, device, n):
+def least_confidence_dropout_query(n_pool, labeled_idxs, train_dataset, train_features, examples, device, n, rd):
     unlabeled_idxs, unlabeled_data = get_unlabel_data(n_pool, labeled_idxs, train_dataset)
     unlabeled_features = train_features.select(unlabeled_idxs)
-    unlabeled_dataloader = DataLoader(
-		unlabeled_data,
-		collate_fn=default_data_collator,
-		batch_size=8,
-	)
-    # TODO: print for recording
+    unlabeled_dataloader = DataLoader(unlabeled_data,
+                                      shuffle=False,
+                                      collate_fn=default_data_collator,
+                                      batch_size=8,
+                                    )
     print('LC dropout querying starts!')
-    prob_dict = get_prob_dropout(unlabeled_dataloader, device, unlabeled_features, examples)
-    # TODO: print for recording
+    prob_dict = get_prob_dropout(unlabeled_dataloader, device, unlabeled_features, examples, rd)
     print('Got probability!')
 
     confidence_dict = {}
@@ -153,18 +144,16 @@ def least_confidence_dropout_query(n_pool, labeled_idxs, train_dataset, train_fe
     sorted_confidence_list = sorted(confidence_dict.items(), key=lambda x: x[1])
     return unlabeled_idxs[[idx for (idx, confidence) in sorted_confidence_list[:n]]]
 
-def entropy_dropout_query(n_pool, labeled_idxs, train_dataset, train_features, examples, device, n):
+def entropy_dropout_query(n_pool, labeled_idxs, train_dataset, train_features, examples, device, n, rd):
     unlabeled_idxs, unlabeled_data = get_unlabel_data(n_pool, labeled_idxs, train_dataset)
     unlabeled_features = train_features.select(unlabeled_idxs)
-    unlabeled_dataloader = DataLoader(
-		unlabeled_data,
-		collate_fn=default_data_collator,
-		batch_size=8,
-	)
-    # TODO: print for recording
+    unlabeled_dataloader = DataLoader(unlabeled_data,
+		                              shuffle=False,
+	                    	          collate_fn=default_data_collator,
+		                              batch_size=8,
+	                                )
     print('Entropy dropout querying starts!')
-    prob_dict = get_prob_dropout(unlabeled_dataloader, device, unlabeled_features, examples)
-    # TODO: print for recording
+    prob_dict = get_prob_dropout(unlabeled_dataloader, device, unlabeled_features, examples, rd)
     print('Got probability!')
     entropy_dict = {}
     for idx, probs in prob_dict.items():
@@ -176,16 +165,16 @@ def entropy_dropout_query(n_pool, labeled_idxs, train_dataset, train_features, e
     sorted_entropy_list = sorted(entropy_dict.items(), key=lambda x: x[1])
     return unlabeled_idxs[[idx for (idx, entropy) in sorted_entropy_list[:n]]]
 
-def bayesian_query(n_pool, labeled_idxs, train_dataset, train_features, examples, device, n):
+def bayesian_query(n_pool, labeled_idxs, train_dataset, train_features, examples, device, n, rd):
     unlabeled_idxs, unlabeled_data = get_unlabel_data(n_pool, labeled_idxs, train_dataset)
     unlabeled_features = train_features.select(unlabeled_idxs)
-    unlabeled_dataloader = DataLoader(
-        unlabeled_data,
-        collate_fn=default_data_collator,
-        batch_size=8,
-    )
+    unlabeled_dataloader = DataLoader(unlabeled_data,
+                                      shuffle=False,
+                                      collate_fn=default_data_collator,
+                                      batch_size=8,
+                                    )
     print('BALD querying starts!')
-    probs = get_prob_dropout_split(unlabeled_dataloader, device, unlabeled_features, examples)
+    probs = get_prob_dropout_split(unlabeled_dataloader, device, unlabeled_features, examples, rd)
     print('Got probability!')
     probs_mean = probs.mean(0)
     entropy1 = (-probs_mean*torch.log(probs_mean)).sum(1)
@@ -194,30 +183,31 @@ def bayesian_query(n_pool, labeled_idxs, train_dataset, train_features, examples
     # later on, we can use batch
     return unlabeled_idxs[uncertainties.sort()[1][:n]]
 
-def mean_std_query(n_pool, labeled_idxs, train_dataset, train_features, examples, device, n):
+def mean_std_query(n_pool, labeled_idxs, train_dataset, train_features, examples, device, n, rd):
     unlabeled_idxs, unlabeled_data = get_unlabel_data(n_pool, labeled_idxs, train_dataset)
     unlabeled_features = train_features.select(unlabeled_idxs)
-    unlabeled_dataloader = DataLoader(
-  		unlabeled_data,
-        collate_fn=default_data_collator,
-        batch_size=8,
-    )
+    unlabeled_dataloader = DataLoader(unlabeled_data,
+                                      shuffle=False,
+                                      collate_fn=default_data_collator,
+                                      batch_size=8,
+                                    )
     print('Mean STD querying starts!')
-    probs = get_prob_dropout_split(unlabeled_dataloader, device, unlabeled_features, examples).numpy()
+    probs = get_prob_dropout_split(unlabeled_dataloader, device, unlabeled_features, examples, rd).numpy()
     print('Got probability!')
     sigma_c = np.std(probs, axis=0)
     uncertainties = torch.from_numpy(np.mean(sigma_c, axis=-1)) # use tensor.sort() will sort the data and produce sorted indexes
     return unlabeled_idxs[uncertainties.sort(descending=True)[1][:n]]
 
-def kmeans_query(n_pool, labeled_idxs, train_dataset, train_features, examples, device, n):
+def kmeans_query(n_pool, labeled_idxs, train_dataset, train_features, examples, device, n, rd):
     unlabeled_idxs, unlabeled_data = get_unlabel_data(n_pool, labeled_idxs, train_dataset)
     unlabeled_features = train_features.select(unlabeled_idxs)
     unlabeled_dataloader = DataLoader(unlabeled_data,
+                                      shuffle=False,
                                       collate_fn=default_data_collator,
                                       batch_size=8,
                                     )
     print('KMean querying starts!')
-    embeddings = get_embeddings(unlabeled_dataloader, device, unlabeled_features, examples)
+    embeddings = get_embeddings(unlabeled_dataloader, device, unlabeled_features, examples, rd)
     print('Got embeddings!')
     embeddings = embeddings.numpy()
 
@@ -231,7 +221,7 @@ def kmeans_query(n_pool, labeled_idxs, train_dataset, train_features, examples, 
 
     return unlabeled_idxs[q_idxs]
 
-def kcenter_greedy_query(n_pool, labeled_idxs, train_dataset, train_features, examples, device, n):
+def kcenter_greedy_query(n_pool, labeled_idxs, train_dataset, train_features, examples, device, n, rd):
     labeled_idxs_in_query = labeled_idxs.copy()
     # train_data = train_dataset
     train_dataloader = DataLoader(train_dataset,
@@ -240,7 +230,7 @@ def kcenter_greedy_query(n_pool, labeled_idxs, train_dataset, train_features, ex
                                   batch_size=8,
                                 )
     print('KCenter greedy querying starts!')
-    embeddings = get_embeddings(train_dataloader, device, train_features, examples)
+    embeddings = get_embeddings(train_dataloader, device, train_features, examples, rd)
     print('Got embeddings!')
     embeddings = embeddings.numpy()
 
@@ -263,7 +253,7 @@ def kcenter_greedy_query(n_pool, labeled_idxs, train_dataset, train_features, ex
         
     return np.arange(n_pool)[(labeled_idxs ^ labeled_idxs_in_query)]
 
-def kcenter_greedy_PCA_query(n_pool, labeled_idxs, train_dataset, train_features, examples, device, n):
+def kcenter_greedy_PCA_query(n_pool, labeled_idxs, train_dataset, train_features, examples, device, n, rd):
     labeled_idxs_in_query = labeled_idxs.copy()
     # train_data = train_dataset
     train_dataloader = DataLoader(train_dataset,
@@ -272,7 +262,7 @@ def kcenter_greedy_PCA_query(n_pool, labeled_idxs, train_dataset, train_features
                                   batch_size=8,
                                 )
     print('KCenter greedy PCA querying starts!')
-    embeddings = get_embeddings(train_dataloader, device, train_features, examples)
+    embeddings = get_embeddings(train_dataloader, device, train_features, examples, rd)
     print('Got embeddings!')
     embeddings = embeddings.numpy()
     dist_mat = np.matmul(embeddings, embeddings.transpose())
@@ -300,7 +290,7 @@ def kcenter_greedy_PCA_query(n_pool, labeled_idxs, train_dataset, train_features
         
     return np.arange(n_pool)[(labeled_idxs ^ labeled_idxs_in_query)]
 
-def badge_query(n_pool, labeled_idxs, train_dataset, train_features, examples, device, n):
+def badge_query(n_pool, labeled_idxs, train_dataset, train_features, examples, device, n, rd):
     unlabeled_idxs, unlabeled_data = get_unlabel_data(n_pool, labeled_idxs, train_dataset)
     unlabeled_features = train_features.select(unlabeled_idxs)
     unlabeled_dataloader = DataLoader(unlabeled_data,
@@ -309,7 +299,7 @@ def badge_query(n_pool, labeled_idxs, train_dataset, train_features, examples, d
                                       batch_size=8,
                                     )
     print('BADGE querying starts!')
-    gradEmbedding = get_grad_embeddings(unlabeled_dataloader, device, unlabeled_features, examples)
+    gradEmbedding = get_grad_embeddings(unlabeled_dataloader, device, unlabeled_features, examples, rd)
     print('Got embeddings!')
     chosen = init_centers(gradEmbedding, n)
     return unlabeled_idxs[chosen]
