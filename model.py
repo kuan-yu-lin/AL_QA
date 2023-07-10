@@ -7,6 +7,9 @@ from transformers import (
     AutoModelForQuestionAnswering,
     BertConfig
 )
+from torch.autograd import Variable
+import torch.nn.functional as F
+from copy import deepcopy
 
 from utils import softmax
 import arguments
@@ -92,7 +95,60 @@ def compute_metrics(start_logits, end_logits, features, examples):
     theoretical_answers = [{"id": ex["id"], "answers": ex["answers"]} for ex in examples]
     return metric.compute(predictions=predicted_answers, references=theoretical_answers)
 
-def get_pred(eval_dataloader, device, features, examples, record_loss=False, rd_0=False):
+def logits_to_prob(start_logits, end_logits, features, batch_idx, examples, num_classes=False):
+    # for num_classes=False
+    prob_dict = {}
+    # for num_classes=True
+    probs = torch.zeros([len(batch_idx), 200])
+    
+    example_to_features = collections.defaultdict(list)
+    max_answer_length = 30
+    n_best = 20
+
+    for idx, feature in enumerate(features):
+        example_to_features[feature["example_id"]].append((idx, batch_idx[idx]))
+    
+    for example in tqdm(examples, desc="Computing metrics"):
+        example_id = example["id"]
+        answers = []
+        
+        # Loop through all features associated with that example
+        for (feature_index, i) in example_to_features[example_id]:
+            start_logit = start_logits[feature_index]
+            end_logit = end_logits[feature_index]
+            offsets = features[feature_index]["offset_mapping"]
+
+            start_indexes = np.argsort(start_logit)[-1 : -n_best - 1 : -1].tolist()
+            end_indexes = np.argsort(end_logit)[-1 : -n_best - 1 : -1].tolist()
+            for start_index in start_indexes:
+                for end_index in end_indexes:
+                    # Skip answers that are not fully in the context
+                    if offsets[start_index] is None or offsets[end_index] is None:
+                        continue
+                    # Skip answers with a length that is either < 0 or > max_answer_length
+                    if (
+                        end_index < start_index
+                        or end_index - start_index + 1 > max_answer_length
+                    ):
+                        continue
+                    answers.append(start_logit[start_index] + end_logit[end_index])
+
+            if num_classes:
+                if 1 < len(answers) < 200: # pad to same numbers of possible answers
+                    zero_list = [0] * (200 - len(answers))
+                    answers.extend(zero_list)
+                elif len(answers) >= 200:
+                    answers = answers[:200]
+                probs[feature_index] = torch.tensor(answers)
+            else:
+                prob_dict[i] = answers
+
+    if num_classes:
+        return probs
+    else:
+        return prob_dict
+
+def get_pred(dataloader, device, features, examples, record_loss=False, rd_0=False):
     if rd_0:
         config = BertConfig.from_pretrained(pretrain_model_dir, output_hidden_states=True)
     else:
@@ -103,12 +159,12 @@ def get_pred(eval_dataloader, device, features, examples, record_loss=False, rd_
     model.eval()
     start_logits = []
     end_logits = []
-    for batch in tqdm(eval_dataloader, desc="Evaluating_pred"):
+    for batch in tqdm(dataloader, desc="Evaluating_pred"):
         batch = {key: value.to(device) for key, value in batch.items()}
         with torch.no_grad():
             outputs = model(**batch)
-            print(outputs)
-            print(outputs.loss)
+            # print(outputs)
+            # print(outputs.loss)
             test_loss.append(outputs.loss)
 
         start_logits.append(outputs.start_logits.cpu().numpy())
@@ -120,19 +176,19 @@ def get_pred(eval_dataloader, device, features, examples, record_loss=False, rd_
     end_logits = end_logits[: len(features)]
 
     if record_loss:
-        test_loss /= len(eval_dataloader.dataset)
+        test_loss /= len(dataloader.dataset)
     print('\nTest set: Average loss: {:.4f}\n'.format(test_loss))
 
     return compute_metrics(start_logits, end_logits, features, examples)
 
-def get_prob(eval_dataloader, device, features, examples):
+def get_prob(dataloader, device, features, examples):
     model = AutoModelForQuestionAnswering.from_pretrained(model_dir).to(device)
 
     model.eval()
     start_logits = []
     end_logits = []
 
-    for batch in tqdm(eval_dataloader, desc="Evaluating_prob"):
+    for batch in tqdm(dataloader, desc="Evaluating_prob"):
         batch = {key: value.to(device) for key, value in batch.items()}
         with torch.no_grad():
             outputs = model(**batch)
@@ -187,7 +243,7 @@ def get_prob(eval_dataloader, device, features, examples):
     
     return prob_dict
 
-def get_prob_dropout(eval_dataloader, device, features, examples, n_drop=10):
+def get_prob_dropout(dataloader, device, features, examples, n_drop=10):
     model = AutoModelForQuestionAnswering.from_pretrained(model_dir).to(device)
     
     model.train()
@@ -196,7 +252,7 @@ def get_prob_dropout(eval_dataloader, device, features, examples, n_drop=10):
     for i in range(n_drop):
         start_logits = []
         end_logits = []
-        for batch in tqdm(eval_dataloader, desc="Evaluating_prob_dropout"):
+        for batch in tqdm(dataloader, desc="Evaluating_prob_dropout"):
             batch = {key: value.to(device) for key, value in batch.items()}
             with torch.no_grad():
                 outputs = model(**batch)
@@ -263,76 +319,86 @@ def get_prob_dropout(eval_dataloader, device, features, examples, n_drop=10):
 
     return prob_dict
 
-def get_prob_dropout_split(eval_dataloader, device, features, examples, n_drop=10):
+def get_prob_dropout_split(dataloader, device, features, examples, n_drop=10):
     ## use tensor to save the answers
-
     model = AutoModelForQuestionAnswering.from_pretrained(model_dir).to(device)
     model.train()
 
-    probs = torch.zeros([n_drop, len(eval_dataloader.dataset), 200])
+    probs = torch.zeros([n_drop, len(dataloader.dataset), 200])
     
     for i in range(n_drop):
         start_logits = []
         end_logits = []
-        for batch in tqdm(eval_dataloader, desc="Evaluating_prob_dropout"):
-            batch = {key: value.to(device) for key, value in batch.items()}
-            with torch.no_grad():
+        with torch.no_grad():
+            for batch in tqdm(dataloader, desc="Evaluating_prob_dropout"):
+                batch = {key: value.to(device) for key, value in batch.items()}
+                
                 outputs = model(**batch)
 
-            start_logits.append(outputs.start_logits.cpu().numpy())
-            end_logits.append(outputs.end_logits.cpu().numpy())
+                # matually create features batch
+                data_len_batch = len(outputs.start_logits)
+                idxs_end = idxs_start + data_len_batch
+                batch_idx = list(range(idxs_start, idxs_end))
+                batch_feat = features.select(batch_idx)
+                idxs_start = idxs_end
 
-        start_logits = np.concatenate(start_logits)
-        end_logits = np.concatenate(end_logits)
-        start_logits = start_logits[: len(features)]
-        end_logits = end_logits[: len(features)]
+                out = logits_to_prob(outputs.start_logits.cpu().numpy(), outputs.end_logits.cpu().numpy(), batch_feat, batch_idx, examples, num_classes=True)
+                prob = F.softmax(out, dim=1)
+                # deepAL+: probs[i][idxs] += F.softmax(out, dim=1).cpu()
+                probs[i][batch_idx] += F.softmax(out, dim=1).cpu()
+                # start_logits.append(outputs.start_logits.cpu().numpy())
+                # end_logits.append(outputs.end_logits.cpu().numpy())
 
-        example_to_features = collections.defaultdict(list)
-        max_answer_length = 30
-        n_best = 20
-            
-        for idx, feature in enumerate(features):
-            example_to_features[feature["example_id"]].append(idx)
+            # start_logits = np.concatenate(start_logits)
+            # end_logits = np.concatenate(end_logits)
+            # start_logits = start_logits[: len(features)]
+            # end_logits = end_logits[: len(features)]
 
-        n = 0
-        for example in tqdm(examples, desc="Computing metrics"):
-            example_id = example["id"]
-            answers = []
+            # example_to_features = collections.defaultdict(list)
+            # max_answer_length = 30
+            # n_best = 20
+                
+            # for idx, feature in enumerate(features):
+            #     example_to_features[feature["example_id"]].append(idx)
 
-            # Loop through all features associated with that example
-            for feature_index in example_to_features[example_id]:
-                start_logit = start_logits[feature_index]
-                end_logit = end_logits[feature_index]
-                offsets = features[feature_index]["offset_mapping"]
+            # n = 0
+            # for example in tqdm(examples, desc="Computing metrics"):
+            #     example_id = example["id"]
+            #     answers = []
 
-                start_indexes = np.argsort(start_logit)[-1 : -n_best - 1 : -1].tolist()
-                end_indexes = np.argsort(end_logit)[-1 : -n_best - 1 : -1].tolist()
-                for start_index in start_indexes:
-                    for end_index in end_indexes:
-                        # Skip answers that are not fully in the context
-                        if offsets[start_index] is None or offsets[end_index] is None:
-                            continue
-                        # Skip answers with a length that is either < 0 or > max_answer_length
-                        if (
-                            end_index < start_index
-                            or end_index - start_index + 1 > max_answer_length
-                        ):
-                            continue
+            #     # Loop through all features associated with that example
+            #     for feature_index in example_to_features[example_id]:
+            #         start_logit = start_logits[feature_index]
+            #         end_logit = end_logits[feature_index]
+            #         offsets = features[feature_index]["offset_mapping"]
 
-                        answers.append(start_logit[start_index] + end_logit[end_index])
+            #         start_indexes = np.argsort(start_logit)[-1 : -n_best - 1 : -1].tolist()
+            #         end_indexes = np.argsort(end_logit)[-1 : -n_best - 1 : -1].tolist()
+            #         for start_index in start_indexes:
+            #             for end_index in end_indexes:
+            #                 # Skip answers that are not fully in the context
+            #                 if offsets[start_index] is None or offsets[end_index] is None:
+            #                     continue
+            #                 # Skip answers with a length that is either < 0 or > max_answer_length
+            #                 if (
+            #                     end_index < start_index
+            #                     or end_index - start_index + 1 > max_answer_length
+            #                 ):
+            #                     continue
 
-            
-                if 1 < len(answers) < 200: # pad to same numbers of possible answers
-                    zero_list = [0] * (200 - len(answers))
-                    answers.extend(zero_list)
-                elif len(answers) >= 200:
-                    answers = answers[:200]
+            #                 answers.append(start_logit[start_index] + end_logit[end_index])
 
-                probs[i][feature_index] += torch.tensor(softmax(answers))
+                
+            #         if 1 < len(answers) < 200: # pad to same numbers of possible answers
+            #             zero_list = [0] * (200 - len(answers))
+            #             answers.extend(zero_list)
+            #         elif len(answers) >= 200:
+            #             answers = answers[:200]
 
+                    # probs[i][feature_index] += torch.tensor(softmax(answers))
     return probs
 
-def get_embeddings(eval_dataloader, device, features, examples, rd):
+def get_embeddings(dataloader, device, rd):
     if rd == 1:
         config = BertConfig.from_pretrained(pretrain_model_dir, output_hidden_states=True)
     else: 
@@ -340,28 +406,78 @@ def get_embeddings(eval_dataloader, device, features, examples, rd):
     model = AutoModelForQuestionAnswering.from_config(config).to(device)
 
     model.eval()
-    embeddings = torch.zeros([len(eval_dataloader.dataset), model.config.to_dict()['hidden_size']])
+    embeddings = torch.zeros([len(dataloader.dataset), model.config.to_dict()['hidden_size']])
     idxs_start = 0
 
-    for batch in tqdm(eval_dataloader, desc="Evaluating_prob"):
-        batch = {key: value.to(device) for key, value in batch.items()}
-        with torch.no_grad():
+    with torch.no_grad():
+        for batch in tqdm(dataloader, desc="Evaluating_prob"):
+            batch = {key: value.to(device) for key, value in batch.items()}
+        
             outputs = model(**batch)
             # print('len_output:', len(outputs)) # 4
             # print('outputs:', outputs) # (loss, start_logits, end_logits, hidden_states)
 
-        hidden_states = outputs.hidden_states
-        # print('len_hidden_states:', len(hidden_states)) # 13 # each one has: (batch_size, sequence_length, hidden_size)
-        # # hidden_states[0] -> last hidden states
-        # print('len_hidden_states[0]:', len(hidden_states[0])) # 8, 8, 4
-        # print('len_hidden_states[0][0]:', len(hidden_states[0][0])) # 384, 384, 384 # tokens in each sequence
-        # print('len_hidden_states[0][0][0]:', len(hidden_states[0][0][0])) # 768, 768, 768 # number of hidden units
-        # print('hidden_states:', hidden_states) 
+            hidden_states = outputs.hidden_states
+            # print('len_hidden_states:', len(hidden_states)) # 13 # each one has: (batch_size, sequence_length, hidden_size)
+            # # hidden_states[0] -> last hidden states
+            # print('len_hidden_states[0]:', len(hidden_states[0])) # 8, 8, 4
+            # print('len_hidden_states[0][0]:', len(hidden_states[0][0])) # 384, 384, 384 # tokens in each sequence
+            # print('len_hidden_states[0][0][0]:', len(hidden_states[0][0][0])) # 768, 768, 768 # number of hidden units
+            # print('hidden_states:', hidden_states) 
 
-        embedding_of_last_layer = hidden_states[0][:, 1, :] # [:, 0, :] -> to get [cls], but all the same
-        # print(embedding_of_last_layer[0][0])
-        idxs_end = idxs_start + len(hidden_states[0])
-        embeddings[idxs_start:idxs_end] = embedding_of_last_layer.cpu()
-        idxs_start = idxs_end
+            embedding_of_last_layer = hidden_states[0][:, 1, :] # [:, 0, :] -> to get [cls], but all the same
+            # print(embedding_of_last_layer[0][0])
+            idxs_end = idxs_start + len(hidden_states[0])
+            embeddings[idxs_start:idxs_end] = embedding_of_last_layer.cpu()
+            idxs_start = idxs_end
         
     return embeddings
+
+def get_grad_embeddings(dataloader, device, features, examples, rd):
+    if rd == 1:
+        config = BertConfig.from_pretrained(pretrain_model_dir, output_hidden_states=True)
+    else: 
+        config = BertConfig.from_pretrained(model_dir, output_hidden_states=True)
+    model = AutoModelForQuestionAnswering.from_config(config).to(device)
+    model.eval()
+
+    # deepAL+: nLab = self.params['num_class']
+    nLab = 200
+    embDim = model.config.to_dict()['hidden_size']
+    embeddings = np.zeros([len(dataloader.dataset), embDim * nLab])
+
+    prob_dict = []
+    idxs_start = 0
+
+    with torch.no_grad():
+        for batch in tqdm(dataloader, desc="Evaluating_prob"):
+            batch = {key: Variable(value.to(device)) for key, value in batch.items()}
+                
+            # deepAL+: out, e1 = self.clf(x)
+            outputs = model(**batch)
+            # deepAL+: e1 = e1.data.cpu().numpy()
+            hidden_states = outputs.hidden_states
+            embedding_of_last_layer = hidden_states[0][:, 1, :]
+            embedding_of_last_layer = embedding_of_last_layer.data.cpu().numpy()
+
+            # matually create features batch
+            data_len_batch = len(outputs.start_logits)
+            idxs_end = idxs_start + data_len_batch
+            batch_idx = list(range(idxs_start, idxs_end))
+            batch_feat = features.select(batch_idx)
+            idxs_start = idxs_end
+
+            # deepAL+: batchProbs = F.softmax(out, dim=1).data.cpu().numpy()
+            # deepAL+: maxInds = np.argmax(batchProbs, 1)
+            out = logits_to_prob(outputs.start_logits.cpu().numpy(), outputs.end_logits.cpu().numpy(), batch_feat, batch_idx, examples, num_classes=True)
+            batchProbs = F.softmax(out, dim=1).data.cpu().numpy()
+            maxInds = np.argmax(batchProbs, 1)
+
+            for j in range(data_len_batch):
+                for c in range(nLab):
+                    if c == maxInds[j]:
+                        embeddings[batch_idx[j]][embDim * c : embDim * (c+1)] = deepcopy(embedding_of_last_layer[j]) * (1 - batchProbs[j][c]) * -1.0
+                    else:
+                        embeddings[batch_idx[j]][embDim * c : embDim * (c+1)] = deepcopy(embedding_of_last_layer[j]) * (-1 * batchProbs[j][c]) * -1.0
+            
+            return embeddings
