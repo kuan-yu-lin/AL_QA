@@ -11,6 +11,12 @@ To-do list:
 
 https://huggingface.co/docs/datasets/v1.12.0/cache.html
 
+## folder needed for development
+
+- logfile/
+- /mount/arbeitsdaten31/studenten1/linku/models
+- results/
+
 ## select dataset
 Model: Bert-base Bert-large(how long) Roberta-large Roberta-base(http://arxiv.org/abs/2101.00438)
 
