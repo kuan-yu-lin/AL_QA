@@ -1,11 +1,11 @@
 # ActiveLearning_QuestionAnswering
 
-To-do list:
-1. (done) set up all with main_with_pretrain
-2. ~~consider to saperate the first random training (3 mins difference with init=2000 batch=8)~~
-3. implement with roberta-base
-4. how long does it takes with bert-large and roberta-large
-5. implement the option for different datasets
+## To-do list:
+- [x] set up all with main_with_pretrain
+- [x] ~~consider to saperate the first random training (5 mins difference with init=2000 batch=8)~~
+- [ ] implement with roberta-base
+- [ ] how long does it takes with bert-large and roberta-large
+- [ ] implement the option for different datasets
 
 ## cache setup
 
