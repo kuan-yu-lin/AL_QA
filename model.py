@@ -7,7 +7,7 @@ import collections
 from tqdm.auto import tqdm
 import numpy as np
 import torch
-from transformers import AutoModelForQuestionAnswering
+from transformers import (AutoModelForQuestionAnswering, BertConfig)
 
 from torch.autograd import Variable
 import torch.nn.functional as F
@@ -107,6 +107,8 @@ def get_pred(eval_dataloader, device, features, examples):
     test_loss = 0
     start_logits = []
     end_logits = []
+    # TODO: check the number of data in dataloader
+    # TODO: Change the name of eval_dataloader into dataloader 
     for batch in tqdm(eval_dataloader, desc="Evaluating_pred"):
         batch = {key: value.to(device) for key, value in batch.items()}
         with torch.no_grad():
@@ -330,7 +332,7 @@ def get_prob_dropout_split(eval_dataloader, device, features, examples, n_drop=1
     return probs
 
 def get_embeddings(dataloader, device):
-    model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir).to(device)
+    model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir, output_hidden_states=True).to(device)
     model.eval()
     embeddings = torch.zeros([len(dataloader.dataset), model.config.to_dict()['hidden_size']])
     idxs_start = 0
@@ -360,7 +362,7 @@ def get_embeddings(dataloader, device):
     return embeddings
 
 def get_grad_embeddings(dataloader, device, features, examples):
-    model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir).to(device)
+    model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir, output_hidden_states=True).to(device)
     model.eval()
 
     # deepAL+: nLab = self.params['num_class']

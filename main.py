@@ -23,16 +23,20 @@ import datetime
 
 import arguments
 from preprocess import *
-from model_origin import *
+from model import *
 from utils import *
-from query_origin import *
+from query import *
+
+# from pathlib import Path
+# import datasets
 
 model_dir = '/mount/arbeitsdaten31/studenten1/linku/models'
 
-CACHE_DIR = '/mount/arbeitsdaten31/studenten1/linku/cache'
-os.environ['TRANSFORMERS_CACHE'] = CACHE_DIR
-os.environ['HF_MODULES_CACHE'] = CACHE_DIR
-os.environ['HF_DATASETS_CACHE'] = CACHE_DIR
+CACHE_DIR = '/mount/arbeitsdaten31/studenten1/linku/.cache'
+# os.environ['TRANSFORMERS_CACHE'] = CACHE_DIR
+# os.environ['HF_MODULES_CACHE'] = CACHE_DIR
+# os.environ['HF_DATASETS_CACHE'] = CACHE_DIR
+# datasets.config.HF_DATASETS_CACHE = Path(CACHE_DIR)
 
 args_input = arguments.get_args()
 NUM_QUERY = args_input.batch
@@ -43,11 +47,11 @@ STRATEGY_NAME = args_input.ALstrategy
 strategy_model_dir = model_dir + '/' + DATA_NAME + '_'  + STRATEGY_NAME + '_' + str(NUM_QUERY) + '_' + str(NUM_INIT_LB) +  '_' + str(args_input.quota)
 
 ## load data
-squad = load_dataset(DATA_NAME.lower())
-# squad["train"] = squad["train"].select(range(60000))
-# squad["validation"] = squad["validation"].select(range(10000))
-squad["train"] = squad["train"].select(range(4000))
-squad["validation"] = squad["validation"].select(range(1500))
+squad = load_dataset(DATA_NAME.lower(), cache_dir=CACHE_DIR)
+squad["train"] = squad["train"]
+squad["validation"] = squad["validation"]
+# squad["train"] = squad["train"].select(range(4000))
+# squad["validation"] = squad["validation"].select(range(1500))
 
 ## preprocess data
 train_dataset = squad["train"].map(
@@ -189,14 +193,14 @@ while (iteration > 0):
 			q_idxs = bayesian_query(n_pool, labeled_idxs, train_dataset, train_features, squad['train'], device, NUM_QUERY)
 		elif STRATEGY_NAME == 'MeanSTD':
 			q_idxs = mean_std_query(n_pool, labeled_idxs, train_dataset, train_features, squad['train'], device, NUM_QUERY)
-		# elif STRATEGY_NAME == 'KMeansSampling':
-		# 	q_idxs = kmeans_query(n_pool, labeled_idxs, train_dataset, train_features, squad['train'], device, NUM_QUERY, rd)
-		# elif STRATEGY_NAME == 'KCenterGreedy':
-		# 	q_idxs = kcenter_greedy_query(n_pool, labeled_idxs, train_dataset, train_features, squad['train'], device, NUM_QUERY, rd)
-		# elif STRATEGY_NAME == 'KCenterGreedyPCA': # not sure
-		# 	q_idxs = kcenter_greedy_PCA_query((n_pool, labeled_idxs, train_dataset, train_features, squad['train'], device, NUM_QUERY, rd))
-		# elif STRATEGY_NAME == 'BadgeSampling':
-		# 	q_idxs = badge_query(n_pool, labeled_idxs, train_dataset, train_features, examples, device, n, rd)
+		elif STRATEGY_NAME == 'KMeansSampling':
+			q_idxs = kmeans_query(n_pool, labeled_idxs, train_dataset, train_features, squad['train'], device, NUM_QUERY)
+		elif STRATEGY_NAME == 'KCenterGreedy':
+			q_idxs = kcenter_greedy_query(n_pool, labeled_idxs, train_dataset, train_features, squad['train'], device, NUM_QUERY)
+		elif STRATEGY_NAME == 'KCenterGreedyPCA': # not sure
+			q_idxs = kcenter_greedy_PCA_query(n_pool, labeled_idxs, train_dataset, train_features, squad['train'], device, NUM_QUERY)
+		elif STRATEGY_NAME == 'BadgeSampling':
+			q_idxs = badge_query(n_pool, labeled_idxs, train_dataset, train_features, squad['train'], device, NUM_QUERY)
 		# elif STRATEGY_NAME == 'LossPredictionLoss':
 		# 	# different net!
 		# 	q_idxs = loss_prediction_query()

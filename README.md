@@ -1,191 +1,57 @@
 # ActiveLearning_QuestionAnswering
 
 To-do list:
-1. set up all with main_with_pretrain
-2. consider to saperate the first random training (3 mins difference with init=2000 batch=8)
+1. (done) set up all with main_with_pretrain
+2. ~~consider to saperate the first random training (3 mins difference with init=2000 batch=8)~~
+3. implement with roberta-base
+4. how long does it takes with bert-large and roberta-large
+5. implement the option for different datasets
 
-## pretrain
-```bash
-  python pretrain.py \
-      -s 100 \
-      -d SQuAD \
-      --seed 4666 \
-      -g 2
-```
-## run
-```bash
-  python main_with_pretrain.py \
-      -a RandomSampling \
-      -s 2000 \
-      -q 10000 \
-      -b 1000 \
-      -d SQuAD \
-      --seed 4666 \
-      -t 3 \
-      -g 2
-```
-```bash
-  python main_origin.py \
-      -a RandomSampling \
-      -s 2000 \
-      -q 10000 \
-      -b 3000 \
-      -d SQuAD \
-      --seed 4666 \
-      -t 3 \
-      -g 2
-```
-```bash
-  python main_origin.py \
-      -a MarginSampling \
-      -s 2000 \
-      -q 10000 \
-      -b 3000 \
-      -d SQuAD \
-      --seed 4666 \
-      -t 3 \
-      -g 8
-```
-```bash
-  python main_origin.py \
-      -a LeastConfidence \
-      -s 2000 \
-      -q 10000 \
-      -b 3000 \
-      -d SQuAD \
-      --seed 4666 \
-      -t 3 \
-      -g 2
-```
-```bash
-  python main_origin.py \
-      -a EntropySampling \
-      -s 2000 \
-      -q 10000 \
-      -b 3000 \
-      -d SQuAD \
-      --seed 4666 \
-      -t 3 \
-      -g 8
-```
-```bash
-  python main.py \
-      -a MarginSamplingDropout \
-      -s 100 \
-      -q 100 \
-      -b 35 \
-      -d SQuAD \
-      --seed 4666 \
-      -t 1 \
-      -g 2
-```
-```bash
-  python main.py \
-      -a LeastConfidenceDropout \
-      -s 100 \
-      -q 100 \
-      -b 35 \
-      -d SQuAD \
-      --seed 4666 \
-      -t 1 \
-      -g 2
-```
-```bash
-  python main.py \
-      -a EntropySamplingDropout \
-      -s 100 \
-      -q 100 \
-      -b 35 \
-      -d SQuAD \
-      --seed 4666 \
-      -t 1 \
-      -g 2
-```
-<!-- ```bash
-  python main.py \
-      -a VarRatio \
-      -s 100 \
-      -q 100 \
-      -b 35 \
-      -d SQuAD \
-      --seed 4666 \
-      -t 1 \
-      -g 2
-``` -->
-```bash
-  python main.py \
-      -a KMeansSampling \
-      -s 100 \
-      -q 100 \
-      -b 35 \
-      -d SQuAD \
-      --seed 4666 \
-      -t 1 \
-      -g 2
-```
-```bash
-  python main.py \
-      -a KCenterGreedy \
-      -s 100 \
-      -q 100 \
-      -b 35 \
-      -d SQuAD \
-      --seed 4666 \
-      -t 1 \
-      -g 2
-```
-```bash
-  python main.py \
-      -a BALDDropout \
-      -s 100 \
-      -q 100 \
-      -b 35 \
-      -d SQuAD \
-      --seed 4666 \
-      -t 1 \
-      -g 2
-```
-```bash
-  python main.py \
-      -a MeanSTD \
-      -s 100 \
-      -q 100 \
-      -b 35 \
-      -d SQuAD \
-      --seed 4666 \
-      -t 1 \
-      -g 2
-```
-```bash
-  python main.py \
-      -a BadgeSampling \
-      -s 100 \
-      -q 100 \
-      -b 35 \
-      -d SQuAD \
-      --seed 4666 \
-      -t 1 \
-      -g 2
-```
-```bash
-  python main.py \
-      -a LossPredictionLoss \
-      -s 100 \
-      -q 100 \
-      -b 35 \
-      -d SQuAD \
-      --seed 4666 \
-      -t 1 \
-      -g 2
-```
-```bash
-  python main.py \
-      -a CEALSampling \
-      -s 100 \
-      -q 100 \
-      -b 35 \
-      -d SQuAD \
-      --seed 4666 \
-      -t 1 \
-      -g 2
-```
+## cache setup
+
+https://huggingface.co/docs/datasets/v1.12.0/cache.html
+
+## select dataset
+Model: Bert-base Bert-large(how long) Roberta-large Roberta-base(http://arxiv.org/abs/2101.00438)
+
+### source domain
+
+source domain: SQuAD v1.1
+Train: 87599	
+Test: 10570
+
+source domain: Natural Question
+Train: 307373
+Test: 7830
+
+### target domain
+
+target domain: BioASQ
+Train: 3.27k
+Test: 4.95k
+
+target domain: NewsQA
+link: https://huggingface.co/datasets/newsqa
+Train: 92549
+Val: 5166
+Test: 5126
+
+target domain: SearchQA
+  We start not from an existing article and generate a question-answer pair, but start from an existing question-answer pair, crawled from J! Archive, and augment it with text snippets retrieved by Google.
+link: https://huggingface.co/datasets/search_qa
+Train: 151295	
+Val: 21613
+Test: 43228
+
+target domain: DROP
+  A Reading Comprehension Benchmark Requiring Discrete Reasoning Over Paragraphs
+link: https://huggingface.co/datasets/drop
+Train: 77409
+Test: 9536
+
+target domain: DuoRC
+  The DuoRC dataset is an English language dataset of questions and answers gathered from crowdsourced AMT workers on Wikipedia and IMDb movie plots.
+link: https://huggingface.co/datasets/duorc
+Train: 69.5k
+Val: 15.6k
+Test: 15.9k

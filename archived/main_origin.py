@@ -18,9 +18,9 @@ import datetime
 
 import arguments
 from preprocess import *
-from model_origin import *
+from model import *
 from utils import *
-from query_origin import *
+from query import *
 
 model_dir = '/mount/arbeitsdaten31/studenten1/linku/models'
 

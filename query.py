@@ -9,7 +9,7 @@ from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 
 from utils import get_unlabel_data, init_centers
-from model_origin import get_prob, get_prob_dropout, get_prob_dropout_split, get_embeddings, get_grad_embeddings
+from model import get_prob, get_prob_dropout, get_prob_dropout_split, get_embeddings, get_grad_embeddings
 
 def random_sampling_query(labeled_idxs, n):
     return np.random.choice(np.where(labeled_idxs==0)[0], n, replace=False)
@@ -211,13 +211,13 @@ def mean_std_query(n_pool, labeled_idxs, train_dataset, train_features, examples
 
 def kmeans_query(n_pool, labeled_idxs, train_dataset, train_features, examples, device, n):
     unlabeled_idxs, unlabeled_data = get_unlabel_data(n_pool, labeled_idxs, train_dataset)
-    unlabeled_features = train_features.select(unlabeled_idxs)
+    # unlabeled_features = train_features.select(unlabeled_idxs)
     unlabeled_dataloader = DataLoader(unlabeled_data,
                                       collate_fn=default_data_collator,
                                       batch_size=8,
                                     )
     print('KMean querying starts!')
-    embeddings = get_embeddings(unlabeled_dataloader, device, unlabeled_features, examples)
+    embeddings = get_embeddings(unlabeled_dataloader, device)
     print('Got embeddings!')
     embeddings = embeddings.numpy()
 
@@ -240,7 +240,7 @@ def kcenter_greedy_query(n_pool, labeled_idxs, train_dataset, train_features, ex
                                   batch_size=8,
                                 )
     print('KCenter greedy querying starts!')
-    embeddings = get_embeddings(train_dataloader, device, train_features, examples)
+    embeddings = get_embeddings(train_dataloader, device)
     print('Got embeddings!')
     embeddings = embeddings.numpy()
 
@@ -272,7 +272,7 @@ def kcenter_greedy_PCA_query(n_pool, labeled_idxs, train_dataset, train_features
                                   batch_size=8,
                                 )
     print('KCenter greedy PCA querying starts!')
-    embeddings = get_embeddings(train_dataloader, device, train_features, examples)
+    embeddings = get_embeddings(train_dataloader, device)
     print('Got embeddings!')
     embeddings = embeddings.numpy()
     dist_mat = np.matmul(embeddings, embeddings.transpose())
