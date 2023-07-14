@@ -44,14 +44,20 @@ NUM_INIT_LB = args_input.initseed
 NUM_ROUND = int(args_input.quota / args_input.batch)
 DATA_NAME = args_input.dataset_name
 STRATEGY_NAME = args_input.ALstrategy
-strategy_model_dir = model_dir + '/' + DATA_NAME + '_'  + STRATEGY_NAME + '_' + str(NUM_QUERY) + '_' + str(NUM_INIT_LB) +  '_' + str(args_input.quota)
+MODEL_NAME = args_input.model
+strategy_model_dir = model_dir + '/' + str(NUM_INIT_LB) + '_' + str(args_input.quota) + '_' + STRATEGY_NAME + '_' + MODEL_NAME +  '_' + DATA_NAME
 
 ## load data
 squad = load_dataset(DATA_NAME.lower(), cache_dir=CACHE_DIR)
-squad["train"] = squad["train"]
-squad["validation"] = squad["validation"]
-# squad["train"] = squad["train"].select(range(4000))
-# squad["validation"] = squad["validation"].select(range(1500))
+if args_input.before_exp:
+	print('Use 4000 training data and 1500 testing data.')
+	squad["train"] = squad["train"].select(range(4000))
+	squad["validation"] = squad["validation"].select(range(1500))
+else:
+	print('Use full training data and full testing data.')
+	squad["train"] = squad["train"]
+	squad["validation"] = squad["validation"]
+
 
 ## preprocess data
 train_dataset = squad["train"].map(
@@ -82,7 +88,7 @@ val_dataset.set_format("torch")
 val_features.set_format("torch")
 
 ## seed
-SEED = 4666
+SEED = 1127
 os.environ["CUDA_VISIBLE_DEVICES"] = str(args_input.gpu)
 
 # fix random seed
@@ -92,7 +98,7 @@ torch.manual_seed(SEED)
 ## device
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-sys.stdout = Logger(os.path.abspath('') + '/logfile/' + DATA_NAME+ '_'  + STRATEGY_NAME + '_' + str(NUM_QUERY) + '_' + str(NUM_INIT_LB) +  '_' + str(args_input.quota) + '_normal_log.txt')
+sys.stdout = Logger(os.path.abspath('') + '/logfile/' + str(NUM_INIT_LB) + '_' + str(args_input.quota) + '_' + STRATEGY_NAME + '_' + MODEL_NAME + '_' + DATA_NAME + '_normal_log.txt')
 warnings.filterwarnings('ignore')
 
 ## start experiment
@@ -165,7 +171,7 @@ while (iteration > 0):
 	print('Round 0\ntesting accuracy {}'.format(acc[0]))
 	print('testing accuracy em {}'.format(acc_em[0]))
 	time = datetime.datetime.now()
-	print('Time spent so far:', (time - start))
+	print('Time spent for init training:', (time - start))
 	print('\n')
 	
 	## round 1 to rd
@@ -210,6 +216,9 @@ while (iteration > 0):
 		else:
 			raise NotImplementedError
 
+		print('Time spent for querying:', (datetime.datetime.now() - time))
+		time = datetime.datetime.now()
+
 		## update
 		labeled_idxs[q_idxs] = True
 		run_rd_labeled_idxs = np.arange(n_pool)[labeled_idxs]
@@ -233,7 +242,7 @@ while (iteration > 0):
 			num_warmup_steps=0,
 			num_training_steps=num_training_steps_rd,
 		)
-
+		
 		## train
 		to_train(NUM_TRAIN_EPOCH, train_dataloader_rd, device, model_rd, optimizer_rd, lr_scheduler_rd)
 
@@ -244,7 +253,7 @@ while (iteration > 0):
 		acc_em[rd] = acc_scores_rd['exact_match']
 		print('testing accuracy {}'.format(acc[rd]))
 		print('testing accuracy em {}'.format(acc_em[rd]))
-		print('Time spent so far:', (datetime.datetime.now() - time))
+		print('Time spent for training after querying:', (datetime.datetime.now() - time))
 		time = datetime.datetime.now()
 		print('\n')
 

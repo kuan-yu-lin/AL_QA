@@ -19,9 +19,10 @@ def get_args():
 	parser.add_argument('--model', '-m', default='Bert', type=str, help='model name')
 	parser.add_argument('--initseed', '-s', default = 100, type = int, help = 'Initial pool of labeled data')
 	parser.add_argument('--gpu', '-g', default = 0, type = str, help = 'which gpu')
-	parser.add_argument('--seed', default=4666, type=int, help='random seed')
+	parser.add_argument('--seed', default=1127, type=int, help='random seed')
 	# new args
-	parser.add_argument('--model_batch', default=16, type=int, help='batch size for training the model')
+	parser.add_argument('--model_batch', default=8, type=int, help='batch size for training the model')
+	parser.add_argument('--before_exp', '-x', default=False, type=bool, help='True if it runs for development with small set of data.')
 	
 	# lpl
 	parser.add_argument('--lpl_epoches', type=int, default=20, help='lpl epoch num after detach')

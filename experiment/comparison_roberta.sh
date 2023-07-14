@@ -9,7 +9,6 @@
 #####################
 
 # Random
-## 7/13 exp1 waldweihe 2
 python main.py \
     -a RandomSampling \
     -s 500 \
@@ -22,7 +21,6 @@ python main.py \
     -g 2
 
 # Margin
-## 7/13 exp1 waldweihe 3
 python main.py \
     -a MarginSampling \
     -s 500 \
@@ -35,8 +33,6 @@ python main.py \
     -g 3
 
 # LC
-## 7/13 exp1 strauss 1
-## iter. = 3 # wrong =.=
 python main.py \
     -a LeastConfidence \
     -s 500 \
@@ -49,8 +45,6 @@ python main.py \
     -g 1
 
 # Entropy
-## 7/13 exp1 strauss 8
-## iter. = 3 # wrong =.=
 python main.py \
     -a EntropySampling \
     -s 500 \

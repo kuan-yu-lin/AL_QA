@@ -12,6 +12,7 @@ from utils import get_unlabel_data, init_centers
 from model import get_prob, get_prob_dropout, get_prob_dropout_split, get_embeddings, get_grad_embeddings
 
 def random_sampling_query(labeled_idxs, n):
+    print('Random querying starts!')
     return np.random.choice(np.where(labeled_idxs==0)[0], n, replace=False)
 
 def margin_sampling_query(n_pool, labeled_idxs, train_dataset, train_features, examples, device, n):
@@ -23,6 +24,7 @@ def margin_sampling_query(n_pool, labeled_idxs, train_dataset, train_features, e
 		batch_size=8,
 	)
     print('Margin querying starts!')
+    print('Query {} data from {} unlabeled training data.'.format(n, len(unlabeled_data)))
     prob_dict = get_prob(unlabeled_dataloader, device, unlabeled_features, examples)
     print('Got probability!')
     uncertainties_dict = {}

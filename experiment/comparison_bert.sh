@@ -49,7 +49,7 @@ python main.py \
     -m Bert \
     --seed 1127 \
     -t 5 \
-    -g 1
+    -g 0
 
 # Entropy
 ## 7/13 exp1 strauss 8
@@ -64,7 +64,7 @@ python main.py \
     -m Bert \
     --seed 1127 \
     -t 5 \
-    -g 8
+    -g 1
 
 # MarginDropout
 python main.py \
@@ -76,7 +76,7 @@ python main.py \
     -m Bert \
     --seed 1127 \
     -t 5 \
-    -g 3
+    -g 2
 
 # LCDropout
 python main.py \
@@ -88,7 +88,7 @@ python main.py \
     -m Bert \
     --seed 1127 \
     -t 5 \
-    -g 2
+    -g 3
 
 # EntropyDropout
 python main.py \

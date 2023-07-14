@@ -3,7 +3,7 @@
 ## To-do list:
 - [x] set up all with main_with_pretrain
 - [x] ~~consider to saperate the first random training (5 mins difference with init=2000 batch=8)~~
-- [ ] check num of data for query after first query
+- [x] check num of data for query after first query
 - [ ] implement with roberta-base
 - [ ] how long does it takes with bert-large and roberta-large
 - [ ] implement the option for different datasets
@@ -68,3 +68,18 @@ link: https://huggingface.co/datasets/duorc
 Train: 69.5k  
 Val: 15.6k  
 Test: 15.9k  
+
+## run the small data set for developing
+``` bash
+python main.py \
+    -a MarginSampling \
+    -s 100 \
+    -q 90 \
+    -b 30 \
+    -d SQuAD \
+    -m Bert \
+    -x True \
+    --seed 1127 \
+    -t 1 \
+    -g 2
+```

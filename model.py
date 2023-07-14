@@ -29,7 +29,7 @@ STRATEGY_NAME = args_input.ALstrategy
 strategy_model_dir = model_dir + '/' + DATA_NAME + '_'  + STRATEGY_NAME + '_' + str(NUM_QUERY) + '_' + str(NUM_INIT_LB) +  '_' + str(args_input.quota)
 
 def to_train(num_train_epochs, train_dataloader, device, model, optimizer, lr_scheduler, record_loss=False):
-	print('Num of train dataset:', len(train_dataloader.dataset))
+	print('Use the sum of {} init data and {} query data, which is {} total data, to train.'.format(NUM_INIT_LB, NUM_QUERY, len(train_dataloader.dataset)))
 	for epoch in range(num_train_epochs):
 		model.train()
 		for step, batch in enumerate(tqdm(train_dataloader, desc="Training")):
