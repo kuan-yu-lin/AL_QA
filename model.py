@@ -354,7 +354,7 @@ def get_embeddings(dataloader, device):
             # print('len_hidden_states[0][0][0]:', len(hidden_states[0][0][0])) # 768, 768, 768 # number of hidden units
             # print('hidden_states:', hidden_states) 
 
-            embedding_of_last_layer = hidden_states[0][:, 1, :] # [:, 0, :] -> to get [cls], but all the same
+            embedding_of_last_layer = hidden_states[-1][:, 0, :] # [:, 0, :] -> to get [cls], but all the same
             # print(embedding_of_last_layer[0][0])
             idxs_end = idxs_start + len(hidden_states[0])
             embeddings[idxs_start:idxs_end] = embedding_of_last_layer.cpu()
