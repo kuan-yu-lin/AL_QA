@@ -111,6 +111,7 @@ python main.py \
 
 # KMeans
 ## 7/15 exp2 waldweihe 2
+## batch size in dataloader are 16
 python main.py \
     -a KMeansSampling \
     -s 500 \
@@ -120,7 +121,7 @@ python main.py \
     -m Bert \
     --seed 1127 \
     -t 5 \
-    -g 2
+    -g 1
 
 # KCenterGreedy
 ## 7/15 exp2 strauss 1
@@ -172,7 +173,7 @@ python main.py \
     -m Bert \
     --seed 1127 \
     -t 5 \
-    -g 6
+    -g 7
 
 # LPL
 python main.py \

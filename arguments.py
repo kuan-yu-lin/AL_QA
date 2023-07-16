@@ -21,7 +21,7 @@ def get_args():
 	parser.add_argument('--gpu', '-g', default = 0, type = str, help = 'which gpu')
 	parser.add_argument('--seed', default=1127, type=int, help='random seed')
 	# new args
-	parser.add_argument('--model_batch', default=8, type=int, help='batch size for training the model')
+	parser.add_argument('--model_batch', '-c', default=8, type=int, help='batch size for training the model')
 	parser.add_argument('--before_exp', '-x', default=False, type=bool, help='True if it runs for development with small set of data.')
 	
 	# lpl
@@ -30,15 +30,6 @@ def get_args():
 	parser.add_argument('--delta', type=float, default=5 * 1e-5, help='value of delta in ceal sampling')
 	#hyper parameters
 	parser.add_argument('--train_epochs', '-e', type=int, default=3, help='Number of training epochs')
-
-	#specific parameters
-	parser.add_argument('--latent_dim', type=int, default=32, help='The dimensionality of the VAE latent dimension')
-
-	parser.add_argument('--beta', type=float, default=1, help='Hyperparameter for training. The parameter for VAE')
-	parser.add_argument('--num_adv_steps', type=int, default=1, help='Number of adversary steps taken for every task model step')
-	parser.add_argument('--num_vae_steps', type=int, default=2, help='Number of VAE steps taken for every task model step')
-	parser.add_argument('--adversary_param', type=float, default=1, help='Hyperparameter for training. lambda2 in the paper')
-
 	
 	args = parser.parse_args()
 	return args

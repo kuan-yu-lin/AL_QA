@@ -28,9 +28,10 @@ DATA_NAME = args_input.dataset_name
 STRATEGY_NAME = args_input.ALstrategy
 MODEL_NAME = args_input.model
 strategy_model_dir = model_dir + '/' + str(NUM_INIT_LB) + '_' + str(args_input.quota) + '_' + STRATEGY_NAME + '_' + MODEL_NAME +  '_' + DATA_NAME
+pretrain_model_dir = '/mount/arbeitsdaten31/studenten1/linku/pretrain_models' + '/' + MODEL_NAME + '_' + DATA_NAME + '_full_dataset'
 
 def to_train(num_train_epochs, train_dataloader, device, model, optimizer, lr_scheduler, record_loss=False):
-	print('Use the sum of {} init data and {} query data, which is {} total data, to train.'.format(NUM_INIT_LB, NUM_QUERY, len(train_dataloader.dataset)))
+	print('Training was performed using the sum of {} initial data and {} query data, i.e. {} data.'.format(NUM_INIT_LB, NUM_QUERY, len(train_dataloader.dataset)))
 	for epoch in range(num_train_epochs):
 		model.train()
 		for step, batch in enumerate(tqdm(train_dataloader, desc="Training")):
@@ -48,6 +49,26 @@ def to_train(num_train_epochs, train_dataloader, device, model, optimizer, lr_sc
 
 	model_to_save = model.module if hasattr(model, 'module') else model 
 	model_to_save.save_pretrained(strategy_model_dir)
+	print('TRAIN done!')
+
+def to_pretrain(num_train_epochs, train_dataloader, device, model, optimizer, lr_scheduler):
+	print('Training was performed using the full dataset ({} data).'.format(len(train_dataloader.dataset)))
+	for epoch in range(num_train_epochs):
+		model.train()
+		for step, batch in enumerate(tqdm(train_dataloader, desc="Training")):
+			batch = {key: value.to(device) for key, value in batch.items()}
+			outputs = model(**batch)
+			loss = outputs.loss
+			loss.backward()
+
+			optimizer.step()
+			lr_scheduler.step()
+			optimizer.zero_grad()
+
+		print('Train Epoch: {}\tLoss: {:.6f}'.format(epoch, loss.item()))
+
+	model_to_save = model.module if hasattr(model, 'module') else model 
+	model_to_save.save_pretrained(pretrain_model_dir)
 	print('TRAIN done!')
 
 def compute_metrics(start_logits, end_logits, features, examples):
@@ -101,16 +122,14 @@ def compute_metrics(start_logits, end_logits, features, examples):
     theoretical_answers = [{"id": ex["id"], "answers": ex["answers"]} for ex in examples]
     return metric.compute(predictions=predicted_answers, references=theoretical_answers)
 
-def get_pred(eval_dataloader, device, features, examples):
+def get_pred(dataloader, device, features, examples):
     model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir).to(device)
     
     model.eval()
-    test_loss = 0
     start_logits = []
     end_logits = []
-    # TODO: check the number of data in dataloader
-    # TODO: Change the name of eval_dataloader into dataloader 
-    for batch in tqdm(eval_dataloader, desc="Evaluating_pred"):
+
+    for batch in tqdm(dataloader, desc="Evaluating_pred"):
         batch = {key: value.to(device) for key, value in batch.items()}
         with torch.no_grad():
             outputs = model(**batch)
@@ -125,14 +144,36 @@ def get_pred(eval_dataloader, device, features, examples):
 
     return compute_metrics(start_logits, end_logits, features, examples)
 
-def get_prob(eval_dataloader, device, features, examples):
+def get_pretrain_pred(dataloader, device, features, examples):
+    model = AutoModelForQuestionAnswering.from_pretrained(pretrain_model_dir).to(device)
+    
+    model.eval()
+    start_logits = []
+    end_logits = []
+
+    for batch in tqdm(dataloader, desc="Evaluating_pred"):
+        batch = {key: value.to(device) for key, value in batch.items()}
+        with torch.no_grad():
+            outputs = model(**batch)
+
+        start_logits.append(outputs.start_logits.cpu().numpy())
+        end_logits.append(outputs.end_logits.cpu().numpy())
+
+    start_logits = np.concatenate(start_logits)
+    end_logits = np.concatenate(end_logits)
+    start_logits = start_logits[: len(features)]
+    end_logits = end_logits[: len(features)]
+
+    return compute_metrics(start_logits, end_logits, features, examples)
+
+def get_prob(dataloader, device, features, examples):
     model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir).to(device)
 
     model.eval()
     start_logits = []
     end_logits = []
 
-    for batch in tqdm(eval_dataloader, desc="Evaluating_prob"):
+    for batch in tqdm(dataloader, desc="Evaluating_prob"):
         batch = {key: value.to(device) for key, value in batch.items()}
         with torch.no_grad():
             outputs = model(**batch)
@@ -148,14 +189,13 @@ def get_prob(eval_dataloader, device, features, examples):
     prob_dict = {}
     example_to_features = collections.defaultdict(list)
     max_answer_length = 30
-    n_best = 20 # TODO: if set n_best as 5, will it effect the time??
+    n_best = 20
     
     for idx, feature in enumerate(features):
         example_to_features[feature["example_id"]].append(idx)
 
     for example in tqdm(examples):
         example_id = example["id"]
-        # context = example["context"]
         answers = []
 
         # Loop through all features associated with that example
@@ -187,7 +227,7 @@ def get_prob(eval_dataloader, device, features, examples):
     
     return prob_dict
 
-def get_prob_dropout(eval_dataloader, device, features, examples, n_drop=10):
+def get_prob_dropout(dataloader, device, features, examples, n_drop=10):
     model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir).to(device)
     
     model.train()
@@ -196,7 +236,7 @@ def get_prob_dropout(eval_dataloader, device, features, examples, n_drop=10):
     for i in range(n_drop):
         start_logits = []
         end_logits = []
-        for batch in tqdm(eval_dataloader, desc="Evaluating_prob_dropout"):
+        for batch in tqdm(dataloader, desc="Evaluating_prob_dropout"):
             batch = {key: value.to(device) for key, value in batch.items()}
             with torch.no_grad():
                 outputs = model(**batch)
@@ -263,18 +303,18 @@ def get_prob_dropout(eval_dataloader, device, features, examples, n_drop=10):
 
     return prob_dict
 
-def get_prob_dropout_split(eval_dataloader, device, features, examples, n_drop=10):
+def get_prob_dropout_split(dataloader, device, features, examples, n_drop=10):
     ## use tensor to save the answers
 
     model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir).to(device)
     model.train()
 
-    probs = torch.zeros([n_drop, len(eval_dataloader.dataset), 200])
+    probs = torch.zeros([n_drop, len(dataloader.dataset), 200])
     
     for i in range(n_drop):
         start_logits = []
         end_logits = []
-        for batch in tqdm(eval_dataloader, desc="Evaluating_prob_dropout"):
+        for batch in tqdm(dataloader, desc="Evaluating_prob_dropout"):
             batch = {key: value.to(device) for key, value in batch.items()}
             with torch.no_grad():
                 outputs = model(**batch)
@@ -343,20 +383,11 @@ def get_embeddings(dataloader, device):
             batch = {key: value.to(device) for key, value in batch.items()}
         
             outputs = model(**batch)
-            # print('len_output:', len(outputs)) # 4
-            # print('outputs:', outputs) # (loss, start_logits, end_logits, hidden_states)
 
             hidden_states = outputs.hidden_states
-            # print('len_hidden_states:', len(hidden_states)) # 13 # each one has: (batch_size, sequence_length, hidden_size)
-            # # hidden_states[0] -> last hidden states
-            # print('len_hidden_states[0]:', len(hidden_states[0])) # 8, 8, 4
-            # print('len_hidden_states[0][0]:', len(hidden_states[0][0])) # 384, 384, 384 # tokens in each sequence
-            # print('len_hidden_states[0][0][0]:', len(hidden_states[0][0][0])) # 768, 768, 768 # number of hidden units
-            # print('hidden_states:', hidden_states) 
+            embedding_of_last_layer = hidden_states[-2][:, 0, :]
 
-            embedding_of_last_layer = hidden_states[-1][:, 0, :] # [:, 0, :] -> to get [cls], but all the same
-            # print(embedding_of_last_layer[0][0])
-            idxs_end = idxs_start + len(hidden_states[0])
+            idxs_end = idxs_start + len(hidden_states[-2])
             embeddings[idxs_start:idxs_end] = embedding_of_last_layer.cpu()
             idxs_start = idxs_end
         
@@ -382,7 +413,7 @@ def get_grad_embeddings(dataloader, device, features, examples):
             outputs = model(**batch)
             # deepAL+: e1 = e1.data.cpu().numpy()
             hidden_states = outputs.hidden_states
-            embedding_of_last_layer = hidden_states[0][:, 1, :]
+            embedding_of_last_layer = hidden_states[-2][:, 0, :]
             embedding_of_last_layer = embedding_of_last_layer.data.cpu().numpy()
 
             # matually create features batch

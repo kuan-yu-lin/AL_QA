@@ -134,13 +134,13 @@ while (iteration > 0):
 		train_dataset.select(indices=run_0_labeled_idxs),
 		shuffle=True,
 		collate_fn=default_data_collator,
-		batch_size=8,
+		batch_size=model_batch,
 	)
 
 	eval_dataloader = DataLoader(
 		val_dataset, 
 		collate_fn=default_data_collator, 
-		batch_size=8
+		batch_size=model_batch
 	)
 
 	num_update_steps_per_epoch = len(train_dataloader)
@@ -176,7 +176,7 @@ while (iteration > 0):
 	
 	## round 1 to rd
 	for rd in range(1, NUM_ROUND+1):
-		print('Round {}'.format(rd))
+		print('Round {} in Iteration {}'.format(rd, 5 - iteration))
 
 		## query
 		if STRATEGY_NAME == 'RandomSampling':
@@ -227,7 +227,7 @@ while (iteration > 0):
 			train_dataset.select(indices=run_rd_labeled_idxs),
 			shuffle=True,
 			collate_fn=default_data_collator,
-			batch_size=8,
+			batch_size=model_batch,
 		)
 
 		num_update_steps_per_epoch_rd = len(train_dataloader_rd)
@@ -278,7 +278,7 @@ while (iteration > 0):
 
 # cal mean & standard deviation
 acc_m = []
-file_name_res_tot = DATA_NAME+ '_'  + STRATEGY_NAME + '_' + str(NUM_QUERY) + '_' + str(NUM_INIT_LB) +  '_' + str(args_input.quota) + '_normal_res_tot.txt'
+file_name_res_tot = str(NUM_INIT_LB) + '_' + str(args_input.quota) + '_' + STRATEGY_NAME + '_' + MODEL_NAME + '_' + DATA_NAME + '_normal_res_tot.txt'
 file_res_tot =  open(os.path.join(os.path.abspath('') + '/results', '%s' % file_name_res_tot),'w')
 
 file_res_tot.writelines('dataset: {}'.format(DATA_NAME) + '\n')
@@ -305,7 +305,7 @@ file_res_tot.writelines('mean acc: '+str(mean_acc)+'. std dev acc: '+str(stddev_
 file_res_tot.writelines('mean time: '+str(mean_time)+'. std dev acc: '+str(stddev_time)+'\n')
 
 # save result
-file_name_res = DATA_NAME+ '_'  + STRATEGY_NAME + '_' + str(NUM_QUERY) + '_' + str(NUM_INIT_LB) +  '_' + str(args_input.quota) + '_normal_res.txt'
+file_name_res = str(NUM_INIT_LB) + '_' + str(args_input.quota) + '_' + STRATEGY_NAME + '_' + MODEL_NAME + '_' + DATA_NAME + '_normal_res.txt'
 file_res =  open(os.path.join(os.path.abspath('') + '/results', '%s' % file_name_res),'w')
 
 

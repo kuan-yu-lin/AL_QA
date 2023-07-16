@@ -8,8 +8,12 @@ from tqdm.auto import tqdm
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 
+import arguments
 from utils import get_unlabel_data, init_centers
 from model import get_prob, get_prob_dropout, get_prob_dropout_split, get_embeddings, get_grad_embeddings
+
+args_input = arguments.get_args()
+model_batch = args_input.model_batch
 
 def random_sampling_query(labeled_idxs, n):
     print('Random querying starts!')
@@ -21,7 +25,7 @@ def margin_sampling_query(n_pool, labeled_idxs, train_dataset, train_features, e
     unlabeled_dataloader = DataLoader(
 		unlabeled_data,
 		collate_fn=default_data_collator,
-		batch_size=8,
+		batch_size=model_batch,
 	)
     print('Margin querying starts!')
     print('Query {} data from {} unlabeled training data.'.format(n, len(unlabeled_data)))
@@ -44,7 +48,7 @@ def least_confidence_query(n_pool, labeled_idxs, train_dataset, train_features, 
     unlabeled_dataloader = DataLoader(
 		unlabeled_data,
 		collate_fn=default_data_collator,
-		batch_size=8,
+		batch_size=model_batch,
 	)
 
     print('LC querying starts!')
@@ -67,7 +71,7 @@ def var_ratio_query(n_pool, labeled_idxs, train_dataset, train_features, example
     unlabeled_dataloader = DataLoader(
 		unlabeled_data,
 		collate_fn=default_data_collator,
-		batch_size=8,
+		batch_size=model_batch,
 	)
     # TODO: print for recording
     print('Var Ratio querying starts!')
@@ -90,7 +94,7 @@ def entropy_query(n_pool, labeled_idxs, train_dataset, train_features, examples,
     unlabeled_dataloader = DataLoader(
 		unlabeled_data,
 		collate_fn=default_data_collator,
-		batch_size=8,
+		batch_size=model_batch,
 	)
     # TODO: print for recording
     print('Entropy querying starts!')
@@ -113,7 +117,7 @@ def margin_sampling_dropout_query(n_pool, labeled_idxs, train_dataset, train_fea
     unlabeled_dataloader = DataLoader(
 		unlabeled_data,
 		collate_fn=default_data_collator,
-		batch_size=8,
+		batch_size=model_batch,
 	)
     # TODO: print for recording
     print('Margin dropout querying starts!')
@@ -137,7 +141,7 @@ def least_confidence_dropout_query(n_pool, labeled_idxs, train_dataset, train_fe
     unlabeled_dataloader = DataLoader(
 		unlabeled_data,
 		collate_fn=default_data_collator,
-		batch_size=8,
+		batch_size=model_batch,
 	)
     # TODO: print for recording
     print('LC dropout querying starts!')
@@ -161,7 +165,7 @@ def entropy_dropout_query(n_pool, labeled_idxs, train_dataset, train_features, e
     unlabeled_dataloader = DataLoader(
 		unlabeled_data,
 		collate_fn=default_data_collator,
-		batch_size=8,
+		batch_size=model_batch,
 	)
     # TODO: print for recording
     print('Entropy dropout querying starts!')
@@ -184,7 +188,7 @@ def bayesian_query(n_pool, labeled_idxs, train_dataset, train_features, examples
     unlabeled_dataloader = DataLoader(
         unlabeled_data,
         collate_fn=default_data_collator,
-        batch_size=8,
+        batch_size=model_batch,
     )
     print('BALD querying starts!')
     probs = get_prob_dropout_split(unlabeled_dataloader, device, unlabeled_features, examples)
@@ -202,7 +206,7 @@ def mean_std_query(n_pool, labeled_idxs, train_dataset, train_features, examples
     unlabeled_dataloader = DataLoader(
   		unlabeled_data,
         collate_fn=default_data_collator,
-        batch_size=8,
+        batch_size=model_batch,
     )
     print('Mean STD querying starts!')
     probs = get_prob_dropout_split(unlabeled_dataloader, device, unlabeled_features, examples).numpy()
@@ -216,7 +220,7 @@ def kmeans_query(n_pool, labeled_idxs, train_dataset, train_features, examples, 
     # unlabeled_features = train_features.select(unlabeled_idxs)
     unlabeled_dataloader = DataLoader(unlabeled_data,
                                       collate_fn=default_data_collator,
-                                      batch_size=8,
+                                      batch_size=model_batch,
                                     )
     print('KMean querying starts!')
     embeddings = get_embeddings(unlabeled_dataloader, device)
@@ -239,7 +243,7 @@ def kcenter_greedy_query(n_pool, labeled_idxs, train_dataset, train_features, ex
     train_dataloader = DataLoader(train_dataset,
                                   shuffle=False,
                                   collate_fn=default_data_collator,
-                                  batch_size=8,
+                                  batch_size=model_batch,
                                 )
     print('KCenter greedy querying starts!')
     embeddings = get_embeddings(train_dataloader, device)
@@ -271,7 +275,7 @@ def kcenter_greedy_PCA_query(n_pool, labeled_idxs, train_dataset, train_features
     train_dataloader = DataLoader(train_dataset,
                                   shuffle=False,
                                   collate_fn=default_data_collator,
-                                  batch_size=8,
+                                  batch_size=model_batch,
                                 )
     print('KCenter greedy PCA querying starts!')
     embeddings = get_embeddings(train_dataloader, device)
@@ -308,7 +312,7 @@ def badge_query(n_pool, labeled_idxs, train_dataset, train_features, examples, d
     unlabeled_dataloader = DataLoader(unlabeled_data,
                                       shuffle=False,
                                       collate_fn=default_data_collator,
-                                      batch_size=8,
+                                      batch_size=model_batch,
                                     )
     print('BADGE querying starts!')
     gradEmbedding = get_grad_embeddings(unlabeled_dataloader, device, unlabeled_features, examples)
