@@ -4,6 +4,9 @@ from tqdm.auto import tqdm
 from scipy import stats
 from sklearn.metrics import pairwise_distances
 import pdb
+from datasets import load_dataset
+
+CACHE_DIR = '/mount/arbeitsdaten31/studenten1/linku/.cache'
 
 class Logger(object):
 	def __init__(self, filename="Default.log"):
@@ -79,3 +82,19 @@ def init_centers(X, K):
         indsAll.append(ind)
         cent += 1
     return indsAll
+
+def load_dataset_lowRes(d):
+	if d == 'NewsQA':
+		return load_dataset(d.lower(), 'split', cache_dir=CACHE_DIR)
+	elif d == 'BioASQ':
+		pass
+		# TODO: figure out the path
+		# return load_dataset(path)
+	elif d == 'SearchQA':
+		return load_dataset("search_qa", cache_dir=CACHE_DIR)
+	elif d == 'TextbookQA':
+		pass
+		# TODO: figure out the path
+		# return load_dataset(path)
+	elif d == 'DROP':
+		return load_dataset(d.lower(), cache_dir=CACHE_DIR)

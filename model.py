@@ -7,8 +7,9 @@ import collections
 from tqdm.auto import tqdm
 import numpy as np
 import torch
-from transformers import (AutoModelForQuestionAnswering, BertConfig)
+from transformers import AutoModelForQuestionAnswering
 
+from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.autograd import Variable
 import torch.nn.functional as F
 from copy import deepcopy
@@ -145,7 +146,9 @@ def get_pred(dataloader, device, features, examples):
     return compute_metrics(start_logits, end_logits, features, examples)
 
 def get_pretrain_pred(dataloader, device, features, examples):
-    model = AutoModelForQuestionAnswering.from_pretrained(pretrain_model_dir).to(device)
+    model = AutoModelForQuestionAnswering.from_pretrained(pretrain_model_dir)
+    model = DDP(model)
+    model = model.to(device)
     
     model.eval()
     start_logits = []

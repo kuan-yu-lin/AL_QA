@@ -40,8 +40,8 @@ Test: 7830
 ### target domain
 
 target domain: BioASQ  
-Train: 3.27k  
-Test: 4.95k  
+Train: 24559
+Test: 6140  
 
 target domain: NewsQA  
 link: https://huggingface.co/datasets/newsqa  

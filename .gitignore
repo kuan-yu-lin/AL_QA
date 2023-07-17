@@ -161,8 +161,9 @@ cython_debug/
 
 # directory to store results and models
 logfile/
-models/
 results/
+logfile_lowRes/
+results_lowRes/
 
 # sidenote
 sideNote.md
