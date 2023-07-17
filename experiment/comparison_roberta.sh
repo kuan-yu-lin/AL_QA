@@ -16,7 +16,7 @@ python main.py \
     -b 500 \
     -d SQuAD \
     -m RoBERTa \
-    --seed 1127 \
+    -e 1127 \
     -t 5 \
     -g 2
 
@@ -28,7 +28,7 @@ python main.py \
     -b 500 \
     -d SQuAD \
     -m RoBERTa \
-    --seed 1127 \
+    -e 1127 \
     -t 5 \
     -g 3
 
@@ -40,7 +40,7 @@ python main.py \
     -b 500 \
     -d SQuAD \
     -m RoBERTa \
-    --seed 1127 \
+    -e 1127 \
     -t 5 \
     -g 1
 
@@ -52,7 +52,7 @@ python main.py \
     -b 500 \
     -d SQuAD \
     -m RoBERTa \
-    --seed 1127 \
+    -e 1127 \
     -t 5 \
     -g 8
 
@@ -64,7 +64,7 @@ python main.py \
     -b 500 \
     -d SQuAD \
     -m RoBERTa \
-    --seed 1127 \
+    -e 1127 \
     -t 5 \
     -g 3
 
@@ -76,7 +76,7 @@ python main.py \
     -b 500 \
     -d SQuAD \
     -m RoBERTa \
-    --seed 1127 \
+    -e 1127 \
     -t 5 \
     -g 2
 
@@ -88,7 +88,7 @@ python main.py \
     -b 500 \
     -d SQuAD \
     -m RoBERTa \
-    --seed 1127 \
+    -e 1127 \
     -t 5 \
     -g 2
 
@@ -100,7 +100,7 @@ python main.py \
     -b 500 \
     -d SQuAD \
     -m RoBERTa \
-    --seed 1127 \
+    -e 1127 \
     -t 5 \
     -g 3
 
@@ -112,7 +112,7 @@ python main.py \
     -b 500 \
     -d SQuAD \
     -m RoBERTa \
-    --seed 1127 \
+    -e 1127 \
     -t 5 \
     -g 2
 
@@ -124,7 +124,7 @@ python main.py \
     -b 500 \
     -d SQuAD \
     -m RoBERTa \
-    --seed 1127 \
+    -e 1127 \
     -t 5 \
     -g 3
 
@@ -136,7 +136,7 @@ python main.py \
     -b 500 \
     -d SQuAD \
     -m RoBERTa \
-    --seed 1127 \
+    -e 1127 \
     -t 5 \
     -g 2
 
@@ -148,7 +148,7 @@ python main.py \
     -b 500 \
     -d SQuAD \
     -m RoBERTa \
-    --seed 1127 \
+    -e 1127 \
     -t 5 \
     -g 0
 
@@ -160,7 +160,7 @@ python main.py \
     -b 500 \
     -d SQuAD \
     -m RoBERTa \
-    --seed 1127 \
+    -e 1127 \
     -t 5 \
     -g 2
 
@@ -172,6 +172,6 @@ python main.py \
     -b 500 \
     -d SQuAD \
     -m RoBERTa \
-    --seed 1127 \
+    -e 1127 \
     -t 5 \
     -g 2

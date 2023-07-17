@@ -19,7 +19,7 @@ python main.py \
     -b 500 \
     -d SQuAD \
     -m Bert \
-    --seed 1127 \
+    -e 1127 \
     -t 5 \
     -g 2
 
@@ -34,7 +34,7 @@ python main.py \
     -b 500 \
     -d SQuAD \
     -m Bert \
-    --seed 1127 \
+    -e 1127 \
     -t 5 \
     -g 3
 
@@ -50,7 +50,7 @@ python main.py \
     -b 500 \
     -d SQuAD \
     -m Bert \
-    --seed 1127 \
+    -e 1127 \
     -t 5 \
     -g 0
 
@@ -66,7 +66,7 @@ python main.py \
     -b 500 \
     -d SQuAD \
     -m Bert \
-    --seed 1127 \
+    -e 1127 \
     -t 5 \
     -g 1
 
@@ -79,7 +79,7 @@ python main.py \
     -b 500 \
     -d SQuAD \
     -m Bert \
-    --seed 1127 \
+    -e 1127 \
     -t 5 \
     -g 2
 
@@ -92,7 +92,7 @@ python main.py \
     -b 500 \
     -d SQuAD \
     -m Bert \
-    --seed 1127 \
+    -e 1127 \
     -t 5 \
     -g 3
 
@@ -105,13 +105,14 @@ python main.py \
     -b 500 \
     -d SQuAD \
     -m Bert \
-    --seed 1127 \
+    -e 1127 \
     -t 5 \
     -g 0
 
 # KMeans
 ## 7/15 exp2 waldweihe 2
 ## batch size in dataloader are 16
+## 7/17 exp2.1 strauss 1: change the embedding from layer 0 to layer -2
 python main.py \
     -a KMeansSampling \
     -s 500 \
@@ -119,12 +120,13 @@ python main.py \
     -b 500 \
     -d SQuAD \
     -m Bert \
-    --seed 1127 \
+    -e 1127 \
     -t 5 \
     -g 1
 
 # KCenterGreedy
 ## 7/15 exp2 strauss 1
+## 7/17 exp2.1 strauss 1: change the embedding from layer 0 to layer -2
 python main.py \
     -a KCenterGreedy \
     -s 500 \
@@ -132,7 +134,7 @@ python main.py \
     -b 500 \
     -d SQuAD \
     -m Bert \
-    --seed 1127 \
+    -e 1127 \
     -t 5 \
     -g 1
 
@@ -145,7 +147,7 @@ python main.py \
     -b 500 \
     -d SQuAD \
     -m Bert \
-    --seed 1127 \
+    -e 1127 \
     -t 5 \
     -g 4
 
@@ -158,7 +160,7 @@ python main.py \
     -b 500 \
     -d SQuAD \
     -m Bert \
-    --seed 1127 \
+    -e 1127 \
     -t 5 \
     -g 5
 
@@ -171,7 +173,7 @@ python main.py \
     -b 500 \
     -d SQuAD \
     -m Bert \
-    --seed 1127 \
+    -e 1127 \
     -t 5 \
     -g 7
 
@@ -183,7 +185,7 @@ python main.py \
     -b 500 \
     -d SQuAD \
     -m Bert \
-    --seed 1127 \
+    -e 1127 \
     -t 5 \
     -g 2
 
@@ -195,6 +197,6 @@ python main.py \
     -b 500 \
     -d SQuAD \
     -m Bert \
-    --seed 1127 \
+    -e 1127 \
     -t 5 \
     -g 2
