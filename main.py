@@ -33,10 +33,6 @@ from query import *
 model_dir = '/mount/arbeitsdaten31/studenten1/linku/models'
 
 CACHE_DIR = '/mount/arbeitsdaten31/studenten1/linku/.cache'
-# os.environ['TRANSFORMERS_CACHE'] = CACHE_DIR
-# os.environ['HF_MODULES_CACHE'] = CACHE_DIR
-# os.environ['HF_DATASETS_CACHE'] = CACHE_DIR
-# datasets.config.HF_DATASETS_CACHE = Path(CACHE_DIR)
 
 args_input = arguments.get_args()
 NUM_QUERY = args_input.batch
@@ -45,6 +41,7 @@ NUM_ROUND = int(args_input.quota / args_input.batch)
 DATA_NAME = args_input.dataset_name
 STRATEGY_NAME = args_input.ALstrategy
 MODEL_NAME = args_input.model
+LEARNING_RATE = args_input.learning_rate
 strategy_model_dir = model_dir + '/' + str(NUM_INIT_LB) + '_' + str(args_input.quota) + '_' + STRATEGY_NAME + '_' + MODEL_NAME +  '_' + DATA_NAME
 
 ## load data
@@ -102,16 +99,16 @@ sys.stdout = Logger(os.path.abspath('') + '/logfile/' + str(NUM_INIT_LB) + '_' +
 warnings.filterwarnings('ignore')
 
 ## start experiment
-iteration = args_input.iteration
-model_batch = args_input.model_batch
+ITERATION = args_input.iteration
+MODEL_BATCH = args_input.model_batch
 NUM_TRAIN_EPOCH = args_input.train_epochs
 
 all_acc = []
 acq_time = []
 
 # repeate # iteration trials
-while (iteration > 0): 
-	iteration = iteration - 1
+while (ITERATION > 0): 
+	ITERATION = ITERATION - 1
 	
 	start = datetime.datetime.now()
 
@@ -134,13 +131,13 @@ while (iteration > 0):
 		train_dataset.select(indices=run_0_labeled_idxs),
 		shuffle=True,
 		collate_fn=default_data_collator,
-		batch_size=model_batch,
+		batch_size=MODEL_BATCH,
 	)
 
 	eval_dataloader = DataLoader(
 		val_dataset, 
 		collate_fn=default_data_collator, 
-		batch_size=model_batch
+		batch_size=MODEL_BATCH
 	)
 
 	num_update_steps_per_epoch = len(train_dataloader)
@@ -148,7 +145,7 @@ while (iteration > 0):
 
     ## network
 	model = AutoModelForQuestionAnswering.from_pretrained("bert-base-uncased").to(device)
-	optimizer = AdamW(model.parameters(), lr=1e-4)
+	optimizer = AdamW(model.parameters(), lr=LEARNING_RATE)
 	
 	lr_scheduler = get_scheduler(
 		"linear",
@@ -176,7 +173,7 @@ while (iteration > 0):
 	
 	## round 1 to rd
 	for rd in range(1, NUM_ROUND+1):
-		print('Round {} in Iteration {}'.format(rd, 5 - iteration))
+		print('Round {} in Iteration {}'.format(rd, 5 - ITERATION))
 
 		## query
 		if STRATEGY_NAME == 'RandomSampling':
@@ -227,14 +224,14 @@ while (iteration > 0):
 			train_dataset.select(indices=run_rd_labeled_idxs),
 			shuffle=True,
 			collate_fn=default_data_collator,
-			batch_size=model_batch,
+			batch_size=MODEL_BATCH,
 		)
 
 		num_update_steps_per_epoch_rd = len(train_dataloader_rd)
 		num_training_steps_rd = NUM_TRAIN_EPOCH * num_update_steps_per_epoch_rd
 
 		model_rd = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir).to(device)
-		optimizer_rd = AdamW(model_rd.parameters(), lr=1e-4)
+		optimizer_rd = AdamW(model_rd.parameters(), lr=LEARNING_RATE)
 		
 		lr_scheduler_rd = get_scheduler(
 			"linear",
@@ -278,51 +275,53 @@ while (iteration > 0):
 
 # cal mean & standard deviation
 acc_m = []
-file_name_res_tot = str(NUM_INIT_LB) + '_' + str(args_input.quota) + '_' + STRATEGY_NAME + '_' + MODEL_NAME + '_' + DATA_NAME + '_normal_res_tot.txt'
-file_res_tot =  open(os.path.join(os.path.abspath('') + '/results', '%s' % file_name_res_tot),'w')
-
-file_res_tot.writelines('dataset: {}'.format(DATA_NAME) + '\n')
-file_res_tot.writelines('AL strategy: {}'.format(STRATEGY_NAME) + '\n')
-file_res_tot.writelines('number of labeled pool: {}'.format(NUM_INIT_LB) + '\n')
-file_res_tot.writelines('number of unlabeled pool: {}'.format(len(train_dataset) - NUM_INIT_LB) + '\n')
-file_res_tot.writelines('number of testing pool: {}'.format(len(val_dataset)) + '\n')
-file_res_tot.writelines('batch size: {}'.format(NUM_QUERY) + '\n')
-file_res_tot.writelines('quota: {}'.format(NUM_ROUND*NUM_QUERY)+ '\n')
-file_res_tot.writelines('time of repeat experiments: {}'.format(args_input.iteration)+ '\n')
-
-# result
-for i in range(len(all_acc)):
-	acc_m.append(get_aubc(args_input.quota, NUM_QUERY, all_acc[i]))
-	print(str(i)+': '+str(acc_m[i]))
-	file_res_tot.writelines(str(i)+': '+str(acc_m[i])+'\n')
-mean_acc, stddev_acc = get_mean_stddev(acc_m)
-mean_time, stddev_time = get_mean_stddev(acq_time)
-
-print('mean AUBC(acc): '+str(mean_acc)+'. std dev AUBC(acc): '+str(stddev_acc))
-print('mean time: '+str(mean_time)+'. std dev time: '+str(stddev_time))
-
-file_res_tot.writelines('mean acc: '+str(mean_acc)+'. std dev acc: '+str(stddev_acc)+'\n')
-file_res_tot.writelines('mean time: '+str(mean_time)+'. std dev acc: '+str(stddev_time)+'\n')
-
-# save result
 file_name_res = str(NUM_INIT_LB) + '_' + str(args_input.quota) + '_' + STRATEGY_NAME + '_' + MODEL_NAME + '_' + DATA_NAME + '_normal_res.txt'
 file_res =  open(os.path.join(os.path.abspath('') + '/results', '%s' % file_name_res),'w')
-
 
 file_res.writelines('dataset: {}'.format(DATA_NAME) + '\n')
 file_res.writelines('AL strategy: {}'.format(STRATEGY_NAME) + '\n')
 file_res.writelines('number of labeled pool: {}'.format(NUM_INIT_LB) + '\n')
-# file_res.writelines('number of unlabeled pool: {}'.format(dataset.n_pool - NUM_INIT_LB) + '\n')
 file_res.writelines('number of unlabeled pool: {}'.format(len(train_dataset) - NUM_INIT_LB) + '\n')
-# file_res.writelines('number of testing pool: {}'.format(dataset.n_test) + '\n')
 file_res.writelines('number of testing pool: {}'.format(len(val_dataset)) + '\n')
 file_res.writelines('batch size: {}'.format(NUM_QUERY) + '\n')
-file_res.writelines('quota: {}'.format(NUM_ROUND*NUM_QUERY)+ '\n')
-file_res.writelines('time of repeat experiments: {}'.format(args_input.iteration)+ '\n')
+file_res.writelines('quota: {}'.format(NUM_ROUND * NUM_QUERY) + '\n')
+file_res.writelines('learning rate: {}'.format(LEARNING_RATE) + '\n')
+file_res.writelines('training batch size: {}'.format(MODEL_BATCH) + '\n')
+file_res.writelines('time of repeat experiments: {}'.format(ITERATION) + '\n')
+
+# result
+for i in range(len(all_acc)):
+	acc_m.append(get_aubc(args_input.quota, NUM_QUERY, all_acc[i]))
+	print(str(i) + ': ' + str(acc_m[i]))
+	file_res.writelines(str(i) + ': ' + str(acc_m[i]) + '\n')
+mean_acc, stddev_acc = get_mean_stddev(acc_m)
+mean_time, stddev_time = get_mean_stddev(acq_time)
+
+print('mean AUBC(acc): ' + str(mean_acc) + '. std dev AUBC(acc): ' + str(stddev_acc))
+print('mean time: ' + str(mean_time) + '. std dev time: ' + str(stddev_time))
+
 avg_acc = np.mean(np.array(all_acc),axis=0)
 for i in range(len(avg_acc)):
-	tmp = 'Size of training set is ' + str(NUM_INIT_LB + i*NUM_QUERY) + ', ' + 'accuracy is ' + str(round(avg_acc[i],4)) + '.' + '\n'
+	tmp = 'Size of training set is ' + str(NUM_INIT_LB + i * NUM_QUERY) + ', ' + 'accuracy is ' + str(round(avg_acc[i],4)) + '.' + '\n'
 	file_res.writelines(tmp)
 
+file_res.writelines('mean acc: ' + str(mean_acc) + '. std dev acc: ' + str(stddev_acc) + '\n')
+file_res.writelines('mean time: ' + str(mean_time) + '. std dev acc: ' + str(stddev_time) + '\n')
+
+# save result
+# file_name_res = str(NUM_INIT_LB) + '_' + str(args_input.quota) + '_' + STRATEGY_NAME + '_' + MODEL_NAME + '_' + DATA_NAME + '_normal_res.txt'
+# file_res =  open(os.path.join(os.path.abspath('') + '/results', '%s' % file_name_res),'w')
+
+
+# file_res.writelines('dataset: {}'.format(DATA_NAME) + '\n')
+# file_res.writelines('AL strategy: {}'.format(STRATEGY_NAME) + '\n')
+# file_res.writelines('number of labeled pool: {}'.format(NUM_INIT_LB) + '\n')
+# # file_res.writelines('number of unlabeled pool: {}'.format(dataset.n_pool - NUM_INIT_LB) + '\n')
+# file_res.writelines('number of unlabeled pool: {}'.format(len(train_dataset) - NUM_INIT_LB) + '\n')
+# # file_res.writelines('number of testing pool: {}'.format(dataset.n_test) + '\n')
+# file_res.writelines('number of testing pool: {}'.format(len(val_dataset)) + '\n')
+# file_res.writelines('batch size: {}'.format(NUM_QUERY) + '\n')
+# file_res.writelines('quota: {}'.format(NUM_ROUND*NUM_QUERY)+ '\n')
+# file_res.writelines('time of repeat experiments: {}'.format(ITERATION)+ '\n')
+
 file_res.close()
-file_res_tot.close()
