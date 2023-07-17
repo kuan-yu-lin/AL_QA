@@ -7,7 +7,6 @@ from transformers import (
 from torch.utils.data import DataLoader
 from torch.optim import AdamW
 import torch
-from torch.nn.parallel import DistributedDataParallel as DDP
 
 import numpy as np
 
@@ -60,43 +59,24 @@ val_features.set_format("torch")
 
 ## seed
 SEED = 1127
-args_input.distributed = False
-if 'WORLD_SIZE' in os.environ:
-    args_input.distributed = int(os.environ['WORLD_SIZE']) > 1
-if args_input.distributed:
-    # FOR DISTRIBUTED:  Set the device according to local_rank.
-    torch.cuda.set_device(args_input.local_rank)
-
-    # FOR DISTRIBUTED:  Initialize the backend.  torch.distributed.launch will provide
-    # environment variables, and requires that you use init_method=`env://`.
-    torch.distributed.init_process_group(backend='nccl',
-                                         init_method='env://')
-# os.environ["CUDA_VISIBLE_DEVICES"] = str(3)
-# torch.cuda.set_device(3)
+os.environ["CUDA_VISIBLE_DEVICES"] = str(args_input.gpu)
 
 # fix random seed
 np.random.seed(SEED)
 torch.manual_seed(SEED)
 
 ## device
-torch.distributed.init_process_group(
-    backend='nccl', init_method='env://'
-)
-device = torch.device("cuda", args_input.local_rank)
-# device = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 ## logfile
 sys.stdout = Logger(os.path.abspath('') + '/logfile/' + MODEL_NAME + '_' + DATA_NAME + '_full_dataset_normal_log.txt')
 warnings.filterwarnings('ignore')
 
 NUM_TRAIN_EPOCH = args_input.train_epochs
-model_name = get_model(MODEL_NAME)
+model_name = get_model(args_input.model)
 
 ## data, network, strategy
-# torch.distributed.init_process_group(backend='nccl', world_size=N, init_method='...')
-model = AutoModelForQuestionAnswering.from_pretrained(model_name)
-model = DDP(model)
-model = model.to(device)
+model = AutoModelForQuestionAnswering.from_pretrained(model_name).to(device)
 optimizer = AdamW(model.parameters(), lr=LEARNING_RATE)
 
 start = datetime.datetime.now()
@@ -125,20 +105,20 @@ lr_scheduler = get_scheduler(
 	num_training_steps=num_training_steps,
 )
 
+scaler = amp.GradScaler()
+
 ## print info
 print('Data Name:', DATA_NAME)
-print('Model Name:', args_input.model)
+print('Model Name:', MODEL_NAME)
 print('Number of training data:', str(len(squad["train"])))
 print('Number of validation data:', str(len(squad["validation"])))
 
 ## round 0 accuracy
-to_pretrain(NUM_TRAIN_EPOCH, train_dataloader, device, model, optimizer, lr_scheduler)
+to_pretrain(NUM_TRAIN_EPOCH, train_dataloader, device, model, optimizer, lr_scheduler, scaler)
 
-acc_scores = get_pretrain_pred(eval_dataloader, device, val_features, squad['validation'])
+acc_scores = get_pred(eval_dataloader, device, val_features, squad['validation'])
 
 print('testing accuracy {}'.format(acc_scores['f1']))
 print('testing accuracy em {}'.format(acc_scores['exact_match']))
 
-## save model and record acq time
-timestamp = re.sub('\.[0-9]*','_',str(datetime.datetime.now())).replace(" ", "_").replace("-", "").replace(":","")
-end = datetime.datetime.now()
+print('Time spent for training:', (datetime.datetime.now() - start))

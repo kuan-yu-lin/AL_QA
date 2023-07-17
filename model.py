@@ -8,11 +8,12 @@ from tqdm.auto import tqdm
 import numpy as np
 import torch
 from transformers import AutoModelForQuestionAnswering
-
-from torch.nn.parallel import DistributedDataParallel as DDP
+from torch.cuda import amp # automatic mixed precision training 
+# from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.autograd import Variable
 import torch.nn.functional as F
 from copy import deepcopy
+
 
 from utils import softmax
 import arguments
@@ -52,17 +53,20 @@ def to_train(num_train_epochs, train_dataloader, device, model, optimizer, lr_sc
 	model_to_save.save_pretrained(strategy_model_dir)
 	print('TRAIN done!')
 
-def to_pretrain(num_train_epochs, train_dataloader, device, model, optimizer, lr_scheduler):
+def to_pretrain(num_train_epochs, train_dataloader, device, model, optimizer, lr_scheduler, scaler):
 	print('Training was performed using the full dataset ({} data).'.format(len(train_dataloader.dataset)))
 	for epoch in range(num_train_epochs):
 		model.train()
 		for step, batch in enumerate(tqdm(train_dataloader, desc="Training")):
 			batch = {key: value.to(device) for key, value in batch.items()}
-			outputs = model(**batch)
-			loss = outputs.loss
-			loss.backward()
+			with amp.autocast():
+				outputs = model(**batch)
+				loss = outputs.loss
+			
+			scaler.scale(loss).backward()
 
-			optimizer.step()
+			scaler.step(optimizer)
+			scaler.update()
 			lr_scheduler.step()
 			optimizer.zero_grad()
 
@@ -147,8 +151,6 @@ def get_pred(dataloader, device, features, examples):
 
 def get_pretrain_pred(dataloader, device, features, examples):
     model = AutoModelForQuestionAnswering.from_pretrained(pretrain_model_dir)
-    model = DDP(model)
-    model = model.to(device)
     
     model.eval()
     start_logits = []
