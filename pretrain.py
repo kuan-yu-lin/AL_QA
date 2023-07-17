@@ -116,7 +116,7 @@ print('Number of validation data:', str(len(squad["validation"])))
 ## round 0 accuracy
 to_pretrain(NUM_TRAIN_EPOCH, train_dataloader, device, model, optimizer, lr_scheduler, scaler)
 
-acc_scores = get_pred(eval_dataloader, device, val_features, squad['validation'])
+acc_scores = get_pretrain_pred(eval_dataloader, device, val_features, squad['validation'])
 
 print('testing accuracy {}'.format(acc_scores['f1']))
 print('testing accuracy em {}'.format(acc_scores['exact_match']))
