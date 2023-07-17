@@ -49,9 +49,9 @@ def softmax(x):
     return np.exp(x) / np.sum(np.exp(x), axis=0)
 
 def get_model(m):
-	if m == 'Bert':
+	if m.lower() == 'bert':
 		return 'bert-base-uncased'
-	if m == 'RoBERTa':
+	if m.lower() == 'roberta':
 		return 'roberta-base'
 
 # kmeans ++ initialization
