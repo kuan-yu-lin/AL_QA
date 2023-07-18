@@ -51,8 +51,12 @@ def softmax(x):
 def get_model(m):
 	if m.lower() == 'bert':
 		return 'bert-base-uncased'
-	if m.lower() == 'roberta':
+	elif m.lower() == 'bertlarge':
+		return 'bert-large-uncased'
+	elif m.lower() == 'roberta':
 		return 'roberta-base'
+	elif m.lower() == 'robertalarge':
+		return 'roberta-large'
 
 # kmeans ++ initialization
 def init_centers(X, K):
