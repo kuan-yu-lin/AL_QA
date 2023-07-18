@@ -182,7 +182,7 @@ def entropy_dropout_query(n_pool, labeled_idxs, train_dataset, train_features, e
     sorted_entropy_list = sorted(entropy_dict.items(), key=lambda x: x[1])
     return unlabeled_idxs[[idx for (idx, entropy) in sorted_entropy_list[:n]]]
 
-def bayesian_query(n_pool, labeled_idxs, train_dataset, train_features, examples, device, n):
+def bald_query(n_pool, labeled_idxs, train_dataset, train_features, examples, device, n):
     unlabeled_idxs, unlabeled_data = get_unlabel_data(n_pool, labeled_idxs, train_dataset)
     unlabeled_features = train_features.select(unlabeled_idxs)
     unlabeled_dataloader = DataLoader(
