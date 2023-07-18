@@ -10,6 +10,8 @@ import torch
 from transformers import AutoModelForQuestionAnswering
 from torch.cuda import amp # automatic mixed precision training 
 # from torch.nn.parallel import DistributedDataParallel as DDP
+# from torch.nn.parallel import DistributedDataParallel as DDP
+# from torch import nn
 from torch.autograd import Variable
 import torch.nn.functional as F
 from copy import deepcopy
@@ -150,7 +152,12 @@ def get_pred(dataloader, device, features, examples):
     return compute_metrics(start_logits, end_logits, features, examples)
 
 def get_pretrain_pred(dataloader, device, features, examples):
-    model = AutoModelForQuestionAnswering.from_pretrained(pretrain_model_dir)
+    model = AutoModelForQuestionAnswering.from_pretrained(pretrain_model_dir).to(device)
+    # model = AutoModelForQuestionAnswering.from_pretrained(pretrain_model_dir)
+    # model = nn.DataParallel(model)
+    # model.to(device)
+    # model = AutoModelForQuestionAnswering.from_pretrained(pretrain_model_dir).to(device_id)
+    # model = DDP(model, device_ids=[device_id])
     
     model.eval()
     start_logits = []
@@ -403,7 +410,7 @@ def get_grad_embeddings(dataloader, device, features, examples):
     model.eval()
 
     # deepAL+: nLab = self.params['num_class']
-    nLab = 200
+    nLab = 20
     embDim = model.config.to_dict()['hidden_size']
     embeddings = np.zeros([len(dataloader.dataset), embDim * nLab])
 
@@ -430,7 +437,7 @@ def get_grad_embeddings(dataloader, device, features, examples):
 
             # deepAL+: batchProbs = F.softmax(out, dim=1).data.cpu().numpy()
             # deepAL+: maxInds = np.argmax(batchProbs, 1)
-            out = logits_to_prob(outputs.start_logits.cpu().numpy(), outputs.end_logits.cpu().numpy(), batch_feat, batch_idx, examples, num_classes=True)
+            out = logits_to_prob(outputs.start_logits.cpu().numpy(), outputs.end_logits.cpu().numpy(), batch_feat, batch_idx, examples, 200)
             batchProbs = F.softmax(out, dim=1).data.cpu().numpy()
             maxInds = np.argmax(batchProbs, 1)
 
@@ -443,11 +450,8 @@ def get_grad_embeddings(dataloader, device, features, examples):
             
     return embeddings
 
-def logits_to_prob(start_logits, end_logits, features, batch_idx, examples, num_classes=False):
-    # for num_classes=False
-    prob_dict = {}
-    # for num_classes=True
-    probs = torch.zeros([len(batch_idx), 200])
+def logits_to_prob(start_logits, end_logits, features, batch_idx, examples, num_classes):
+    probs = torch.zeros([len(batch_idx), num_classes])
     
     example_to_features = collections.defaultdict(list)
     max_answer_length = 30
@@ -482,17 +486,13 @@ def logits_to_prob(start_logits, end_logits, features, batch_idx, examples, num_
                         continue
                     answers.append(start_logit[start_index] + end_logit[end_index])
 
-            if num_classes:
-                if 1 < len(answers) < 200: # pad to same numbers of possible answers
-                    zero_list = [0] * (200 - len(answers))
-                    answers.extend(zero_list)
-                elif len(answers) >= 200:
-                    answers = answers[:200]
-                probs[feature_index] = torch.tensor(answers)
-            else:
-                prob_dict[i] = torch.tensor(answers)
 
-    if num_classes:
-        return probs
-    else:
-        return prob_dict
+            if 1 < len(answers) < num_classes: # pad to same numbers of possible answers
+                zero_list = [0] * (num_classes - len(answers))
+                answers.extend(zero_list)
+            elif len(answers) >= num_classes:
+                answers = answers[:num_classes]
+            probs[feature_index] = torch.tensor(answers)
+
+    return probs
+
