@@ -106,6 +106,8 @@ NUM_TRAIN_EPOCH = args_input.train_epochs
 all_acc = []
 acq_time = []
 
+begin = datetime.datetime.now()
+
 # repeate # iteration trials
 while (ITERATION > 0): 
 	ITERATION = ITERATION - 1
@@ -263,10 +265,11 @@ while (ITERATION > 0):
 	all_acc.append(acc)
 	
 	## save model and record acq time
-	timestamp = re.sub('\.[0-9]*','_',str(datetime.datetime.now())).replace(" ", "_").replace("-", "").replace(":","")
-	final_model_dir = model_dir + '/' + timestamp + DATA_NAME+ '_'  + STRATEGY_NAME + '_' + str(NUM_QUERY) + '_' + str(NUM_INIT_LB) +  '_' + str(args_input.quota)
+	timestamp = re.sub('\.[0-9]*', '_', str(datetime.datetime.now())).replace(" ", "_").replace("-", "").replace(":","")
+	final_model_dir = model_dir + '/' + timestamp + str(NUM_INIT_LB) + '_' + str(args_input.quota) + '_' + STRATEGY_NAME + '_' + MODEL_NAME + '_' + DATA_NAME
 	os.makedirs(final_model_dir, exist_ok=True)
 	end = datetime.datetime.now()
+	print('Time spent in iteration {}: {}'.format(5 - ITERATION, datetime.datetime.now() - begin))
 	acq_time.append(round(float((end-start).seconds), 3))
 
 	final_model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir).to(device)
@@ -274,6 +277,7 @@ while (ITERATION > 0):
 	model_to_save.save_pretrained(final_model_dir)
 
 # cal mean & standard deviation
+print('Time spent in total:', (datetime.datetime.now() - begin))
 acc_m = []
 file_name_res = str(NUM_INIT_LB) + '_' + str(args_input.quota) + '_' + STRATEGY_NAME + '_' + MODEL_NAME + '_' + DATA_NAME + '_normal_res.txt'
 file_res =  open(os.path.join(os.path.abspath('') + '/results', '%s' % file_name_res),'w')
@@ -287,9 +291,9 @@ file_res.writelines('batch size: {}'.format(NUM_QUERY) + '\n')
 file_res.writelines('quota: {}'.format(NUM_ROUND * NUM_QUERY) + '\n')
 file_res.writelines('learning rate: {}'.format(LEARNING_RATE) + '\n')
 file_res.writelines('training batch size: {}'.format(MODEL_BATCH) + '\n')
-file_res.writelines('time of repeat experiments: {}'.format(ITERATION) + '\n')
+file_res.writelines('time of repeat experiments: {}'.format(args_input.iteration) + '\n')
 
-# result
+# save result
 for i in range(len(all_acc)):
 	acc_m.append(get_aubc(args_input.quota, NUM_QUERY, all_acc[i]))
 	print(str(i) + ': ' + str(acc_m[i]))
@@ -307,21 +311,5 @@ for i in range(len(avg_acc)):
 
 file_res.writelines('mean acc: ' + str(mean_acc) + '. std dev acc: ' + str(stddev_acc) + '\n')
 file_res.writelines('mean time: ' + str(mean_time) + '. std dev acc: ' + str(stddev_time) + '\n')
-
-# save result
-# file_name_res = str(NUM_INIT_LB) + '_' + str(args_input.quota) + '_' + STRATEGY_NAME + '_' + MODEL_NAME + '_' + DATA_NAME + '_normal_res.txt'
-# file_res =  open(os.path.join(os.path.abspath('') + '/results', '%s' % file_name_res),'w')
-
-
-# file_res.writelines('dataset: {}'.format(DATA_NAME) + '\n')
-# file_res.writelines('AL strategy: {}'.format(STRATEGY_NAME) + '\n')
-# file_res.writelines('number of labeled pool: {}'.format(NUM_INIT_LB) + '\n')
-# # file_res.writelines('number of unlabeled pool: {}'.format(dataset.n_pool - NUM_INIT_LB) + '\n')
-# file_res.writelines('number of unlabeled pool: {}'.format(len(train_dataset) - NUM_INIT_LB) + '\n')
-# # file_res.writelines('number of testing pool: {}'.format(dataset.n_test) + '\n')
-# file_res.writelines('number of testing pool: {}'.format(len(val_dataset)) + '\n')
-# file_res.writelines('batch size: {}'.format(NUM_QUERY) + '\n')
-# file_res.writelines('quota: {}'.format(NUM_ROUND*NUM_QUERY)+ '\n')
-# file_res.writelines('time of repeat experiments: {}'.format(ITERATION)+ '\n')
 
 file_res.close()
