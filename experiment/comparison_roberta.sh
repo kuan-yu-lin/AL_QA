@@ -9,6 +9,7 @@
 #####################
 
 # Random
+## 7/17
 python main.py \
     -a RandomSampling \
     -s 500 \
@@ -17,10 +18,12 @@ python main.py \
     -d SQuAD \
     -m RoBERTa \
     -e 1127 \
+    -l 3e-5 \
     -t 5 \
     -g 2
 
 # Margin
+## 7/17
 python main.py \
     -a MarginSampling \
     -s 500 \
@@ -29,10 +32,12 @@ python main.py \
     -d SQuAD \
     -m RoBERTa \
     -e 1127 \
+    -l 3e-5 \
     -t 5 \
     -g 3
 
 # LC
+## 7/18
 python main.py \
     -a LeastConfidence \
     -s 500 \
@@ -41,10 +46,12 @@ python main.py \
     -d SQuAD \
     -m RoBERTa \
     -e 1127 \
+    -l 3e-5 \
     -t 5 \
-    -g 1
+    -g 2
 
 # Entropy
+## 7/18
 python main.py \
     -a EntropySampling \
     -s 500 \
@@ -53,6 +60,7 @@ python main.py \
     -d SQuAD \
     -m RoBERTa \
     -e 1127 \
+    -l 3e-5 \
     -t 5 \
     -g 8
 
@@ -65,10 +73,12 @@ python main.py \
     -d SQuAD \
     -m RoBERTa \
     -e 1127 \
+    -l 3e-5 \
     -t 5 \
     -g 3
 
 # LCDropout
+## 7/17-? kapweihe
 python main.py \
     -a LeastConfidenceDropout \
     -s 500 \
@@ -77,6 +87,7 @@ python main.py \
     -d SQuAD \
     -m RoBERTa \
     -e 1127 \
+    -l 3e-5 \
     -t 5 \
     -g 2
 
@@ -89,6 +100,7 @@ python main.py \
     -d SQuAD \
     -m RoBERTa \
     -e 1127 \
+    -l 3e-5 \
     -t 5 \
     -g 2
 
@@ -101,10 +113,12 @@ python main.py \
     -d SQuAD \
     -m RoBERTa \
     -e 1127 \
+    -l 3e-5 \
     -t 5 \
     -g 3
 
 # KCenterGreedy
+## 7/17
 python main.py \
     -a KCenterGreedy \
     -s 500 \
@@ -113,10 +127,11 @@ python main.py \
     -d SQuAD \
     -m RoBERTa \
     -e 1127 \
+    -l 3e-5 \
     -t 5 \
     -g 2
 
-# Bayesian
+# BALD
 python main.py \
     -a BALDDropout \
     -s 500 \
@@ -125,6 +140,7 @@ python main.py \
     -d SQuAD \
     -m RoBERTa \
     -e 1127 \
+    -l 3e-5 \
     -t 5 \
     -g 3
 
@@ -137,10 +153,12 @@ python main.py \
     -d SQuAD \
     -m RoBERTa \
     -e 1127 \
+    -l 3e-5 \
     -t 5 \
     -g 2
 
 # BADGE
+## 7/17-? kapweihe
 python main.py \
     -a BadgeSampling \
     -s 500 \
@@ -149,29 +167,32 @@ python main.py \
     -d SQuAD \
     -m RoBERTa \
     -e 1127 \
+    -l 3e-5 \
     -t 5 \
     -g 0
 
 # LPL
-python main.py \
-    -a LossPredictionLoss \
-    -s 500 \
-    -q 2000 \
-    -b 500 \
-    -d SQuAD \
-    -m RoBERTa \
-    -e 1127 \
-    -t 5 \
-    -g 2
+# python main.py \
+#     -a LossPredictionLoss \
+#     -s 500 \
+#     -q 2000 \
+#     -b 500 \
+#     -d SQuAD \
+#     -m RoBERTa \
+#     -e 1127 \
+#     -l 3e-5 \
+#     -t 5 \
+#     -g 2
 
 # CEAL
-python main.py \
-    -a CEALSampling \
-    -s 500 \
-    -q 2000 \
-    -b 500 \
-    -d SQuAD \
-    -m RoBERTa \
-    -e 1127 \
-    -t 5 \
-    -g 2
+# python main.py \
+#     -a CEALSampling \
+#     -s 500 \
+#     -q 2000 \
+#     -b 500 \
+#     -d SQuAD \
+#     -m RoBERTa \
+#     -e 1127 \
+#     -l 3e-5 \
+#     -t 5 \
+#     -g 2
