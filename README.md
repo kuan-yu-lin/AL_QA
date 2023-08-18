@@ -83,3 +83,23 @@ python main.py \
     -t 1 \
     -g 2
 ```
+
+## run for a pretrain RoBERTa with full SQuAD
+```bash
+python pretrain.py \
+    -d SQuAD \
+    -m RoBERTa \
+    -l 3e-5 \
+    --seed 1127 \
+    -g 0
+```
+
+## run for a pretrain BERT with full SQuAD
+```
+python pretrain.py \
+    -d SQuAD \
+    -m RoBERTa \
+    -l 3e-5 \
+    --seed 1127 \
+    -g 0
+```
