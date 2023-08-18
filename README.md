@@ -98,7 +98,7 @@ python pretrain.py \
 ```bash
 python pretrain.py \
     -d SQuAD \
-    -m RoBERTa \
+    -m Bert \
     -l 3e-5 \
     --seed 1127 \
     -g 0
