@@ -95,7 +95,7 @@ python pretrain.py \
 ```
 
 ## run for a pretrain BERT with full SQuAD
-```
+```bash
 python pretrain.py \
     -d SQuAD \
     -m RoBERTa \
