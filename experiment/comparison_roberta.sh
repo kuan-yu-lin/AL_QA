@@ -75,7 +75,7 @@ python main.py \
     -e 1127 \
     -l 3e-5 \
     -t 5 \
-    -g 3
+    -g 0
 
 # LCDropout
 ## 7/17-? kapweihe

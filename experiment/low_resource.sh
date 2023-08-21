@@ -20,10 +20,9 @@ python pretrain.py \
     # -g 3
 
 # Random
-## 7/13 exp1 waldweihe 2
 python main_lowRes.py \
     -a RandomSampling \
-    -s 50 \
+    # -s 50 \
     -q 200 \
     -b 50 \
     -d NewsQA \
@@ -34,7 +33,6 @@ python main_lowRes.py \
     -g 2
 
 # Margin
-## 7/13 exp1 waldweihe 3
 python main_lowRes.py \
     -a MarginSampling \
     -s 50 \
@@ -45,11 +43,9 @@ python main_lowRes.py \
     -e 1127 \
     -l 3e-5 \
     -t 5 \
-    -g 3
+    -g 8
 
 # LC
-## 7/13 exp1 strauss 1
-## iter. = 3 # wrong =.=
 python main_lowRes.py \
     -a LeastConfidence \
     -s 50 \
