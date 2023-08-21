@@ -52,9 +52,6 @@ if args_input.before_exp:
 	squad["validation"] = squad["validation"].select(range(1500))
 else:
 	print('Use full training data and full testing data.')
-	squad["train"] = squad["train"]
-	squad["validation"] = squad["validation"]
-
 
 ## preprocess data
 train_dataset = squad["train"].map(
@@ -199,11 +196,11 @@ while (ITERATION > 0):
 		elif STRATEGY_NAME == 'MeanSTD':
 			q_idxs = mean_std_query(n_pool, labeled_idxs, train_dataset, train_features, squad['train'], device, NUM_QUERY)
 		elif STRATEGY_NAME == 'KMeansSampling':
-			q_idxs = kmeans_query(n_pool, labeled_idxs, train_dataset, train_features, squad['train'], device, NUM_QUERY)
+			q_idxs = kmeans_query(n_pool, labeled_idxs, train_dataset, device, NUM_QUERY)
 		elif STRATEGY_NAME == 'KCenterGreedy':
-			q_idxs = kcenter_greedy_query(n_pool, labeled_idxs, train_dataset, train_features, squad['train'], device, NUM_QUERY)
+			q_idxs = kcenter_greedy_query(n_pool, labeled_idxs, train_dataset, device, NUM_QUERY)
 		elif STRATEGY_NAME == 'KCenterGreedyPCA': # not sure
-			q_idxs = kcenter_greedy_PCA_query(n_pool, labeled_idxs, train_dataset, train_features, squad['train'], device, NUM_QUERY)
+			q_idxs = kcenter_greedy_PCA_query(n_pool, labeled_idxs, train_dataset, device, NUM_QUERY)
 		elif STRATEGY_NAME == 'BadgeSampling':
 			q_idxs = badge_query(n_pool, labeled_idxs, train_dataset, train_features, squad['train'], device, NUM_QUERY)
 		# elif STRATEGY_NAME == 'LossPredictionLoss':

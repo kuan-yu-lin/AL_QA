@@ -129,8 +129,11 @@ def compute_metrics(start_logits, end_logits, features, examples):
     theoretical_answers = [{"id": ex["id"], "answers": ex["answers"]} for ex in examples]
     return metric.compute(predictions=predicted_answers, references=theoretical_answers)
 
-def get_pred(dataloader, device, features, examples):
-    model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir).to(device)
+def get_pred(dataloader, device, features, examples, lowRes=False):
+    if lowRes:
+        model = AutoModelForQuestionAnswering.from_pretrained(pretrain_model_dir).to(device)
+    else:
+        model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir).to(device)
     
     model.eval()
     start_logits = []
@@ -178,8 +181,11 @@ def get_pretrain_pred(dataloader, device, features, examples):
 
     return compute_metrics(start_logits, end_logits, features, examples)
 
-def get_prob(dataloader, device, features, examples):
-    model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir).to(device)
+def get_prob(dataloader, device, features, examples, lowRes=False):
+    if lowRes:
+        model = AutoModelForQuestionAnswering.from_pretrained(pretrain_model_dir).to(device)
+    else:
+        model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir).to(device)
 
     model.eval()
     start_logits = []
@@ -239,8 +245,11 @@ def get_prob(dataloader, device, features, examples):
     
     return prob_dict
 
-def get_prob_dropout(dataloader, device, features, examples, n_drop=10):
-    model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir).to(device)
+def get_prob_dropout(dataloader, device, features, examples, n_drop=10, lowRes=False):
+    if lowRes:
+        model = AutoModelForQuestionAnswering.from_pretrained(pretrain_model_dir).to(device)
+    else:
+        model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir).to(device)
     
     model.train()
     prob_dict = {}
@@ -315,10 +324,13 @@ def get_prob_dropout(dataloader, device, features, examples, n_drop=10):
 
     return prob_dict
 
-def get_prob_dropout_split(dataloader, device, features, examples, n_drop=10):
+def get_prob_dropout_split(dataloader, device, features, examples, n_drop=10, lowRes=False):
     ## use tensor to save the answers
 
-    model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir).to(device)
+    if lowRes:
+        model = AutoModelForQuestionAnswering.from_pretrained(pretrain_model_dir).to(device)
+    else:
+        model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir).to(device)
     model.train()
 
     probs = torch.zeros([n_drop, len(dataloader.dataset), 200])
@@ -384,8 +396,11 @@ def get_prob_dropout_split(dataloader, device, features, examples, n_drop=10):
 
     return probs
 
-def get_embeddings(dataloader, device):
-    model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir, output_hidden_states=True).to(device)
+def get_embeddings(dataloader, device, lowRes=False):
+    if lowRes:
+        model = AutoModelForQuestionAnswering.from_pretrained(pretrain_model_dir, output_hidden_states=True).to(device)
+    else:
+        model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir, output_hidden_states=True).to(device)
     model.eval()
     embeddings = torch.zeros([len(dataloader.dataset), model.config.to_dict()['hidden_size']])
     idxs_start = 0
@@ -405,8 +420,11 @@ def get_embeddings(dataloader, device):
         
     return embeddings
 
-def get_grad_embeddings(dataloader, device, features, examples):
-    model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir, output_hidden_states=True).to(device)
+def get_grad_embeddings(dataloader, device, features, examples, lowRes=False):
+    if lowRes:
+        model = AutoModelForQuestionAnswering.from_pretrained(pretrain_model_dir, output_hidden_states=True).to(device)
+    else:
+        model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir, output_hidden_states=True).to(device)
     model.eval()
 
     # deepAL+: nLab = self.params['num_class']

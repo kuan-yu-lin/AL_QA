@@ -108,17 +108,60 @@ while (iteration > 0):
 	n_pool = len(train_dataset)
 	labeled_idxs = np.zeros(n_pool, dtype=bool)
 
-	tmp_idxs = np.arange(n_pool)
-	np.random.shuffle(tmp_idxs)
-	labeled_idxs[tmp_idxs[:NUM_INIT_LB]] = True
+	# tmp_idxs = np.arange(n_pool)
+	# np.random.shuffle(tmp_idxs)
+	# labeled_idxs[tmp_idxs[:NUM_INIT_LB]] = True
 
+	# run_0_labeled_idxs = np.arange(n_pool)[labeled_idxs]
+	
+	## query the init-set 50 data
+	time = datetime.datetime.now()
+
+	## query
+	if STRATEGY_NAME == 'RandomSampling':
+		q_idxs = random_sampling_query(labeled_idxs, NUM_QUERY)
+	elif STRATEGY_NAME == 'MarginSampling':
+		q_idxs = margin_sampling_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, NUM_QUERY, lowRes=True)
+	elif STRATEGY_NAME == 'LeastConfidence':
+		q_idxs = least_confidence_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, NUM_QUERY, lowRes=True)
+	elif STRATEGY_NAME == 'EntropySampling':
+		q_idxs = entropy_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, NUM_QUERY, lowRes=True)
+	elif STRATEGY_NAME == 'MarginSamplingDropout':
+		q_idxs = margin_sampling_dropout_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, NUM_QUERY, lowRes=True)
+	elif STRATEGY_NAME == 'LeastConfidenceDropout':
+		q_idxs = least_confidence_dropout_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, NUM_QUERY, lowRes=True)
+	elif STRATEGY_NAME == 'EntropySamplingDropout':
+		q_idxs = entropy_dropout_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, NUM_QUERY, lowRes=True)
+	elif STRATEGY_NAME == 'VarRatio':
+		q_idxs = var_ratio_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, NUM_QUERY, lowRes=True)
+	elif STRATEGY_NAME == 'BALDDropout':
+		q_idxs = bald_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, NUM_QUERY, lowRes=True)
+	elif STRATEGY_NAME == 'MeanSTD':
+		q_idxs = mean_std_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, NUM_QUERY, lowRes=True)
+	elif STRATEGY_NAME == 'KMeansSampling':
+		q_idxs = kmeans_query(n_pool, labeled_idxs, train_dataset, device, NUM_QUERY, lowRes=True)
+	elif STRATEGY_NAME == 'KCenterGreedy':
+		q_idxs = kcenter_greedy_query(n_pool, labeled_idxs, train_dataset, device, NUM_QUERY, lowRes=True)
+	elif STRATEGY_NAME == 'KCenterGreedyPCA': # not sure
+		q_idxs = kcenter_greedy_PCA_query(n_pool, labeled_idxs, train_dataset, device, NUM_QUERY, lowRes=True)
+	elif STRATEGY_NAME == 'BadgeSampling':
+		q_idxs = badge_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, NUM_QUERY, lowRes=True)
+	# elif STRATEGY_NAME == 'LossPredictionLoss':
+	# 	# different net!
+	# 	q_idxs = loss_prediction_query()
+	# elif STRATEGY_NAME == 'CEALSampling':
+	# 	# why use 'CEALSampling' in STRATEGY_NAME
+	# 	q_idxs = ceal_query()
+	else:
+		raise NotImplementedError
+
+	print('Time spent for querying:', (datetime.datetime.now() - time))
+	time = datetime.datetime.now()
+
+	## update
+	labeled_idxs[q_idxs] = True
 	run_0_labeled_idxs = np.arange(n_pool)[labeled_idxs]
 
-	## record acc performance 
-	acc = np.zeros(NUM_ROUND + 1) # quota/batch runs + run_0
-	acc_em = np.zeros(NUM_ROUND + 1)
-
-	## load the selected train data to DataLoader
 	train_dataloader = DataLoader(
 		train_dataset.select(indices=run_0_labeled_idxs),
 		shuffle=True,
@@ -131,6 +174,49 @@ while (iteration > 0):
 		collate_fn=default_data_collator, 
 		batch_size=model_batch
 	)
+
+	num_update_steps_per_epoch = len(train_dataloader)
+	num_training_steps = NUM_TRAIN_EPOCH * num_update_steps_per_epoch
+
+	model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir).to(device)
+	optimizer = AdamW(model.parameters(), lr=3e-5)
+	
+	lr_scheduler = get_scheduler(
+		"linear",
+		optimizer=optimizer,
+		num_warmup_steps=0,
+		num_training_steps=num_training_steps,
+	)
+	
+	## train
+	to_train(NUM_TRAIN_EPOCH, train_dataloader, device, model, optimizer, lr_scheduler)
+
+	## round rd accuracy
+	print('rd_{} get_pred!'.format(rd))
+	acc_scores = get_pred(eval_dataloader, device, val_features, data['validation'])
+	acc[rd] = acc_scores['f1']
+	acc_em[rd] = acc_scores['exact_match']
+	print('testing accuracy {}'.format(acc[rd]))
+	print('testing accuracy em {}'.format(acc_em[rd]))
+	print('Time spent for training after querying:', (datetime.datetime.now() - time))
+	time = datetime.datetime.now()
+	print('\n')
+
+	torch.cuda.empty_cache()
+
+	## record acc performance 
+	acc = np.zeros(NUM_ROUND + 1) # quota/batch runs + run_0
+	acc_em = np.zeros(NUM_ROUND + 1)
+
+	## load the selected train data to DataLoader
+	# train_dataloader = DataLoader(
+	# 	train_dataset.select(indices=run_0_labeled_idxs),
+	# 	shuffle=True,
+	# 	collate_fn=default_data_collator,
+	# 	batch_size=model_batch,
+	# )
+
+	
 
 	num_update_steps_per_epoch = len(train_dataloader)
 	num_training_steps = NUM_TRAIN_EPOCH * num_update_steps_per_epoch
@@ -185,15 +271,15 @@ while (iteration > 0):
 		elif STRATEGY_NAME == 'VarRatio':
 			q_idxs = var_ratio_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, NUM_QUERY)
 		elif STRATEGY_NAME == 'BALDDropout':
-			q_idxs = bayesian_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, NUM_QUERY)
+			q_idxs = bald_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, NUM_QUERY)
 		elif STRATEGY_NAME == 'MeanSTD':
 			q_idxs = mean_std_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, NUM_QUERY)
 		elif STRATEGY_NAME == 'KMeansSampling':
-			q_idxs = kmeans_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, NUM_QUERY)
+			q_idxs = kmeans_query(n_pool, labeled_idxs, train_dataset, device, NUM_QUERY)
 		elif STRATEGY_NAME == 'KCenterGreedy':
-			q_idxs = kcenter_greedy_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, NUM_QUERY)
+			q_idxs = kcenter_greedy_query(n_pool, labeled_idxs, train_dataset, device, NUM_QUERY)
 		elif STRATEGY_NAME == 'KCenterGreedyPCA': # not sure
-			q_idxs = kcenter_greedy_PCA_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, NUM_QUERY)
+			q_idxs = kcenter_greedy_PCA_query(n_pool, labeled_idxs, train_dataset, device, NUM_QUERY)
 		elif STRATEGY_NAME == 'BadgeSampling':
 			q_idxs = badge_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, NUM_QUERY)
 		# elif STRATEGY_NAME == 'LossPredictionLoss':
