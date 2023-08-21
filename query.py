@@ -191,7 +191,7 @@ def bald_query(n_pool, labeled_idxs, train_dataset, train_features, examples, de
         batch_size=model_batch,
     )
     print('BALD querying starts!')
-    probs = get_prob_dropout_split(unlabeled_dataloader, device, unlabeled_features, examples, lowRes)
+    probs = get_prob_dropout_split(unlabeled_dataloader, device, unlabeled_features, examples, n_drop=10, lowRes=lowRes)
     print('Got probability!')
     probs_mean = probs.mean(0)
     entropy1 = (-probs_mean*torch.log(probs_mean)).sum(1)
@@ -209,7 +209,7 @@ def mean_std_query(n_pool, labeled_idxs, train_dataset, train_features, examples
         batch_size=model_batch,
     )
     print('Mean STD querying starts!')
-    probs = get_prob_dropout_split(unlabeled_dataloader, device, unlabeled_features, examples, lowRes).numpy()
+    probs = get_prob_dropout_split(unlabeled_dataloader, device, unlabeled_features, examples, n_drop=10, lowRes=lowRes).numpy()
     print('Got probability!')
     sigma_c = np.std(probs, axis=0)
     uncertainties = torch.from_numpy(np.mean(sigma_c, axis=-1)) # use tensor.sort() will sort the data and produce sorted indexes
