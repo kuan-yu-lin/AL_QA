@@ -155,7 +155,7 @@ python main.py \
     -e 1127 \
     -l 3e-5 \
     -t 5 \
-    -g 2
+    -g 3
 
 # BADGE
 ## 7/17-? kapweihe
