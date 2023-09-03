@@ -1,14 +1,10 @@
-from transformers import AutoTokenizer
 import arguments
-
-# load tokenizer for dataset preprocessing
-tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
 
 args_input = arguments.get_args()
 MAX_LENGTH = args_input.max_length
 stride = 128
 
-def preprocess_training_examples(examples):
+def preprocess_training_examples(examples, tokenizer):
     # no ['offset_mapping'], for .train() and .eval()
     questions = [q.strip() for q in examples["question"]]
     inputs = tokenizer(
@@ -67,7 +63,7 @@ def preprocess_training_examples(examples):
     inputs["end_positions"] = end_positions
     return inputs
 
-def preprocess_training_features(examples):
+def preprocess_training_features(examples, tokenizer):
     # keep ["offset_mapping"] and ["example_id"], for compute_metrics()
     questions = [q.strip() for q in examples["question"]]
     inputs = tokenizer(
@@ -127,7 +123,7 @@ def preprocess_training_features(examples):
     inputs["end_positions"] = end_positions
     return inputs
 
-def preprocess_validation_examples(examples):
+def preprocess_validation_examples(examples, tokenizer):
     questions = [q.strip() for q in examples["question"]]
     inputs = tokenizer(
         questions,

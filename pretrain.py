@@ -2,7 +2,8 @@ from datasets import load_dataset
 from transformers import (
 	default_data_collator,
 	get_scheduler,
-    AutoModelForQuestionAnswering
+    AutoModelForQuestionAnswering,
+    AutoTokenizer
 )
 from torch.utils.data import DataLoader
 from torch.optim import AdamW
@@ -33,23 +34,29 @@ MODEL_NAME = args_input.model
 LEARNING_RATE = args_input.learning_rate
 
 ## load data
-squad = load_dataset(DATA_NAME.lower())
+squad = load_dataset(DATA_NAME.lower(), cache_dir=CACHE_DIR)
+
+## load the tokenizer
+tokenizer = AutoTokenizer.from_pretrained(get_model(MODEL_NAME))
 
 ## preprocess data
 train_dataset = squad["train"].map(
     preprocess_training_examples,
     batched=True,
     remove_columns=squad["train"].column_names,
+    fn_kwargs=dict(tokenizer=tokenizer)
 )
 val_dataset = squad["validation"].map(
     preprocess_validation_examples,
     batched=True,
     remove_columns=squad["validation"].column_names,
+    fn_kwargs=dict(tokenizer=tokenizer)
 )
 val_features = squad["validation"].map(
     preprocess_validation_examples,
     batched=True,
     remove_columns=squad["validation"].column_names,
+    fn_kwargs=dict(tokenizer=tokenizer)
 )
 
 train_dataset.set_format("torch")
