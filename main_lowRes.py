@@ -2,7 +2,8 @@
 from transformers import (
 	default_data_collator,
 	get_scheduler,
-    AutoModelForQuestionAnswering
+    AutoModelForQuestionAnswering,
+	AutoTokenizer
 )
 from torch.utils.data import DataLoader
 from torch.optim import AdamW
@@ -34,40 +35,46 @@ NUM_ROUND = int(args_input.quota / args_input.batch)
 DATA_NAME = args_input.dataset_name
 STRATEGY_NAME = args_input.ALstrategy
 MODEL_NAME = args_input.model
+## TODO: not sure add in here
+LEARNING_RATE = args_input.learning_rate
 strategy_model_dir = model_dir + '/' + str(NUM_INIT_LB) + '_' + str(args_input.quota) + '_' + STRATEGY_NAME + '_' + MODEL_NAME +  '_' + DATA_NAME
 
 ## load data
 data = load_dataset_lowRes(DATA_NAME.lower(), cache_dir=CACHE_DIR)
-if args_input.before_exp:
+if args_input.toy_exp:
 	print('Use 4000 training data and 1500 testing data.')
 	data["train"] = data["train"].select(range(4000))
 	data["validation"] = data["validation"].select(range(1500))
 else:
 	print('Use full training data and full testing data.')
-	data["train"] = data["train"]
-	data["validation"] = data["validation"]
 
+## load the tokenizer
+tokenizer = AutoTokenizer.from_pretrained(get_model(MODEL_NAME))
 
 ## preprocess data
 train_dataset = data["train"].map(
     preprocess_training_examples,
     batched=True,
     remove_columns=data["train"].column_names,
+	fn_kwargs=dict(tokenizer=tokenizer)
 )
 train_features = data["train"].map(
     preprocess_training_features,
     batched=True,
     remove_columns=data["train"].column_names,
+	fn_kwargs=dict(tokenizer=tokenizer)
 )
 val_dataset = data["validation"].map(
     preprocess_validation_examples,
     batched=True,
     remove_columns=data["validation"].column_names,
+	fn_kwargs=dict(tokenizer=tokenizer)
 )
 val_features = data["validation"].map(
     preprocess_validation_examples,
     batched=True,
     remove_columns=data["validation"].column_names,
+	fn_kwargs=dict(tokenizer=tokenizer)
 )
 
 train_dataset.set_format("torch")
@@ -75,6 +82,9 @@ train_features.set_format("torch")
 val_dataset = val_dataset.remove_columns(["offset_mapping"])
 val_dataset.set_format("torch")
 val_features.set_format("torch")
+
+# get the number of extra data after preprocessing
+extra = len(train_dataset) - len(data['train'])
 
 ## seed
 SEED = 1127
@@ -91,16 +101,16 @@ sys.stdout = Logger(os.path.abspath('') + '/logfile_lowRes/' + str(NUM_INIT_LB) 
 warnings.filterwarnings('ignore')
 
 ## start experiment
-iteration = args_input.iteration
-model_batch = args_input.model_batch
+ITERATION = args_input.iteration
+MODEL_BATCH = args_input.model_batch
 NUM_TRAIN_EPOCH = args_input.train_epochs
 
 all_acc = []
 acq_time = []
 
 # repeate # iteration trials
-while (iteration > 0): 
-	iteration = iteration - 1
+while (ITERATION > 0): 
+	ITERATION = ITERATION - 1
 	
 	start = datetime.datetime.now()
 
@@ -114,174 +124,53 @@ while (iteration > 0):
 
 	# run_0_labeled_idxs = np.arange(n_pool)[labeled_idxs]
 	
-	## query the init-set 50 data
-	time = datetime.datetime.now()
+	## record acc performance 
+	acc = np.zeros(NUM_ROUND) # quota/batch runs
+	acc_em = np.zeros(NUM_ROUND)
 
-	## query
-	if STRATEGY_NAME == 'RandomSampling':
-		q_idxs = random_sampling_query(labeled_idxs, NUM_QUERY)
-	elif STRATEGY_NAME == 'MarginSampling':
-		q_idxs = margin_sampling_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, NUM_QUERY, lowRes=True)
-	elif STRATEGY_NAME == 'LeastConfidence':
-		q_idxs = least_confidence_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, NUM_QUERY, lowRes=True)
-	elif STRATEGY_NAME == 'EntropySampling':
-		q_idxs = entropy_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, NUM_QUERY, lowRes=True)
-	elif STRATEGY_NAME == 'MarginSamplingDropout':
-		q_idxs = margin_sampling_dropout_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, NUM_QUERY, lowRes=True)
-	elif STRATEGY_NAME == 'LeastConfidenceDropout':
-		q_idxs = least_confidence_dropout_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, NUM_QUERY, lowRes=True)
-	elif STRATEGY_NAME == 'EntropySamplingDropout':
-		q_idxs = entropy_dropout_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, NUM_QUERY, lowRes=True)
-	elif STRATEGY_NAME == 'VarRatio':
-		q_idxs = var_ratio_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, NUM_QUERY, lowRes=True)
-	elif STRATEGY_NAME == 'BALDDropout':
-		q_idxs = bald_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, NUM_QUERY, lowRes=True)
-	elif STRATEGY_NAME == 'MeanSTD':
-		q_idxs = mean_std_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, NUM_QUERY, lowRes=True)
-	elif STRATEGY_NAME == 'KMeansSampling':
-		q_idxs = kmeans_query(n_pool, labeled_idxs, train_dataset, device, NUM_QUERY, lowRes=True)
-	elif STRATEGY_NAME == 'KCenterGreedy':
-		q_idxs = kcenter_greedy_query(n_pool, labeled_idxs, train_dataset, device, NUM_QUERY, lowRes=True)
-	elif STRATEGY_NAME == 'KCenterGreedyPCA': # not sure
-		q_idxs = kcenter_greedy_PCA_query(n_pool, labeled_idxs, train_dataset, device, NUM_QUERY, lowRes=True)
-	elif STRATEGY_NAME == 'BadgeSampling':
-		q_idxs = badge_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, NUM_QUERY, lowRes=True)
-	# elif STRATEGY_NAME == 'LossPredictionLoss':
-	# 	# different net!
-	# 	q_idxs = loss_prediction_query()
-	# elif STRATEGY_NAME == 'CEALSampling':
-	# 	# why use 'CEALSampling' in STRATEGY_NAME
-	# 	q_idxs = ceal_query()
-	else:
-		raise NotImplementedError
-
-	print('Time spent for querying:', (datetime.datetime.now() - time))
-	time = datetime.datetime.now()
-
-	## update
-	labeled_idxs[q_idxs] = True
-	run_0_labeled_idxs = np.arange(n_pool)[labeled_idxs]
-
-	train_dataloader = DataLoader(
-		train_dataset.select(indices=run_0_labeled_idxs),
-		shuffle=True,
-		collate_fn=default_data_collator,
-		batch_size=model_batch,
-	)
-
+	## load the selected train data to DataLoader
 	eval_dataloader = DataLoader(
 		val_dataset, 
 		collate_fn=default_data_collator, 
-		batch_size=model_batch
+		batch_size=MODEL_BATCH
 	)
-
-	num_update_steps_per_epoch = len(train_dataloader)
-	num_training_steps = NUM_TRAIN_EPOCH * num_update_steps_per_epoch
-
-	model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir).to(device)
-	optimizer = AdamW(model.parameters(), lr=3e-5)
-	
-	lr_scheduler = get_scheduler(
-		"linear",
-		optimizer=optimizer,
-		num_warmup_steps=0,
-		num_training_steps=num_training_steps,
-	)
-	
-	## train
-	to_train(NUM_TRAIN_EPOCH, train_dataloader, device, model, optimizer, lr_scheduler)
-
-	## round rd accuracy
-	print('rd_{} get_pred!'.format(rd))
-	acc_scores = get_pred(eval_dataloader, device, val_features, data['validation'])
-	acc[rd] = acc_scores['f1']
-	acc_em[rd] = acc_scores['exact_match']
-	print('testing accuracy {}'.format(acc[rd]))
-	print('testing accuracy em {}'.format(acc_em[rd]))
-	print('Time spent for training after querying:', (datetime.datetime.now() - time))
-	time = datetime.datetime.now()
-	print('\n')
-
-	torch.cuda.empty_cache()
-
-	## record acc performance 
-	acc = np.zeros(NUM_ROUND + 1) # quota/batch runs + run_0
-	acc_em = np.zeros(NUM_ROUND + 1)
-
-	## load the selected train data to DataLoader
-	# train_dataloader = DataLoader(
-	# 	train_dataset.select(indices=run_0_labeled_idxs),
-	# 	shuffle=True,
-	# 	collate_fn=default_data_collator,
-	# 	batch_size=model_batch,
-	# )
-
-	
-
-	num_update_steps_per_epoch = len(train_dataloader)
-	num_training_steps = NUM_TRAIN_EPOCH * num_update_steps_per_epoch
-
-    ## network
-	model = AutoModelForQuestionAnswering.from_pretrained(pretrain_model_dir).to(device)
-	optimizer = AdamW(model.parameters(), lr=3e-5)
-	
-	lr_scheduler = get_scheduler(
-		"linear",
-		optimizer=optimizer,
-		num_warmup_steps=0,
-		num_training_steps=num_training_steps,
-	)
-
-	## print info
-	print(DATA_NAME)
-	print(STRATEGY_NAME)
-	
-	## round 0 accuracy
-	to_train(NUM_TRAIN_EPOCH, train_dataloader, device, model, optimizer, lr_scheduler)
-	
-	acc_scores_0 = get_pred(eval_dataloader, device, val_features, data['validation']) # add rd=1 to use model from models_dir
-	acc[0] = acc_scores_0['f1']
-	acc_em[0] = acc_scores_0['exact_match']
-
-	print('Round 0\ntesting accuracy {}'.format(acc[0]))
-	print('testing accuracy em {}'.format(acc_em[0]))
-	time = datetime.datetime.now()
-	print('Time spent for init training:', (time - start))
-	print('\n')
 	
 	## round 1 to rd
 	for rd in range(1, NUM_ROUND+1):
-		print('Round {} in Iteration {}'.format(rd, 5 - iteration))
+		print('Round {} in Iteration {}'.format(rd, 5 - ITERATION))
+
+		## use total_query (NUM_QUERY + extra) to query instead of just NUM_QUERY
+		total_query = NUM_QUERY + extra
 
 		## query
 		if STRATEGY_NAME == 'RandomSampling':
-			q_idxs = random_sampling_query(labeled_idxs, NUM_QUERY)
+			q_idxs = random_sampling_query(labeled_idxs, total_query)
 		elif STRATEGY_NAME == 'MarginSampling':
-			q_idxs = margin_sampling_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, NUM_QUERY)
+			q_idxs = margin_sampling_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, total_query, rd)
 		elif STRATEGY_NAME == 'LeastConfidence':
-			q_idxs = least_confidence_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, NUM_QUERY)
+			q_idxs = least_confidence_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, total_query, rd)
 		elif STRATEGY_NAME == 'EntropySampling':
-			q_idxs = entropy_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, NUM_QUERY)
+			q_idxs = entropy_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, total_query, rd)
 		elif STRATEGY_NAME == 'MarginSamplingDropout':
-			q_idxs = margin_sampling_dropout_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, NUM_QUERY)
+			q_idxs = margin_sampling_dropout_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, total_query, rd)
 		elif STRATEGY_NAME == 'LeastConfidenceDropout':
-			q_idxs = least_confidence_dropout_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, NUM_QUERY)
+			q_idxs = least_confidence_dropout_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, total_query, rd)
 		elif STRATEGY_NAME == 'EntropySamplingDropout':
-			q_idxs = entropy_dropout_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, NUM_QUERY)
+			q_idxs = entropy_dropout_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, total_query, rd)
 		elif STRATEGY_NAME == 'VarRatio':
-			q_idxs = var_ratio_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, NUM_QUERY)
+			q_idxs = var_ratio_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, total_query, rd)
 		elif STRATEGY_NAME == 'BALDDropout':
-			q_idxs = bald_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, NUM_QUERY)
+			q_idxs = bald_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, total_query, rd)
 		elif STRATEGY_NAME == 'MeanSTD':
-			q_idxs = mean_std_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, NUM_QUERY)
+			q_idxs = mean_std_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, total_query, rd)
 		elif STRATEGY_NAME == 'KMeansSampling':
-			q_idxs = kmeans_query(n_pool, labeled_idxs, train_dataset, device, NUM_QUERY)
+			q_idxs = kmeans_query(n_pool, labeled_idxs, train_dataset, device, total_query, rd)
 		elif STRATEGY_NAME == 'KCenterGreedy':
-			q_idxs = kcenter_greedy_query(n_pool, labeled_idxs, train_dataset, device, NUM_QUERY)
+			q_idxs = kcenter_greedy_query(n_pool, labeled_idxs, train_dataset, device, total_query, rd)
 		elif STRATEGY_NAME == 'KCenterGreedyPCA': # not sure
-			q_idxs = kcenter_greedy_PCA_query(n_pool, labeled_idxs, train_dataset, device, NUM_QUERY)
+			q_idxs = kcenter_greedy_PCA_query(n_pool, labeled_idxs, train_dataset, device, total_query, rd)
 		elif STRATEGY_NAME == 'BadgeSampling':
-			q_idxs = badge_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, NUM_QUERY)
+			q_idxs = badge_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, total_query, rd)
 		# elif STRATEGY_NAME == 'LossPredictionLoss':
 		# 	# different net!
 		# 	q_idxs = loss_prediction_query()
@@ -295,21 +184,38 @@ while (iteration > 0):
 		time = datetime.datetime.now()
 
 		## update
-		labeled_idxs[q_idxs] = True
-		run_rd_labeled_idxs = np.arange(n_pool)[labeled_idxs]
+		 
+		## goal of total query data: NUM_QUERY * rd
+		num_set_query_rd = NUM_QUERY * rd
+		
+		difference_rd = 0
+		num_set_ex_id_rd = 0
+
+		while num_set_ex_id_rd != num_set_query_rd:        
+			labeled_idxs[q_idxs[:NUM_QUERY + difference_rd]] = True
+			run_rd_labeled_idxs = np.arange(n_pool)[labeled_idxs]
+
+			run_rd_samples = train_features.select(indices=run_rd_labeled_idxs)
+			num_set_ex_id_rd = len(set(run_rd_samples['example_id']))
+
+			difference_rd = num_set_query_rd - num_set_ex_id_rd
 
 		train_dataloader_rd = DataLoader(
 			train_dataset.select(indices=run_rd_labeled_idxs),
 			shuffle=True,
 			collate_fn=default_data_collator,
-			batch_size=model_batch,
+			batch_size=MODEL_BATCH,
 		)
 
 		num_update_steps_per_epoch_rd = len(train_dataloader_rd)
 		num_training_steps_rd = NUM_TRAIN_EPOCH * num_update_steps_per_epoch_rd
 
-		model_rd = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir).to(device)
-		optimizer_rd = AdamW(model_rd.parameters(), lr=3e-5)
+		if rd == 1:
+			model_rd = AutoModelForQuestionAnswering.from_pretrained(pretrain_model_dir).to(device)
+		else:
+			model_rd = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir).to(device)
+
+		optimizer_rd = AdamW(model_rd.parameters(), lr=LEARNING_RATE)
 		
 		lr_scheduler_rd = get_scheduler(
 			"linear",
