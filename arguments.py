@@ -24,6 +24,7 @@ def get_args():
 	parser.add_argument('--model_batch', '-c', default=8, type=int, help='batch size for training the model')
 	parser.add_argument('--toy_exp', '-x', default=False, type=bool, help='True if it runs for development with small set of data.')
 	parser.add_argument('--learning_rate', '-l', default=1e-4, type=float, help='learning rate for training')
+	parser.add_argument('--low_resource', '-r', default=False, type=bool, help='True if it is the low resource experiment.')
 	# lpl
 	# parser.add_argument('--lpl_epoches', type=int, default=20, help='lpl epoch num after detach')
 	# ceal
