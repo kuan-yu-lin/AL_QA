@@ -81,6 +81,9 @@ val_dataset = val_dataset.remove_columns(["offset_mapping"])
 val_dataset.set_format("torch")
 val_features.set_format("torch")
 
+# get the number of extra data after preprocessing
+extra = len(train_dataset) - len(squad['train'])
+
 ## seed
 SEED = 1127
 os.environ["CUDA_VISIBLE_DEVICES"] = str(args_input.gpu)
@@ -183,35 +186,38 @@ while (ITERATION > 0):
 	for rd in range(1, NUM_ROUND+1):
 		print('Round {} in Iteration {}'.format(rd, 5 - ITERATION))
 
+		## use total_query (NUM_QUERY + extra) to query instead of just NUM_QUERY
+		total_query = NUM_QUERY + extra
+		
 		## query
 		if STRATEGY_NAME == 'RandomSampling':
-			q_idxs = random_sampling_query(labeled_idxs, NUM_QUERY)
+			q_idxs = random_sampling_query(labeled_idxs, total_query)
 		elif STRATEGY_NAME == 'MarginSampling':
-			q_idxs = margin_sampling_query(n_pool, labeled_idxs, train_dataset, train_features, squad['train'], device, NUM_QUERY)
+			q_idxs = margin_sampling_query(n_pool, labeled_idxs, train_dataset, train_features, squad['train'], device, total_query)
 		elif STRATEGY_NAME == 'LeastConfidence':
-			q_idxs = least_confidence_query(n_pool, labeled_idxs, train_dataset, train_features, squad['train'], device, NUM_QUERY)
+			q_idxs = least_confidence_query(n_pool, labeled_idxs, train_dataset, train_features, squad['train'], device, total_query)
 		elif STRATEGY_NAME == 'EntropySampling':
-			q_idxs = entropy_query(n_pool, labeled_idxs, train_dataset, train_features, squad['train'], device, NUM_QUERY)
+			q_idxs = entropy_query(n_pool, labeled_idxs, train_dataset, train_features, squad['train'], device, total_query)
 		elif STRATEGY_NAME == 'MarginSamplingDropout':
-			q_idxs = margin_sampling_dropout_query(n_pool, labeled_idxs, train_dataset, train_features, squad['train'], device, NUM_QUERY)
+			q_idxs = margin_sampling_dropout_query(n_pool, labeled_idxs, train_dataset, train_features, squad['train'], device, total_query)
 		elif STRATEGY_NAME == 'LeastConfidenceDropout':
-			q_idxs = least_confidence_dropout_query(n_pool, labeled_idxs, train_dataset, train_features, squad['train'], device, NUM_QUERY)
+			q_idxs = least_confidence_dropout_query(n_pool, labeled_idxs, train_dataset, train_features, squad['train'], device, total_query)
 		elif STRATEGY_NAME == 'EntropySamplingDropout':
-			q_idxs = entropy_dropout_query(n_pool, labeled_idxs, train_dataset, train_features, squad['train'], device, NUM_QUERY)
+			q_idxs = entropy_dropout_query(n_pool, labeled_idxs, train_dataset, train_features, squad['train'], device, total_query)
 		elif STRATEGY_NAME == 'VarRatio':
-			q_idxs = var_ratio_query(n_pool, labeled_idxs, train_dataset, train_features, squad['train'], device, NUM_QUERY)
+			q_idxs = var_ratio_query(n_pool, labeled_idxs, train_dataset, train_features, squad['train'], device, total_query)
 		elif STRATEGY_NAME == 'BALDDropout':
-			q_idxs = bald_query(n_pool, labeled_idxs, train_dataset, train_features, squad['train'], device, NUM_QUERY)
+			q_idxs = bald_query(n_pool, labeled_idxs, train_dataset, train_features, squad['train'], device, total_query)
 		elif STRATEGY_NAME == 'MeanSTD':
-			q_idxs = mean_std_query(n_pool, labeled_idxs, train_dataset, train_features, squad['train'], device, NUM_QUERY)
+			q_idxs = mean_std_query(n_pool, labeled_idxs, train_dataset, train_features, squad['train'], device, total_query)
 		elif STRATEGY_NAME == 'KMeansSampling':
-			q_idxs = kmeans_query(n_pool, labeled_idxs, train_dataset, device, NUM_QUERY)
+			q_idxs = kmeans_query(n_pool, labeled_idxs, train_dataset, device, total_query)
 		elif STRATEGY_NAME == 'KCenterGreedy':
-			q_idxs = kcenter_greedy_query(n_pool, labeled_idxs, train_dataset, device, NUM_QUERY)
+			q_idxs = kcenter_greedy_query(n_pool, labeled_idxs, train_dataset, device, total_query)
 		elif STRATEGY_NAME == 'KCenterGreedyPCA': # not sure
-			q_idxs = kcenter_greedy_PCA_query(n_pool, labeled_idxs, train_dataset, device, NUM_QUERY)
+			q_idxs = kcenter_greedy_PCA_query(n_pool, labeled_idxs, train_dataset, device, total_query)
 		elif STRATEGY_NAME == 'BadgeSampling':
-			q_idxs = badge_query(n_pool, labeled_idxs, train_dataset, train_features, squad['train'], device, NUM_QUERY)
+			q_idxs = badge_query(n_pool, labeled_idxs, train_dataset, train_features, squad['train'], device, total_query)
 		# elif STRATEGY_NAME == 'LossPredictionLoss':
 		# 	# different net!
 		# 	q_idxs = loss_prediction_query()
@@ -225,8 +231,21 @@ while (ITERATION > 0):
 		time = datetime.datetime.now()
 
 		## update
-		labeled_idxs[q_idxs] = True
-		run_rd_labeled_idxs = np.arange(n_pool)[labeled_idxs]
+		 
+		## goal of total query data: sum NUM_QUERY and the number of set run_0_data
+		num_set_query_rd = NUM_QUERY * rd + NUM_INIT_LB
+		
+		difference_rd = 0
+		num_set_ex_id_rd = 0
+
+		while num_set_ex_id_rd != num_set_query_rd:        
+			labeled_idxs[q_idxs[:NUM_QUERY + difference_rd]] = True
+			run_rd_labeled_idxs = np.arange(n_pool)[labeled_idxs]
+
+			run_rd_samples = train_features.select(indices=run_rd_labeled_idxs)
+			num_set_ex_id_rd = len(set(run_rd_samples['example_id']))
+
+			difference_rd = num_set_query_rd - num_set_ex_id_rd
 
 		train_dataloader_rd = DataLoader(
 			train_dataset.select(indices=run_rd_labeled_idxs),
