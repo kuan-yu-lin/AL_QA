@@ -2,6 +2,8 @@
 # use it with main_with_pretrain
 ###########################
 
+# TODO: merge to_pretrain (include scaler) to to_train
+
 import evaluate
 import collections
 from tqdm.auto import tqdm
@@ -31,7 +33,12 @@ NUM_ROUND = int(args_input.quota / args_input.batch)
 DATA_NAME = args_input.dataset_name
 STRATEGY_NAME = args_input.ALstrategy
 MODEL_NAME = args_input.model
-strategy_model_dir = model_dir + '/' + str(NUM_INIT_LB) + '_' + str(args_input.quota) + '_' + STRATEGY_NAME + '_' + MODEL_NAME +  '_' + DATA_NAME
+
+if args_input.low_resource:
+    strategy_model_dir = model_dir + '/lowRes_' + str(args_input.quota) + '_' + STRATEGY_NAME + '_' + MODEL_NAME +  '_' + DATA_NAME
+else:
+    strategy_model_dir = model_dir + '/' + str(NUM_INIT_LB) + '_' + str(args_input.quota) + '_' + STRATEGY_NAME + '_' + MODEL_NAME +  '_' + DATA_NAME
+
 pretrain_model_dir = '/mount/arbeitsdaten31/studenten1/linku/pretrain_models' + '/' + MODEL_NAME + '_' + DATA_NAME + '_full_dataset'
 
 def to_train(num_train_epochs, train_dataloader, device, model, optimizer, lr_scheduler, record_loss=False):
@@ -56,6 +63,8 @@ def to_train(num_train_epochs, train_dataloader, device, model, optimizer, lr_sc
 	print('TRAIN done!')
 
 def to_pretrain(num_train_epochs, train_dataloader, device, model, optimizer, lr_scheduler, scaler):
+    
+    # TODO: 
 	print('Training was performed using the full dataset ({} data).'.format(len(train_dataloader.dataset)))
 	for epoch in range(num_train_epochs):
 		model.train()
@@ -129,11 +138,8 @@ def compute_metrics(start_logits, end_logits, features, examples):
     theoretical_answers = [{"id": ex["id"], "answers": ex["answers"]} for ex in examples]
     return metric.compute(predictions=predicted_answers, references=theoretical_answers)
 
-def get_pred(dataloader, device, features, examples, lowRes=False):
-    if lowRes:
-        model = AutoModelForQuestionAnswering.from_pretrained(pretrain_model_dir).to(device)
-    else:
-        model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir).to(device)
+def get_pred(dataloader, device, features, examples):
+    model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir).to(device)
     
     model.eval()
     start_logits = []
@@ -154,35 +160,8 @@ def get_pred(dataloader, device, features, examples, lowRes=False):
 
     return compute_metrics(start_logits, end_logits, features, examples)
 
-def get_pretrain_pred(dataloader, device, features, examples):
-    model = AutoModelForQuestionAnswering.from_pretrained(pretrain_model_dir).to(device)
-    # model = AutoModelForQuestionAnswering.from_pretrained(pretrain_model_dir)
-    # model = nn.DataParallel(model)
-    # model.to(device)
-    # model = AutoModelForQuestionAnswering.from_pretrained(pretrain_model_dir).to(device_id)
-    # model = DDP(model, device_ids=[device_id])
-    
-    model.eval()
-    start_logits = []
-    end_logits = []
-
-    for batch in tqdm(dataloader, desc="Evaluating_pred"):
-        batch = {key: value.to(device) for key, value in batch.items()}
-        with torch.no_grad():
-            outputs = model(**batch)
-
-        start_logits.append(outputs.start_logits.cpu().numpy())
-        end_logits.append(outputs.end_logits.cpu().numpy())
-
-    start_logits = np.concatenate(start_logits)
-    end_logits = np.concatenate(end_logits)
-    start_logits = start_logits[: len(features)]
-    end_logits = end_logits[: len(features)]
-
-    return compute_metrics(start_logits, end_logits, features, examples)
-
-def get_prob(dataloader, device, features, examples, lowRes=False):
-    if lowRes:
+def get_prob(dataloader, device, features, examples, rd=0):
+    if rd == 1:
         model = AutoModelForQuestionAnswering.from_pretrained(pretrain_model_dir).to(device)
     else:
         model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir).to(device)
@@ -245,8 +224,8 @@ def get_prob(dataloader, device, features, examples, lowRes=False):
     
     return prob_dict
 
-def get_prob_dropout(dataloader, device, features, examples, n_drop=10, lowRes=False):
-    if lowRes:
+def get_prob_dropout(dataloader, device, features, examples, n_drop=10, rd=0):
+    if rd == 1:
         model = AutoModelForQuestionAnswering.from_pretrained(pretrain_model_dir).to(device)
     else:
         model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir).to(device)
@@ -324,13 +303,14 @@ def get_prob_dropout(dataloader, device, features, examples, n_drop=10, lowRes=F
 
     return prob_dict
 
-def get_prob_dropout_split(dataloader, device, features, examples, n_drop=10, lowRes=False):
+def get_prob_dropout_split(dataloader, device, features, examples, n_drop=10, rd=0):
     ## use tensor to save the answers
 
-    if lowRes:
+    if rd == 1:
         model = AutoModelForQuestionAnswering.from_pretrained(pretrain_model_dir).to(device)
     else:
         model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir).to(device)
+    
     model.train()
 
     probs = torch.zeros([n_drop, len(dataloader.dataset), 200])
@@ -396,11 +376,12 @@ def get_prob_dropout_split(dataloader, device, features, examples, n_drop=10, lo
 
     return probs
 
-def get_embeddings(dataloader, device, lowRes=False):
-    if lowRes:
-        model = AutoModelForQuestionAnswering.from_pretrained(pretrain_model_dir, output_hidden_states=True).to(device)
+def get_embeddings(dataloader, device, rd=0):
+    if rd == 1:
+        model = AutoModelForQuestionAnswering.from_pretrained(pretrain_model_dir).to(device)
     else:
         model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir, output_hidden_states=True).to(device)
+    
     model.eval()
     embeddings = torch.zeros([len(dataloader.dataset), model.config.to_dict()['hidden_size']])
     idxs_start = 0
@@ -420,11 +401,12 @@ def get_embeddings(dataloader, device, lowRes=False):
         
     return embeddings
 
-def get_grad_embeddings(dataloader, device, features, examples, lowRes=False):
-    if lowRes:
-        model = AutoModelForQuestionAnswering.from_pretrained(pretrain_model_dir, output_hidden_states=True).to(device)
+def get_grad_embeddings(dataloader, device, features, examples, rd=0):
+    if rd == 1:
+        model = AutoModelForQuestionAnswering.from_pretrained(pretrain_model_dir).to(device)
     else:
         model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir, output_hidden_states=True).to(device)
+    
     model.eval()
 
     # deepAL+: nLab = self.params['num_class']
