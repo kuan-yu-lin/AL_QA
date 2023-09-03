@@ -7,7 +7,8 @@ from datasets import load_dataset
 from transformers import (
 	default_data_collator,
 	get_scheduler,
-    AutoModelForQuestionAnswering
+    AutoModelForQuestionAnswering,
+	AutoTokenizer
 )
 from torch.utils.data import DataLoader
 from torch.optim import AdamW
@@ -46,33 +47,40 @@ strategy_model_dir = model_dir + '/' + str(NUM_INIT_LB) + '_' + str(args_input.q
 
 ## load data
 squad = load_dataset(DATA_NAME.lower(), cache_dir=CACHE_DIR)
-if args_input.before_exp:
+if args_input.toy_exp:
 	print('Use 4000 training data and 1500 testing data.')
 	squad["train"] = squad["train"].select(range(4000))
 	squad["validation"] = squad["validation"].select(range(1500))
 else:
 	print('Use full training data and full testing data.')
 
+## load the tokenizer
+tokenizer = AutoTokenizer.from_pretrained(get_model(MODEL_NAME))
+
 ## preprocess data
 train_dataset = squad["train"].map(
     preprocess_training_examples,
     batched=True,
     remove_columns=squad["train"].column_names,
+	fn_kwargs=dict(tokenizer=tokenizer)
 )
 train_features = squad["train"].map(
     preprocess_training_features,
     batched=True,
     remove_columns=squad["train"].column_names,
+	fn_kwargs=dict(tokenizer=tokenizer)
 )
 val_dataset = squad["validation"].map(
     preprocess_validation_examples,
     batched=True,
     remove_columns=squad["validation"].column_names,
+	fn_kwargs=dict(tokenizer=tokenizer)
 )
 val_features = squad["validation"].map(
     preprocess_validation_examples,
     batched=True,
     remove_columns=squad["validation"].column_names,
+	fn_kwargs=dict(tokenizer=tokenizer)
 )
 
 train_dataset.set_format("torch")
