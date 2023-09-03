@@ -118,17 +118,17 @@ while (ITERATION > 0):
 	tmp_idxs = np.arange(n_pool)
 	np.random.shuffle(tmp_idxs)
 	
-	difference = 0
-	num_set_ex_id = 0
+	difference_0 = 0
+	num_set_ex_id_0 = 0
 
-	while num_set_ex_id != NUM_INIT_LB:        
-		labeled_idxs[tmp_idxs[:NUM_INIT_LB + difference]] = True
+	while num_set_ex_id_0 != NUM_INIT_LB:        
+		labeled_idxs[tmp_idxs[:NUM_INIT_LB + difference_0]] = True
 		run_0_labeled_idxs = np.arange(n_pool)[labeled_idxs]
 
 		run_0_samples = train_features.select(indices=run_0_labeled_idxs)
-		num_set_ex_id = len(set(run_0_samples['example_id']))
+		num_set_ex_id_0 = len(set(run_0_samples['example_id']))
 
-		difference = NUM_INIT_LB - num_set_ex_id
+		difference_0 = NUM_INIT_LB - num_set_ex_id_0
 
 	## record acc performance 
 	acc = np.zeros(NUM_ROUND + 1) # quota/batch runs + run_0
