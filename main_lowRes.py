@@ -1,4 +1,4 @@
-# from datasets import load_dataset
+from datasets import disable_caching
 from transformers import (
 	default_data_collator,
 	get_scheduler,
@@ -25,22 +25,26 @@ from query import *
 
 model_dir = '/mount/arbeitsdaten31/studenten1/linku/models'
 pretrain_model_dir = '/mount/arbeitsdaten31/studenten1/linku/pretrain_models' + '/' + MODEL_NAME + '_' + DATA_NAME + '_full_dataset'
+strategy_model_dir = model_dir + '/' + str(NUM_INIT_LB) + '_' + str(args_input.quota) + '_' + STRATEGY_NAME + '_' + MODEL_NAME +  '_' + DATA_NAME
 
 CACHE_DIR = '/mount/arbeitsdaten31/studenten1/linku/.cache'
 
 args_input = arguments.get_args()
 NUM_QUERY = args_input.batch
 NUM_INIT_LB = args_input.initseed
-NUM_ROUND = int(args_input.quota / args_input.batch)
+ITERATION = int(args_input.quota / args_input.batch)
 DATA_NAME = args_input.dataset_name
 STRATEGY_NAME = args_input.ALstrategy
 MODEL_NAME = args_input.model
-## TODO: not sure add in here
 LEARNING_RATE = args_input.learning_rate
-strategy_model_dir = model_dir + '/' + str(NUM_INIT_LB) + '_' + str(args_input.quota) + '_' + STRATEGY_NAME + '_' + MODEL_NAME +  '_' + DATA_NAME
+EXPE_ROUND = args_input.expe_round
+MODEL_BATCH = args_input.model_batch
+NUM_TRAIN_EPOCH = args_input.train_epochs
 
 ## load data
-data = load_dataset_lowRes(DATA_NAME.lower(), cache_dir=CACHE_DIR)
+data = load_dataset_lowRes(DATA_NAME.lower())
+# cache_dir=CACHE_DIR is build-in in the func.
+
 if args_input.toy_exp:
 	print('Use 4000 training data and 1500 testing data.')
 	data["train"] = data["train"].select(range(4000))
@@ -50,6 +54,9 @@ else:
 
 ## load the tokenizer
 tokenizer = AutoTokenizer.from_pretrained(get_model(MODEL_NAME))
+
+## disable_caching
+disable_caching()
 
 ## preprocess data
 train_dataset = data["train"].map(
@@ -101,32 +108,22 @@ sys.stdout = Logger(os.path.abspath('') + '/logfile_lowRes/' + str(NUM_INIT_LB) 
 warnings.filterwarnings('ignore')
 
 ## start experiment
-ITERATION = args_input.iteration
-MODEL_BATCH = args_input.model_batch
-NUM_TRAIN_EPOCH = args_input.train_epochs
-
 all_acc = []
 acq_time = []
 
-# repeate # iteration trials
-while (ITERATION > 0): 
-	ITERATION = ITERATION - 1
+## repeate experiment trials
+while (EXPE_ROUND > 0): 
+	EXPE_ROUND = EXPE_ROUND - 1
 	
 	start = datetime.datetime.now()
 
 	## generate initial labeled pool
 	n_pool = len(train_dataset)
 	labeled_idxs = np.zeros(n_pool, dtype=bool)
-
-	# tmp_idxs = np.arange(n_pool)
-	# np.random.shuffle(tmp_idxs)
-	# labeled_idxs[tmp_idxs[:NUM_INIT_LB]] = True
-
-	# run_0_labeled_idxs = np.arange(n_pool)[labeled_idxs]
 	
 	## record acc performance 
-	acc = np.zeros(NUM_ROUND) # quota/batch runs
-	acc_em = np.zeros(NUM_ROUND)
+	acc = np.zeros(ITERATION) # quota/batch runs
+	acc_em = np.zeros(ITERATION)
 
 	## load the selected train data to DataLoader
 	eval_dataloader = DataLoader(
@@ -135,9 +132,9 @@ while (ITERATION > 0):
 		batch_size=MODEL_BATCH
 	)
 	
-	## round 1 to rd
-	for rd in range(1, NUM_ROUND+1):
-		print('Round {} in Iteration {}'.format(rd, 5 - ITERATION))
+	## iteration 1 to i
+	for i in range(1, ITERATION+1):
+		print('Iteraion {} in experiment round {}'.format(i, 5 - EXPE_ROUND))
 
 		## use total_query (NUM_QUERY + extra) to query instead of just NUM_QUERY
 		total_query = NUM_QUERY + extra
@@ -146,31 +143,31 @@ while (ITERATION > 0):
 		if STRATEGY_NAME == 'RandomSampling':
 			q_idxs = random_sampling_query(labeled_idxs, total_query)
 		elif STRATEGY_NAME == 'MarginSampling':
-			q_idxs = margin_sampling_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, total_query, rd)
+			q_idxs = margin_sampling_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, total_query, i)
 		elif STRATEGY_NAME == 'LeastConfidence':
-			q_idxs = least_confidence_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, total_query, rd)
+			q_idxs = least_confidence_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, total_query, i)
 		elif STRATEGY_NAME == 'EntropySampling':
-			q_idxs = entropy_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, total_query, rd)
+			q_idxs = entropy_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, total_query, i)
 		elif STRATEGY_NAME == 'MarginSamplingDropout':
-			q_idxs = margin_sampling_dropout_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, total_query, rd)
+			q_idxs = margin_sampling_dropout_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, total_query, i)
 		elif STRATEGY_NAME == 'LeastConfidenceDropout':
-			q_idxs = least_confidence_dropout_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, total_query, rd)
+			q_idxs = least_confidence_dropout_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, total_query, i)
 		elif STRATEGY_NAME == 'EntropySamplingDropout':
-			q_idxs = entropy_dropout_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, total_query, rd)
+			q_idxs = entropy_dropout_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, total_query, i)
 		elif STRATEGY_NAME == 'VarRatio':
-			q_idxs = var_ratio_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, total_query, rd)
+			q_idxs = var_ratio_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, total_query, i)
 		elif STRATEGY_NAME == 'BALDDropout':
-			q_idxs = bald_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, total_query, rd)
+			q_idxs = bald_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, total_query, i)
 		elif STRATEGY_NAME == 'MeanSTD':
-			q_idxs = mean_std_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, total_query, rd)
+			q_idxs = mean_std_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, total_query, i)
 		elif STRATEGY_NAME == 'KMeansSampling':
-			q_idxs = kmeans_query(n_pool, labeled_idxs, train_dataset, device, total_query, rd)
+			q_idxs = kmeans_query(n_pool, labeled_idxs, train_dataset, device, total_query, i)
 		elif STRATEGY_NAME == 'KCenterGreedy':
-			q_idxs = kcenter_greedy_query(n_pool, labeled_idxs, train_dataset, device, total_query, rd)
+			q_idxs = kcenter_greedy_query(n_pool, labeled_idxs, train_dataset, device, total_query, i)
 		elif STRATEGY_NAME == 'KCenterGreedyPCA': # not sure
-			q_idxs = kcenter_greedy_PCA_query(n_pool, labeled_idxs, train_dataset, device, total_query, rd)
+			q_idxs = kcenter_greedy_PCA_query(n_pool, labeled_idxs, train_dataset, device, total_query, i)
 		elif STRATEGY_NAME == 'BadgeSampling':
-			q_idxs = badge_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, total_query, rd)
+			q_idxs = badge_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, total_query, i)
 		# elif STRATEGY_NAME == 'LossPredictionLoss':
 		# 	# different net!
 		# 	q_idxs = loss_prediction_query()
@@ -185,55 +182,55 @@ while (ITERATION > 0):
 
 		## update
 		 
-		## goal of total query data: NUM_QUERY * rd
-		num_set_query_rd = NUM_QUERY * rd
+		## goal of total query data: NUM_QUERY * i
+		num_set_query_i = NUM_QUERY * i
 		
-		difference_rd = 0
-		num_set_ex_id_rd = 0
+		difference_i = 0
+		num_set_ex_id_i = 0
 
-		while num_set_ex_id_rd != num_set_query_rd:        
-			labeled_idxs[q_idxs[:NUM_QUERY + difference_rd]] = True
-			run_rd_labeled_idxs = np.arange(n_pool)[labeled_idxs]
+		while num_set_ex_id_i != num_set_query_i:        
+			labeled_idxs[q_idxs[:NUM_QUERY + difference_i]] = True
+			run_i_labeled_idxs = np.arange(n_pool)[labeled_idxs]
 
-			run_rd_samples = train_features.select(indices=run_rd_labeled_idxs)
-			num_set_ex_id_rd = len(set(run_rd_samples['example_id']))
+			run_i_samples = train_features.select(indices=run_i_labeled_idxs)
+			num_set_ex_id_i = len(set(run_i_samples['example_id']))
 
-			difference_rd = num_set_query_rd - num_set_ex_id_rd
+			difference_i = num_set_query_i - num_set_ex_id_i
 
-		train_dataloader_rd = DataLoader(
-			train_dataset.select(indices=run_rd_labeled_idxs),
+		train_dataloader_i = DataLoader(
+			train_dataset.select(indices=run_i_labeled_idxs),
 			shuffle=True,
 			collate_fn=default_data_collator,
 			batch_size=MODEL_BATCH,
 		)
 
-		num_update_steps_per_epoch_rd = len(train_dataloader_rd)
-		num_training_steps_rd = NUM_TRAIN_EPOCH * num_update_steps_per_epoch_rd
+		num_update_steps_per_epoch_i = len(train_dataloader_i)
+		num_training_steps_i = NUM_TRAIN_EPOCH * num_update_steps_per_epoch_i
 
-		if rd == 1:
-			model_rd = AutoModelForQuestionAnswering.from_pretrained(pretrain_model_dir).to(device)
+		if i == 1:
+			model_i = AutoModelForQuestionAnswering.from_pretrained(pretrain_model_dir).to(device)
 		else:
-			model_rd = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir).to(device)
+			model_i = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir).to(device)
 
-		optimizer_rd = AdamW(model_rd.parameters(), lr=LEARNING_RATE)
+		optimizer_i = AdamW(model_i.parameters(), lr=LEARNING_RATE)
 		
-		lr_scheduler_rd = get_scheduler(
+		lr_scheduler_i = get_scheduler(
 			"linear",
-			optimizer=optimizer_rd,
+			optimizer=optimizer_i,
 			num_warmup_steps=0,
-			num_training_steps=num_training_steps_rd,
+			num_training_steps=num_training_steps_i,
 		)
 		
 		## train
-		to_train(NUM_TRAIN_EPOCH, train_dataloader_rd, device, model_rd, optimizer_rd, lr_scheduler_rd)
+		to_train(NUM_TRAIN_EPOCH, train_dataloader_i, device, model_i, optimizer_i, lr_scheduler_i)
 
-		## round rd accuracy
-		print('rd_{} get_pred!'.format(rd))
-		acc_scores_rd = get_pred(eval_dataloader, device, val_features, data['validation'])
-		acc[rd] = acc_scores_rd['f1']
-		acc_em[rd] = acc_scores_rd['exact_match']
-		print('testing accuracy {}'.format(acc[rd]))
-		print('testing accuracy em {}'.format(acc_em[rd]))
+		## iteration i accuracy
+		print('iter_{} get_pred!'.format(i))
+		acc_scores_i = get_pred(eval_dataloader, device, val_features, data['validation'])
+		acc[i] = acc_scores_i['f1']
+		acc_em[i] = acc_scores_i['exact_match']
+		print('testing accuracy {}'.format(acc[i]))
+		print('testing accuracy em {}'.format(acc_em[i]))
 		print('Time spent for training after querying:', (datetime.datetime.now() - time))
 		time = datetime.datetime.now()
 		print('\n')
@@ -268,8 +265,8 @@ file_res_tot.writelines('number of labeled pool: {}'.format(NUM_INIT_LB) + '\n')
 file_res_tot.writelines('number of unlabeled pool: {}'.format(len(train_dataset) - NUM_INIT_LB) + '\n')
 file_res_tot.writelines('number of testing pool: {}'.format(len(val_dataset)) + '\n')
 file_res_tot.writelines('batch size: {}'.format(NUM_QUERY) + '\n')
-file_res_tot.writelines('quota: {}'.format(NUM_ROUND*NUM_QUERY)+ '\n')
-file_res_tot.writelines('time of repeat experiments: {}'.format(args_input.iteration)+ '\n')
+file_res_tot.writelines('quota: {}'.format(ITERATION*NUM_QUERY)+ '\n')
+file_res_tot.writelines('time of repeat experiments: {}'.format(args_input.expe_round)+ '\n')
 
 # result
 for i in range(len(all_acc)):
@@ -298,8 +295,8 @@ file_res.writelines('number of unlabeled pool: {}'.format(len(train_dataset) - N
 # file_res.writelines('number of testing pool: {}'.format(dataset.n_test) + '\n')
 file_res.writelines('number of testing pool: {}'.format(len(val_dataset)) + '\n')
 file_res.writelines('batch size: {}'.format(NUM_QUERY) + '\n')
-file_res.writelines('quota: {}'.format(NUM_ROUND*NUM_QUERY)+ '\n')
-file_res.writelines('time of repeat experiments: {}'.format(args_input.iteration)+ '\n')
+file_res.writelines('quota: {}'.format(ITERATION*NUM_QUERY)+ '\n')
+file_res.writelines('time of repeat experiments: {}'.format(args_input.expe_round)+ '\n')
 avg_acc = np.mean(np.array(all_acc),axis=0)
 for i in range(len(avg_acc)):
 	tmp = 'Size of training set is ' + str(NUM_INIT_LB + i*NUM_QUERY) + ', ' + 'accuracy is ' + str(round(avg_acc[i],4)) + '.' + '\n'

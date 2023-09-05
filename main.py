@@ -43,6 +43,9 @@ DATA_NAME = args_input.dataset_name
 STRATEGY_NAME = args_input.ALstrategy
 MODEL_NAME = args_input.model
 LEARNING_RATE = args_input.learning_rate
+EXPE_ROUND = args_input.expe_round
+MODEL_BATCH = args_input.model_batch
+NUM_TRAIN_EPOCH = args_input.train_epochs
 
 if args_input.low_resource:
     strategy_model_dir = model_dir + '/lowRes_' + str(args_input.quota) + '_' + STRATEGY_NAME + '_' + MODEL_NAME +  '_' + DATA_NAME
@@ -114,16 +117,12 @@ sys.stdout = Logger(os.path.abspath('') + '/logfile/' + str(NUM_INIT_LB) + '_' +
 warnings.filterwarnings('ignore')
 
 ## start experiment
-EXPE_ROUND = args_input.expe_round
-MODEL_BATCH = args_input.model_batch
-NUM_TRAIN_EPOCH = args_input.train_epochs
-
 all_acc = []
 acq_time = []
 
 begin = datetime.datetime.now()
 
-# repeate experiment trials
+## repeate experiment trials
 while (EXPE_ROUND > 0): 
 	EXPE_ROUND = EXPE_ROUND - 1
 	
@@ -141,20 +140,20 @@ while (EXPE_ROUND > 0):
 
 	while num_set_ex_id_0 != NUM_INIT_LB:        
 		labeled_idxs[tmp_idxs[:NUM_INIT_LB + difference_0]] = True
-		run_0_labeled_idxs = np.arange(n_pool)[labeled_idxs]
+		iter_0_labeled_idxs = np.arange(n_pool)[labeled_idxs]
 
-		run_0_samples = train_features.select(indices=run_0_labeled_idxs)
-		num_set_ex_id_0 = len(set(run_0_samples['example_id']))
+		iter_0_samples = train_features.select(indices=iter_0_labeled_idxs)
+		num_set_ex_id_0 = len(set(iter_0_samples['example_id']))
 
 		difference_0 = NUM_INIT_LB - num_set_ex_id_0
 
 	## record acc performance 
-	acc = np.zeros(ITERATION + 1) # quota/batch runs + run_0
+	acc = np.zeros(ITERATION + 1) # quota/batch runs + iter_0
 	acc_em = np.zeros(ITERATION + 1)
 
 	## load the selected train data to DataLoader
 	train_dataloader = DataLoader(
-		train_dataset.select(indices=run_0_labeled_idxs),
+		train_dataset.select(indices=iter_0_labeled_idxs),
 		shuffle=True,
 		collate_fn=default_data_collator,
 		batch_size=MODEL_BATCH,
@@ -247,49 +246,49 @@ while (EXPE_ROUND > 0):
 
 		## update
 		 
-		## goal of total query data: sum NUM_QUERY and the number of set run_0_data
-		num_set_query_rd = NUM_QUERY * i + NUM_INIT_LB
+		## goal of total query data: sum NUM_QUERY and the number of set iter_0_data
+		num_set_query_i = NUM_QUERY * i + NUM_INIT_LB
 		
-		difference_rd = 0
-		num_set_ex_id_rd = 0
+		difference_i = 0
+		num_set_ex_id_i = 0
 
-		while num_set_ex_id_rd != num_set_query_rd:        
-			labeled_idxs[q_idxs[:NUM_QUERY + difference_rd]] = True
-			run_rd_labeled_idxs = np.arange(n_pool)[labeled_idxs]
+		while num_set_ex_id_i != num_set_query_i:        
+			labeled_idxs[q_idxs[:NUM_QUERY + difference_i]] = True
+			iter_i_labeled_idxs = np.arange(n_pool)[labeled_idxs]
 
-			run_rd_samples = train_features.select(indices=run_rd_labeled_idxs)
-			num_set_ex_id_rd = len(set(run_rd_samples['example_id']))
+			iter_i_samples = train_features.select(indices=iter_i_labeled_idxs)
+			num_set_ex_id_i = len(set(iter_i_samples['example_id']))
 
-			difference_rd = num_set_query_rd - num_set_ex_id_rd
+			difference_i = num_set_query_i - num_set_ex_id_i
 
-		train_dataloader_rd = DataLoader(
-			train_dataset.select(indices=run_rd_labeled_idxs),
+		train_dataloader_i = DataLoader(
+			train_dataset.select(indices=iter_i_labeled_idxs),
 			shuffle=True,
 			collate_fn=default_data_collator,
 			batch_size=MODEL_BATCH,
 		)
 
-		num_update_steps_per_epoch_rd = len(train_dataloader_rd)
-		num_training_steps_rd = NUM_TRAIN_EPOCH * num_update_steps_per_epoch_rd
+		num_update_steps_per_epoch_i = len(train_dataloader_i)
+		num_training_steps_i = NUM_TRAIN_EPOCH * num_update_steps_per_epoch_i
 
-		model_rd = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir).to(device)
-		optimizer_rd = AdamW(model_rd.parameters(), lr=LEARNING_RATE)
+		model_i = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir).to(device)
+		optimizer_i = AdamW(model_i.parameters(), lr=LEARNING_RATE)
 		
-		lr_scheduler_rd = get_scheduler(
+		lr_scheduler_i = get_scheduler(
 			"linear",
-			optimizer=optimizer_rd,
+			optimizer=optimizer_i,
 			num_warmup_steps=0,
-			num_training_steps=num_training_steps_rd,
+			num_training_steps=num_training_steps_i,
 		)
 		
 		## train
-		to_train(NUM_TRAIN_EPOCH, train_dataloader_rd, device, model_rd, optimizer_rd, lr_scheduler_rd)
+		to_train(NUM_TRAIN_EPOCH, train_dataloader_i, device, model_i, optimizer_i, lr_scheduler_i)
 
 		## iteration i accuracy
-		print('rd_{} get_pred!'.format(i))
-		acc_scores_rd = get_pred(eval_dataloader, device, val_features, squad['validation'])
-		acc[i] = acc_scores_rd['f1']
-		acc_em[i] = acc_scores_rd['exact_match']
+		print('iter_{} get_pred!'.format(i))
+		acc_scores_i = get_pred(eval_dataloader, device, val_features, squad['validation'])
+		acc[i] = acc_scores_i['f1']
+		acc_em[i] = acc_scores_i['exact_match']
 		print('testing accuracy {}'.format(acc[i]))
 		print('testing accuracy em {}'.format(acc_em[i]))
 		print('Time spent for training after querying:', (datetime.datetime.now() - time))
