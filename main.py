@@ -38,7 +38,7 @@ CACHE_DIR = '/mount/arbeitsdaten31/studenten1/linku/.cache'
 args_input = arguments.get_args()
 NUM_QUERY = args_input.batch
 NUM_INIT_LB = args_input.initseed
-NUM_ROUND = int(args_input.quota / args_input.batch)
+ITERATION = int(args_input.quota / args_input.batch)
 DATA_NAME = args_input.dataset_name
 STRATEGY_NAME = args_input.ALstrategy
 MODEL_NAME = args_input.model
@@ -114,7 +114,7 @@ sys.stdout = Logger(os.path.abspath('') + '/logfile/' + str(NUM_INIT_LB) + '_' +
 warnings.filterwarnings('ignore')
 
 ## start experiment
-ITERATION = args_input.iteration
+EXPE_ROUND = args_input.expe_round
 MODEL_BATCH = args_input.model_batch
 NUM_TRAIN_EPOCH = args_input.train_epochs
 
@@ -123,9 +123,9 @@ acq_time = []
 
 begin = datetime.datetime.now()
 
-# repeate # iteration trials
-while (ITERATION > 0): 
-	ITERATION = ITERATION - 1
+# repeate experiment trials
+while (EXPE_ROUND > 0): 
+	EXPE_ROUND = EXPE_ROUND - 1
 	
 	start = datetime.datetime.now()
 
@@ -149,8 +149,8 @@ while (ITERATION > 0):
 		difference_0 = NUM_INIT_LB - num_set_ex_id_0
 
 	## record acc performance 
-	acc = np.zeros(NUM_ROUND + 1) # quota/batch runs + run_0
-	acc_em = np.zeros(NUM_ROUND + 1)
+	acc = np.zeros(ITERATION + 1) # quota/batch runs + run_0
+	acc_em = np.zeros(ITERATION + 1)
 
 	## load the selected train data to DataLoader
 	train_dataloader = DataLoader(
@@ -184,10 +184,10 @@ while (ITERATION > 0):
 	print(DATA_NAME)
 	print(STRATEGY_NAME)
 	
-	## round 0 accuracy
+	## iteration 0 accuracy
 	to_train(NUM_TRAIN_EPOCH, train_dataloader, device, model, optimizer, lr_scheduler)
 	
-	acc_scores_0 = get_pred(eval_dataloader, device, val_features, squad['validation']) # add rd=1 to use model from models_dir
+	acc_scores_0 = get_pred(eval_dataloader, device, val_features, squad['validation']) # add i=1 to use model from models_dir
 	acc[0] = acc_scores_0['f1']
 	acc_em[0] = acc_scores_0['exact_match']
 
@@ -197,9 +197,9 @@ while (ITERATION > 0):
 	print('Time spent for init training:', (time - start))
 	print('\n')
 	
-	## round 1 to rd
-	for rd in range(1, NUM_ROUND+1):
-		print('Round {} in Iteration {}'.format(rd, 5 - ITERATION))
+	## iteration 1 to i
+	for i in range(1, ITERATION+1):
+		print('Iteraion {} in experiment round {}'.format(i, 5 - EXPE_ROUND))
 
 		## use total_query (NUM_QUERY + extra) to query instead of just NUM_QUERY
 		total_query = NUM_QUERY + extra
@@ -248,7 +248,7 @@ while (ITERATION > 0):
 		## update
 		 
 		## goal of total query data: sum NUM_QUERY and the number of set run_0_data
-		num_set_query_rd = NUM_QUERY * rd + NUM_INIT_LB
+		num_set_query_rd = NUM_QUERY * i + NUM_INIT_LB
 		
 		difference_rd = 0
 		num_set_ex_id_rd = 0
@@ -285,13 +285,13 @@ while (ITERATION > 0):
 		## train
 		to_train(NUM_TRAIN_EPOCH, train_dataloader_rd, device, model_rd, optimizer_rd, lr_scheduler_rd)
 
-		## round rd accuracy
-		print('rd_{} get_pred!'.format(rd))
+		## iteration i accuracy
+		print('rd_{} get_pred!'.format(i))
 		acc_scores_rd = get_pred(eval_dataloader, device, val_features, squad['validation'])
-		acc[rd] = acc_scores_rd['f1']
-		acc_em[rd] = acc_scores_rd['exact_match']
-		print('testing accuracy {}'.format(acc[rd]))
-		print('testing accuracy em {}'.format(acc_em[rd]))
+		acc[i] = acc_scores_rd['f1']
+		acc_em[i] = acc_scores_rd['exact_match']
+		print('testing accuracy {}'.format(acc[i]))
+		print('testing accuracy em {}'.format(acc_em[i]))
 		print('Time spent for training after querying:', (datetime.datetime.now() - time))
 		time = datetime.datetime.now()
 		print('\n')
@@ -309,7 +309,7 @@ while (ITERATION > 0):
 	final_model_dir = model_dir + '/' + timestamp + str(NUM_INIT_LB) + '_' + str(args_input.quota) + '_' + STRATEGY_NAME + '_' + MODEL_NAME + '_' + DATA_NAME
 	os.makedirs(final_model_dir, exist_ok=True)
 	end = datetime.datetime.now()
-	print('Time spent in iteration {}: {}'.format(5 - ITERATION, datetime.datetime.now() - begin))
+	print('Time spent in experiment round {}: {}'.format(5 - EXPE_ROUND, datetime.datetime.now() - begin))
 	acq_time.append(round(float((end-start).seconds), 3))
 
 	final_model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir).to(device)
@@ -328,12 +328,13 @@ file_res.writelines('number of labeled pool: {}'.format(NUM_INIT_LB) + '\n')
 file_res.writelines('number of unlabeled pool: {}'.format(len(train_dataset) - NUM_INIT_LB) + '\n')
 file_res.writelines('number of testing pool: {}'.format(len(val_dataset)) + '\n')
 file_res.writelines('batch size: {}'.format(NUM_QUERY) + '\n')
-file_res.writelines('quota: {}'.format(NUM_ROUND * NUM_QUERY) + '\n')
+file_res.writelines('quota: {}'.format(ITERATION * NUM_QUERY) + '\n')
 file_res.writelines('learning rate: {}'.format(LEARNING_RATE) + '\n')
 file_res.writelines('training batch size: {}'.format(MODEL_BATCH) + '\n')
-file_res.writelines('time of repeat experiments: {}'.format(args_input.iteration) + '\n')
+file_res.writelines('time of repeat experiments: {}'.format(args_input.expe_round) + '\n')
 
 # save result
+file_res.writelines('\nAUBC in each experiment round')
 for i in range(len(all_acc)):
 	acc_m.append(get_aubc(args_input.quota, NUM_QUERY, all_acc[i]))
 	print(str(i) + ': ' + str(acc_m[i]))
