@@ -7,7 +7,7 @@ def get_args():
 	parser.add_argument('--quota', '-q', default=100, type=int, help='quota of active learning')
 	parser.add_argument('--batch', '-b', default=35, type=int, help='batch size in one active learning iteration')
 	parser.add_argument('--dataset_name', '-d', default='SQuAD', type=str, help='dataset name')
-	parser.add_argument('--iteration', '-t', default=3, type=int, help='time of repeat the experiment')
+	parser.add_argument('--expe_rd', '-p', default=3, type=int, help='time of repeat the experiment')
 	
 	# parser.add_argument('--data_path', type=str, default='./../data', help='Path to where the data is')
 	# parser.add_argument('--out_path', type=str, default='./../results', help='Path to where the output log will be')

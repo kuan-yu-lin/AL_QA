@@ -20,7 +20,7 @@ python main.py \
     -d SQuAD \
     -m Bert \
     -e 1127 \
-    -t 5 \
+    -p 5 \
     -g 2
 
 # Margin
@@ -35,7 +35,7 @@ python main.py \
     -d SQuAD \
     -m Bert \
     -e 1127 \
-    -t 5 \
+    -p 5 \
     -g 3
 
 # LC
@@ -51,7 +51,7 @@ python main.py \
     -d SQuAD \
     -m Bert \
     -e 1127 \
-    -t 5 \
+    -p 5 \
     -g 0
 
 # Entropy
@@ -67,7 +67,7 @@ python main.py \
     -d SQuAD \
     -m Bert \
     -e 1127 \
-    -t 5 \
+    -p 5 \
     -g 1
 
 # MarginDropout
@@ -80,7 +80,7 @@ python main.py \
     -d SQuAD \
     -m Bert \
     -e 1127 \
-    -t 5 \
+    -p 5 \
     -g 2
 
 # LCDropout
@@ -93,7 +93,7 @@ python main.py \
     -d SQuAD \
     -m Bert \
     -e 1127 \
-    -t 5 \
+    -p 5 \
     -g 3
 
 # EntropyDropout
@@ -106,7 +106,7 @@ python main.py \
     -d SQuAD \
     -m Bert \
     -e 1127 \
-    -t 5 \
+    -p 5 \
     -g 0
 
 # KMeans
@@ -121,7 +121,7 @@ python main.py \
     -d SQuAD \
     -m Bert \
     -e 1127 \
-    -t 5 \
+    -p 5 \
     -g 1
 
 # KCenterGreedy
@@ -135,7 +135,7 @@ python main.py \
     -d SQuAD \
     -m Bert \
     -e 1127 \
-    -t 5 \
+    -p 5 \
     -g 1
 
 # Bayesian
@@ -148,7 +148,7 @@ python main.py \
     -d SQuAD \
     -m Bert \
     -e 1127 \
-    -t 5 \
+    -p 5 \
     -g 4
 
 # MeanSTD
@@ -161,7 +161,7 @@ python main.py \
     -d SQuAD \
     -m Bert \
     -e 1127 \
-    -t 5 \
+    -p 5 \
     -g 5
 
 # BADGE
@@ -174,7 +174,7 @@ python main.py \
     -d SQuAD \
     -m Bert \
     -e 1127 \
-    -t 5 \
+    -p 5 \
     -g 7
 
 # LPL
@@ -186,7 +186,7 @@ python main.py \
     -d SQuAD \
     -m Bert \
     -e 1127 \
-    -t 5 \
+    -p 5 \
     -g 2
 
 # CEAL
@@ -198,5 +198,5 @@ python main.py \
     -d SQuAD \
     -m Bert \
     -e 1127 \
-    -t 5 \
+    -p 5 \
     -g 2

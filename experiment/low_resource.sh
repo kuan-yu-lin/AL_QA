@@ -1,9 +1,9 @@
 # ####################
-# Model: Bert-base
+# Model: roBERTa-base
 #
 # source domain: SQuAD, Natural Question
 #
-# target domain: BioASQ, NewsQA, SearchQA, TextbookQA, DROP
+# target domain: BioASQ, SearchQA, SearchQA, TextbookQA, DROP
 #
 # Init pool: 50
 # Query: 50, 100, 150, 200
@@ -14,23 +14,24 @@
 # Pretrain
 python pretrain.py \
     -d SQuAD \
-    -m Bert \
+    -m roBERTa \
     -e 1127 \
     -l 3e-5 \
-    # -g 3
+    -g 5
 
 # Random
+## 9/3 strauss
 python main_lowRes.py \
-    -a RandomSampling \
-    # -s 50 \
+    -a RandomSamplinsg \
     -q 200 \
     -b 50 \
-    -d NewsQA \
-    -m Bert \
+    -d SearchQA \
+    -m roBERTa \
+    -r True \
     -e 1127 \
     -l 3e-5 \
-    -t 5 \
-    -g 2
+    -p 5 \
+    -g 3
 
 # Margin
 python main_lowRes.py \
@@ -38,11 +39,11 @@ python main_lowRes.py \
     -s 50 \
     -q 200 \
     -b 50 \
-    -d NewsQA \
-    -m Bert \
+    -d SearchQA \
+    -m roBERTa \
     -e 1127 \
     -l 3e-5 \
-    -t 5 \
+    -p 5 \
     -g 8
 
 # LC
@@ -51,11 +52,11 @@ python main_lowRes.py \
     -s 50 \
     -q 200 \
     -b 50 \
-    -d NewsQA \
-    -m Bert \
+    -d SearchQA \
+    -m roBERTa \
     -e 1127 \
     -l 3e-5 \
-    -t 5 \
+    -p 5 \
     -g 1
 
 # Entropy
@@ -66,11 +67,11 @@ python main_lowRes.py \
     -s 50 \
     -q 200 \
     -b 50 \
-    -d NewsQA \
-    -m Bert \
+    -d SearchQA \
+    -m roBERTa \
     -e 1127 \
     -l 3e-5 \
-    -t 5 \
+    -p 5 \
     -g 8
 
 # MarginDropout
@@ -79,11 +80,11 @@ python main_lowRes.py \
     -s 50 \
     -q 200 \
     -b 50 \
-    -d NewsQA \
-    -m Bert \
+    -d SearchQA \
+    -m roBERTa \
     -e 1127 \
     -l 3e-5 \
-    -t 5 \
+    -p 5 \
     -g 3
 
 # LCDropout
@@ -92,11 +93,11 @@ python main_lowRes.py \
     -s 50 \
     -q 200 \
     -b 50 \
-    -d NewsQA \
-    -m Bert \
+    -d SearchQA \
+    -m roBERTa \
     -e 1127 \
     -l 3e-5 \
-    -t 5 \
+    -p 5 \
     -g 2
 
 # EntropyDropout
@@ -105,11 +106,11 @@ python main_lowRes.py \
     -s 50 \
     -q 200 \
     -b 50 \
-    -d NewsQA \
-    -m Bert \
+    -d SearchQA \
+    -m roBERTa \
     -e 1127 \
     -l 3e-5 \
-    -t 5 \
+    -p 5 \
     -g 2
 
 # KMeans
@@ -118,11 +119,11 @@ python main_lowRes.py \
     -s 50 \
     -q 200 \
     -b 50 \
-    -d NewsQA \
-    -m Bert \
+    -d SearchQA \
+    -m roBERTa \
     -e 1127 \
     -l 3e-5 \
-    -t 5 \
+    -p 5 \
     -g 3
 
 # KCenterGreedy
@@ -131,11 +132,11 @@ python main_lowRes.py \
     -s 50 \
     -q 200 \
     -b 50 \
-    -d NewsQA \
-    -m Bert \
+    -d SearchQA \
+    -m roBERTa \
     -e 1127 \
     -l 3e-5 \
-    -t 5 \
+    -p 5 \
     -g 2
 
 # Bayesian
@@ -144,11 +145,11 @@ python main_lowRes.py \
     -s 50 \
     -q 200 \
     -b 50 \
-    -d NewsQA \
-    -m Bert \
+    -d SearchQA \
+    -m roBERTa \
     -e 1127 \
     -l 3e-5 \
-    -t 5 \
+    -p 5 \
     -g 3
 
 # MeanSTD
@@ -157,11 +158,11 @@ python main_lowRes.py \
     -s 50 \
     -q 200 \
     -b 50 \
-    -d NewsQA \
-    -m Bert \
+    -d SearchQA \
+    -m roBERTa \
     -e 1127 \
     -l 3e-5 \
-    -t 5 \
+    -p 5 \
     -g 2
 
 # BADGE
@@ -170,11 +171,11 @@ python main_lowRes.py \
     -s 50 \
     -q 200 \
     -b 50 \
-    -d NewsQA \
-    -m Bert \
+    -d SearchQA \
+    -m roBERTa \
     -e 1127 \
     -l 3e-5 \
-    -t 5 \
+    -p 5 \
     -g 0
 
 # LPL
@@ -183,11 +184,11 @@ python main_lowRes.py \
     -s 50 \
     -q 200 \
     -b 50 \
-    -d NewsQA \
-    -m Bert \
+    -d SearchQA \
+    -m roBERTa \
     -e 1127 \
     -l 3e-5 \
-    -t 5 \
+    -p 5 \
     -g 2
 
 # CEAL
@@ -196,9 +197,9 @@ python main_lowRes.py \
     -s 50 \
     -q 200 \
     -b 50 \
-    -d NewsQA \
-    -m Bert \
+    -d SearchQA \
+    -m roBERTa \
     -e 1127 \
     -l 3e-5 \
-    -t 5 \
+    -p 5 \
     -g 2
