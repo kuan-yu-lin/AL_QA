@@ -3,7 +3,7 @@
 # delete shuffle in query
 # 
 
-from datasets import load_dataset
+from datasets import load_dataset, disable_caching
 from transformers import (
 	default_data_collator,
 	get_scheduler,
@@ -60,6 +60,9 @@ else:
 
 ## load the tokenizer
 tokenizer = AutoTokenizer.from_pretrained(get_model(MODEL_NAME))
+
+## disable_caching
+disable_caching()
 
 ## preprocess data
 train_dataset = squad["train"].map(
@@ -167,7 +170,7 @@ while (ITERATION > 0):
 	num_training_steps = NUM_TRAIN_EPOCH * num_update_steps_per_epoch
 
     ## network
-	model = AutoModelForQuestionAnswering.from_pretrained("bert-base-uncased").to(device)
+	model = AutoModelForQuestionAnswering.from_pretrained(get_model(MODEL_NAME)).to(device)
 	optimizer = AdamW(model.parameters(), lr=LEARNING_RATE)
 	
 	lr_scheduler = get_scheduler(
