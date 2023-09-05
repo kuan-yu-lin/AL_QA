@@ -333,7 +333,7 @@ file_res.writelines('training batch size: {}'.format(MODEL_BATCH) + '\n')
 file_res.writelines('time of repeat experiments: {}'.format(args_input.expe_round) + '\n')
 
 # save result
-file_res.writelines('\nAUBC in each experiment round')
+file_res.writelines('\nAUBC in each experiment round.')
 for i in range(len(all_acc)):
 	acc_m.append(get_aubc(args_input.quota, NUM_QUERY, all_acc[i]))
 	print(str(i) + ': ' + str(acc_m[i]))

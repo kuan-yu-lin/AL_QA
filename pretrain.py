@@ -1,4 +1,4 @@
-from datasets import load_dataset
+from datasets import load_dataset, disable_caching
 from transformers import (
 	default_data_collator,
 	get_scheduler,
@@ -32,12 +32,16 @@ DATA_NAME = args_input.dataset_name
 MODEL_BATCH = args_input.model_batch
 MODEL_NAME = args_input.model
 LEARNING_RATE = args_input.learning_rate
+NUM_TRAIN_EPOCH = args_input.train_epochs
 
 ## load data
 squad = load_dataset(DATA_NAME.lower(), cache_dir=CACHE_DIR)
 
 ## load the tokenizer
 tokenizer = AutoTokenizer.from_pretrained(get_model(MODEL_NAME))
+
+## disable_caching
+disable_caching()
 
 ## preprocess data
 train_dataset = squad["train"].map(
@@ -79,11 +83,8 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 sys.stdout = Logger(os.path.abspath('') + '/logfile/' + MODEL_NAME + '_' + DATA_NAME + '_full_dataset_normal_log.txt')
 warnings.filterwarnings('ignore')
 
-NUM_TRAIN_EPOCH = args_input.train_epochs
-model_name = get_model(args_input.model)
-
 ## data, network, strategy
-model = AutoModelForQuestionAnswering.from_pretrained(model_name).to(device)
+model = AutoModelForQuestionAnswering.from_pretrained(get_model(MODEL_NAME)).to(device)
 optimizer = AdamW(model.parameters(), lr=LEARNING_RATE)
 
 start = datetime.datetime.now()
@@ -123,7 +124,7 @@ print('Number of validation data:', str(len(squad["validation"])))
 ## round 0 accuracy
 to_pretrain(NUM_TRAIN_EPOCH, train_dataloader, device, model, optimizer, lr_scheduler, scaler)
 
-acc_scores = get_pretrain_pred(eval_dataloader, device, val_features, squad['validation'])
+acc_scores = get_pred(eval_dataloader, device, val_features, squad['validation'])
 
 print('testing accuracy {}'.format(acc_scores['f1']))
 print('testing accuracy em {}'.format(acc_scores['exact_match']))
