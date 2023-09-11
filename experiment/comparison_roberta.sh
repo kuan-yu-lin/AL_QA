@@ -25,8 +25,9 @@ python main.py \
     -g 3
 
 # Margin
-## 7/17
-## 9/3 strauss
+## 7/17 (archived)
+## 9/3 strauss (archived)
+## 9/7 kapweihe
 python main.py \
     -a MarginSampling \
     -s 500 \
@@ -37,11 +38,12 @@ python main.py \
     -e 1127 \
     -l 3e-5 \
     -p 5 \
-    -g 6
+    -g 3
 
 # LC
-## 7/18
-## 9/3 strauss
+## 7/18 (archived)
+## 9/3 strauss (archived)
+## 9/7 strauss
 python main.py \
     -a LeastConfidence \
     -s 500 \
@@ -52,12 +54,13 @@ python main.py \
     -e 1127 \
     -l 3e-5 \
     -p 5 \
-    -g 4
+    -g 8
 
 # Entropy
-## 7/18
+## 7/18 (archived)
 ## 9/3 waldweihe (test tmux)
-## 9/3 strass
+## 9/3 strass (archived)
+## 9/7 kapweihe
 python main.py \
     -a EntropySampling \
     -s 500 \
@@ -68,10 +71,11 @@ python main.py \
     -e 1127 \
     -l 3e-5 \
     -p 5 \
-    -g 4
+    -g 3
 
 # MarginDropout
-## 9/4 strass
+## 9/4 strass (not finished)
+## 9/6 strass
 python main.py \
     -a MarginSamplingDropout \
     -s 500 \
@@ -87,6 +91,7 @@ python main.py \
 # LCDropout
 ## 7/17-? kapweihe
 ## 9/3 strass
+## 9/6 strass
 python main.py \
     -a LeastConfidenceDropout \
     -s 500 \
@@ -101,6 +106,7 @@ python main.py \
 
 # EntropyDropout
 ## 9/4 strass
+## 9/6 strass
 python main.py \
     -a EntropySamplingDropout \
     -s 500 \
@@ -156,6 +162,7 @@ python main.py \
 
 # MeanSTD
 ## 9/4 kapweihe
+## 9/6 strauss
 python main.py \
     -a MeanSTD \
     -s 500 \
@@ -166,10 +173,11 @@ python main.py \
     -e 1127 \
     -l 3e-5 \
     -p 5 \
-    -g 4
+    -g 3
 
 # BADGE
 ## 7/17-? kapweihe
+## 9/6 kapweihe
 python main.py \
     -a BadgeSampling \
     -s 500 \
@@ -180,7 +188,7 @@ python main.py \
     -e 1127 \
     -l 3e-5 \
     -p 5 \
-    -g 0
+    -g 4
 
 # LPL
 # python main.py \
