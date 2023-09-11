@@ -87,18 +87,35 @@ def init_centers(X, K):
         cent += 1
     return indsAll
 
-def load_dataset_lowRes(d):
-	if d == 'NewsQA':
-		return load_dataset(d.lower(), 'split', cache_dir=CACHE_DIR)
-	elif d == 'BioASQ':
-		pass
-		# TODO: figure out the path
-		# return load_dataset(path)
-	elif d == 'SearchQA':
-		return load_dataset("search_qa", cache_dir=CACHE_DIR)
-	elif d == 'TextbookQA':
-		pass
-		# TODO: figure out the path
-		# return load_dataset(path)
-	elif d == 'DROP':
-		return load_dataset(d.lower(), cache_dir=CACHE_DIR)
+def load_dataset_mrqa(d):
+	'''
+	return train_set, val_set
+	'''
+	data = load_dataset("mrqa", cache_dir=CACHE_DIR)
+	if d == 'squad':
+		# the first to 86588th in train set
+		# the first to 10507th in val set		
+		return data['train'].select(range(86588)), data['validation'].select(range(10507))
+	elif d == 'newsqa':
+		# the 86589th to 160748th in train set
+		# the 10508th to 14719th in val set		
+		return data['train'].select(range(86588, 160748)), data['validation'].select(range(10507, 14719))
+	elif d == 'searchqa':
+		# the 222437th to 339820th in train set
+		# the 22505th to 39484th in val set
+		return data['train'].select(range(222436, 339820)), data['validation'].select(range(22504, 39484))
+	elif d == 'bioasq':
+		# the first to the 1504th in the test set
+		sub = data['test'].select(range(1504))
+		len_sub_val = len(sub) // 10
+		return sub.select(range(len_sub_val, len(sub))), sub.select(range(len_sub_val))
+	elif d == 'textbookqa':
+		# the 8131st to 9633rd
+		sub = data['test'].select(range(8130, 9633))
+		len_sub_val = len(sub) // 10
+		return sub.select(range(len_sub_val, len(sub))), sub.select(range(len_sub_val)) 
+	elif d == 'drop': # Discrete Reasoning Over Paragraphs
+		# the 1505th to 3007th in test set
+		sub = data['test'].select(range(1504, 3007))
+		len_sub_val = len(sub) // 10
+		return sub.select(range(len_sub_val, len(sub))), sub.select(range(len_sub_val))

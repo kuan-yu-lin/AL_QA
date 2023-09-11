@@ -42,15 +42,16 @@ MODEL_BATCH = args_input.model_batch
 NUM_TRAIN_EPOCH = args_input.train_epochs
 
 ## load data
-data = load_dataset_lowRes(DATA_NAME.lower())
+train_data, val_data = load_dataset_mrqa(DATA_NAME.lower())
 # cache_dir=CACHE_DIR is build-in in the func.
 
-if args_input.toy_exp:
-	print('Use 4000 training data and 1500 testing data.')
-	data["train"] = data["train"].select(range(4000))
-	data["validation"] = data["validation"].select(range(1500))
-else:
-	print('Use full training data and full testing data.')
+# seem the following part does not needed
+# if args_input.toy_exp:
+# 	print('Use 4000 training data and 1500 testing data.')
+# 	data["train"] = data["train"].select(range(4000))
+# 	data["validation"] = data["validation"].select(range(1500))
+# else:
+# 	print('Use full training data and full testing data.')
 
 ## load the tokenizer
 tokenizer = AutoTokenizer.from_pretrained(get_model(MODEL_NAME))
@@ -59,28 +60,29 @@ tokenizer = AutoTokenizer.from_pretrained(get_model(MODEL_NAME))
 disable_caching()
 
 ## preprocess data
-train_dataset = data["train"].map(
-    preprocess_training_examples,
+# TODO: change to 
+train_dataset = train_data.map(
+    preprocess_training_examples_lowRes,
     batched=True,
-    remove_columns=data["train"].column_names,
+    remove_columns=train_data.column_names,
 	fn_kwargs=dict(tokenizer=tokenizer)
 )
-train_features = data["train"].map(
-    preprocess_training_features,
+train_features = train_data.map(
+    preprocess_training_features_lowRes,
     batched=True,
-    remove_columns=data["train"].column_names,
+    remove_columns=train_data.column_names,
 	fn_kwargs=dict(tokenizer=tokenizer)
 )
-val_dataset = data["validation"].map(
-    preprocess_validation_examples,
+val_dataset = val_data.map(
+    preprocess_validation_examples_lowRes,
     batched=True,
-    remove_columns=data["validation"].column_names,
+    remove_columns=val_data.column_names,
 	fn_kwargs=dict(tokenizer=tokenizer)
 )
-val_features = data["validation"].map(
-    preprocess_validation_examples,
+val_features = val_data.map(
+    preprocess_validation_examples_lowRes,
     batched=True,
-    remove_columns=data["validation"].column_names,
+    remove_columns=val_data.column_names,
 	fn_kwargs=dict(tokenizer=tokenizer)
 )
 
@@ -91,7 +93,7 @@ val_dataset.set_format("torch")
 val_features.set_format("torch")
 
 # get the number of extra data after preprocessing
-extra = len(train_dataset) - len(data['train'])
+extra = len(train_dataset) - len(train_data)
 
 ## seed
 SEED = 1127
@@ -143,23 +145,23 @@ while (EXPE_ROUND > 0):
 		if STRATEGY_NAME == 'RandomSampling':
 			q_idxs = random_sampling_query(labeled_idxs, total_query)
 		elif STRATEGY_NAME == 'MarginSampling':
-			q_idxs = margin_sampling_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, total_query, i)
+			q_idxs = margin_sampling_query(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, total_query, i)
 		elif STRATEGY_NAME == 'LeastConfidence':
-			q_idxs = least_confidence_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, total_query, i)
+			q_idxs = least_confidence_query(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, total_query, i)
 		elif STRATEGY_NAME == 'EntropySampling':
-			q_idxs = entropy_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, total_query, i)
+			q_idxs = entropy_query(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, total_query, i)
 		elif STRATEGY_NAME == 'MarginSamplingDropout':
-			q_idxs = margin_sampling_dropout_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, total_query, i)
+			q_idxs = margin_sampling_dropout_query(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, total_query, i)
 		elif STRATEGY_NAME == 'LeastConfidenceDropout':
-			q_idxs = least_confidence_dropout_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, total_query, i)
+			q_idxs = least_confidence_dropout_query(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, total_query, i)
 		elif STRATEGY_NAME == 'EntropySamplingDropout':
-			q_idxs = entropy_dropout_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, total_query, i)
+			q_idxs = entropy_dropout_query(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, total_query, i)
 		elif STRATEGY_NAME == 'VarRatio':
-			q_idxs = var_ratio_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, total_query, i)
+			q_idxs = var_ratio_query(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, total_query, i)
 		elif STRATEGY_NAME == 'BALDDropout':
-			q_idxs = bald_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, total_query, i)
+			q_idxs = bald_query(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, total_query, i)
 		elif STRATEGY_NAME == 'MeanSTD':
-			q_idxs = mean_std_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, total_query, i)
+			q_idxs = mean_std_query(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, total_query, i)
 		elif STRATEGY_NAME == 'KMeansSampling':
 			q_idxs = kmeans_query(n_pool, labeled_idxs, train_dataset, device, total_query, i)
 		elif STRATEGY_NAME == 'KCenterGreedy':
@@ -167,7 +169,7 @@ while (EXPE_ROUND > 0):
 		elif STRATEGY_NAME == 'KCenterGreedyPCA': # not sure
 			q_idxs = kcenter_greedy_PCA_query(n_pool, labeled_idxs, train_dataset, device, total_query, i)
 		elif STRATEGY_NAME == 'BadgeSampling':
-			q_idxs = badge_query(n_pool, labeled_idxs, train_dataset, train_features, data['train'], device, total_query, i)
+			q_idxs = badge_query(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, total_query, i)
 		# elif STRATEGY_NAME == 'LossPredictionLoss':
 		# 	# different net!
 		# 	q_idxs = loss_prediction_query()
@@ -226,7 +228,7 @@ while (EXPE_ROUND > 0):
 
 		## iteration i accuracy
 		print('iter_{} get_pred!'.format(i))
-		acc_scores_i = get_pred(eval_dataloader, device, val_features, data['validation'])
+		acc_scores_i = get_pred(eval_dataloader, device, val_features, val_data)
 		acc[i] = acc_scores_i['f1']
 		acc_em[i] = acc_scores_i['exact_match']
 		print('testing accuracy {}'.format(acc[i]))
