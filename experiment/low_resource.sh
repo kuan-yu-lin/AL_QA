@@ -1,11 +1,10 @@
 # ####################
-# Model: roBERTa-base
+# Model: RoBERTa-base
 #
-# source domain: SQuAD, Natural Question
+# source domain: SQuAD
 #
-# target domain: BioASQ, SearchQA, SearchQA, TextbookQA, DROP
+# target domain: BioASQ, TextbookQA, DROP, NewsQA, SearchQA
 #
-# Init pool: 50
 # Query: 50, 100, 150, 200
 # Query batch: 50 
 # Experiment Iteration: 5
@@ -14,19 +13,70 @@
 # Pretrain
 python pretrain.py \
     -d SQuAD \
-    -m roBERTa \
+    -m RoBERTa \
     -e 1127 \
     -l 3e-5 \
     -g 5
 
 # Random
 ## 9/3 strauss
+## 9/12 strauss
 python main_lowRes.py \
-    -a RandomSamplinsg \
+    -a RandomSampling \
+    -q 200 \
+    -b 50 \
+    -d DROP \
+    -m RoBERTa \
+    -r True \
+    -e 1127 \
+    -l 3e-5 \
+    -p 5 \
+    -g 6
+
+## 9/12 strauss
+python main_lowRes.py \
+    -a RandomSampling \
+    -q 200 \
+    -b 50 \
+    -d BioASQ \
+    -m RoBERTa \
+    -r True \
+    -e 1127 \
+    -l 3e-5 \
+    -p 5 \
+    -g 6
+
+python main_lowRes.py \
+    -a RandomSampling \
+    -q 200 \
+    -b 50 \
+    -d TextbookQA \
+    -m RoBERTa \
+    -r True \
+    -e 1127 \
+    -l 3e-5 \
+    -p 5 \
+    -g 8
+
+python main_lowRes.py \
+    -a RandomSampling \
+    -q 200 \
+    -b 50 \
+    -d NewsQA \
+    -m RoBERTa \
+    -r True \
+    -e 1127 \
+    -l 3e-5 \
+    -p 5 \
+    -g 6
+
+## 9/12 kapweihe
+python main_lowRes.py \
+    -a RandomSampling \
     -q 200 \
     -b 50 \
     -d SearchQA \
-    -m roBERTa \
+    -m RoBERTa \
     -r True \
     -e 1127 \
     -l 3e-5 \
@@ -40,7 +90,7 @@ python main_lowRes.py \
     -q 200 \
     -b 50 \
     -d SearchQA \
-    -m roBERTa \
+    -m RoBERTa \
     -e 1127 \
     -l 3e-5 \
     -p 5 \
@@ -53,7 +103,7 @@ python main_lowRes.py \
     -q 200 \
     -b 50 \
     -d SearchQA \
-    -m roBERTa \
+    -m RoBERTa \
     -e 1127 \
     -l 3e-5 \
     -p 5 \
@@ -68,7 +118,7 @@ python main_lowRes.py \
     -q 200 \
     -b 50 \
     -d SearchQA \
-    -m roBERTa \
+    -m RoBERTa \
     -e 1127 \
     -l 3e-5 \
     -p 5 \
@@ -81,7 +131,7 @@ python main_lowRes.py \
     -q 200 \
     -b 50 \
     -d SearchQA \
-    -m roBERTa \
+    -m RoBERTa \
     -e 1127 \
     -l 3e-5 \
     -p 5 \
@@ -94,7 +144,7 @@ python main_lowRes.py \
     -q 200 \
     -b 50 \
     -d SearchQA \
-    -m roBERTa \
+    -m RoBERTa \
     -e 1127 \
     -l 3e-5 \
     -p 5 \
@@ -107,7 +157,7 @@ python main_lowRes.py \
     -q 200 \
     -b 50 \
     -d SearchQA \
-    -m roBERTa \
+    -m RoBERTa \
     -e 1127 \
     -l 3e-5 \
     -p 5 \
@@ -120,7 +170,7 @@ python main_lowRes.py \
     -q 200 \
     -b 50 \
     -d SearchQA \
-    -m roBERTa \
+    -m RoBERTa \
     -e 1127 \
     -l 3e-5 \
     -p 5 \
@@ -133,7 +183,7 @@ python main_lowRes.py \
     -q 200 \
     -b 50 \
     -d SearchQA \
-    -m roBERTa \
+    -m RoBERTa \
     -e 1127 \
     -l 3e-5 \
     -p 5 \
@@ -146,7 +196,7 @@ python main_lowRes.py \
     -q 200 \
     -b 50 \
     -d SearchQA \
-    -m roBERTa \
+    -m RoBERTa \
     -e 1127 \
     -l 3e-5 \
     -p 5 \
@@ -159,7 +209,7 @@ python main_lowRes.py \
     -q 200 \
     -b 50 \
     -d SearchQA \
-    -m roBERTa \
+    -m RoBERTa \
     -e 1127 \
     -l 3e-5 \
     -p 5 \
@@ -172,7 +222,7 @@ python main_lowRes.py \
     -q 200 \
     -b 50 \
     -d SearchQA \
-    -m roBERTa \
+    -m RoBERTa \
     -e 1127 \
     -l 3e-5 \
     -p 5 \
@@ -185,7 +235,7 @@ python main_lowRes.py \
     -q 200 \
     -b 50 \
     -d SearchQA \
-    -m roBERTa \
+    -m RoBERTa \
     -e 1127 \
     -l 3e-5 \
     -p 5 \
@@ -198,7 +248,7 @@ python main_lowRes.py \
     -q 200 \
     -b 50 \
     -d SearchQA \
-    -m roBERTa \
+    -m RoBERTa \
     -e 1127 \
     -l 3e-5 \
     -p 5 \
