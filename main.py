@@ -32,6 +32,7 @@ from query import *
 # import datasets
 
 model_dir = '/mount/arbeitsdaten31/studenten1/linku/models'
+strategy_model_dir = model_dir + '/' + str(NUM_INIT_LB) + '_' + str(args_input.quota) + '_' + STRATEGY_NAME + '_' + MODEL_NAME +  '_' + DATA_NAME
 
 CACHE_DIR = '/mount/arbeitsdaten31/studenten1/linku/.cache'
 
@@ -46,11 +47,6 @@ LEARNING_RATE = args_input.learning_rate
 EXPE_ROUND = args_input.expe_round
 MODEL_BATCH = args_input.model_batch
 NUM_TRAIN_EPOCH = args_input.train_epochs
-
-if args_input.low_resource:
-    strategy_model_dir = model_dir + '/lowRes_' + str(args_input.quota) + '_' + STRATEGY_NAME + '_' + MODEL_NAME +  '_' + DATA_NAME
-else:
-    strategy_model_dir = model_dir + '/' + str(NUM_INIT_LB) + '_' + str(args_input.quota) + '_' + STRATEGY_NAME + '_' + MODEL_NAME +  '_' + DATA_NAME
 
 ## load data
 squad = load_dataset(DATA_NAME.lower(), cache_dir=CACHE_DIR)

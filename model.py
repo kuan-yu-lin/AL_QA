@@ -39,7 +39,7 @@ if args_input.low_resource:
 else:
     strategy_model_dir = model_dir + '/' + str(NUM_INIT_LB) + '_' + str(args_input.quota) + '_' + STRATEGY_NAME + '_' + MODEL_NAME +  '_' + DATA_NAME
 
-pretrain_model_dir = '/mount/arbeitsdaten31/studenten1/linku/pretrain_models' + '/' + MODEL_NAME + '_' + DATA_NAME + '_full_dataset'
+pretrain_model_dir = '/mount/arbeitsdaten31/studenten1/linku/pretrain_models' + '/' + MODEL_NAME + '_SQuAD_full_dataset'
 
 def to_train(num_train_epochs, train_dataloader, device, model, optimizer, lr_scheduler, record_loss=False):
 	print('Training was performed using the sum of {} initial data and {} query data, i.e. {} data.'.format(NUM_INIT_LB, NUM_QUERY, len(train_dataloader.dataset)))

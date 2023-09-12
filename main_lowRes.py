@@ -24,8 +24,8 @@ from utils import *
 from query import *
 
 model_dir = '/mount/arbeitsdaten31/studenten1/linku/models'
-pretrain_model_dir = '/mount/arbeitsdaten31/studenten1/linku/pretrain_models' + '/' + MODEL_NAME + '_' + DATA_NAME + '_full_dataset'
-strategy_model_dir = model_dir + '/' + str(NUM_INIT_LB) + '_' + str(args_input.quota) + '_' + STRATEGY_NAME + '_' + MODEL_NAME +  '_' + DATA_NAME
+pretrain_model_dir = '/mount/arbeitsdaten31/studenten1/linku/pretrain_models' + '/' + MODEL_NAME + '_SQuAD_full_dataset'
+strategy_model_dir = model_dir + '/lowRes_' + str(args_input.quota) + '_' + STRATEGY_NAME + '_' + MODEL_NAME +  '_' + DATA_NAME
 
 CACHE_DIR = '/mount/arbeitsdaten31/studenten1/linku/.cache'
 
@@ -116,9 +116,9 @@ acq_time = []
 ## repeate experiment trials
 while (EXPE_ROUND > 0): 
 	EXPE_ROUND = EXPE_ROUND - 1
-	
-	start = datetime.datetime.now()
 
+	start = datetime.datetime.now()
+	
 	## generate initial labeled pool
 	n_pool = len(train_dataset)
 	labeled_idxs = np.zeros(n_pool, dtype=bool)
@@ -133,6 +133,8 @@ while (EXPE_ROUND > 0):
 		collate_fn=default_data_collator, 
 		batch_size=MODEL_BATCH
 	)
+
+	time = datetime.datetime.now()
 	
 	## iteration 1 to i
 	for i in range(1, ITERATION+1):
@@ -166,8 +168,8 @@ while (EXPE_ROUND > 0):
 			q_idxs = kmeans_query(n_pool, labeled_idxs, train_dataset, device, total_query, i)
 		elif STRATEGY_NAME == 'KCenterGreedy':
 			q_idxs = kcenter_greedy_query(n_pool, labeled_idxs, train_dataset, device, total_query, i)
-		elif STRATEGY_NAME == 'KCenterGreedyPCA': # not sure
-			q_idxs = kcenter_greedy_PCA_query(n_pool, labeled_idxs, train_dataset, device, total_query, i)
+		# elif STRATEGY_NAME == 'KCenterGreedyPCA': # not sure
+		# 	q_idxs = kcenter_greedy_PCA_query(n_pool, labeled_idxs, train_dataset, device, total_query, i)
 		elif STRATEGY_NAME == 'BadgeSampling':
 			q_idxs = badge_query(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, total_query, i)
 		# elif STRATEGY_NAME == 'LossPredictionLoss':
@@ -210,8 +212,10 @@ while (EXPE_ROUND > 0):
 		num_training_steps_i = NUM_TRAIN_EPOCH * num_update_steps_per_epoch_i
 
 		if i == 1:
+			print('Use pretrain model in iteration ', i)
 			model_i = AutoModelForQuestionAnswering.from_pretrained(pretrain_model_dir).to(device)
 		else:
+			print('Use strategy model in iteration ', i)
 			model_i = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir).to(device)
 
 		optimizer_i = AdamW(model_i.parameters(), lr=LEARNING_RATE)
