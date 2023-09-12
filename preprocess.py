@@ -176,7 +176,6 @@ def preprocess_training_examples_lowRes(examples, tokenizer):
     for i, offset in enumerate(offset_mapping):
         sample_idx = sample_map[i]
         answer = detected_answers[sample_idx]
-        print('answer["char_spans"]:', answer)
         start_char = answer["char_spans"][0]["start"][0]
         end_char = answer["char_spans"][0]["end"][0]
         sequence_ids = inputs.sequence_ids(i)
@@ -236,7 +235,6 @@ def preprocess_training_features_lowRes(examples, tokenizer):
     for i, offset in enumerate(offset_mapping):
         sample_idx = sample_map[i]
         answer = answers[sample_idx]
-        print('answer["char_spans"]:', answer)
         start_char = answer["char_spans"][0]["start"][0]
         end_char = answer["char_spans"][0]["end"][0]
         sequence_ids = inputs.sequence_ids(i)
