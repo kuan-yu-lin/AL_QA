@@ -19,19 +19,13 @@ import datetime
 
 import arguments
 from preprocess import *
-from model import *
+from model_lowRes import to_train_lowRes, get_pred_lowRes
 from utils import *
 from query import *
 
-model_dir = '/mount/arbeitsdaten31/studenten1/linku/models'
-pretrain_model_dir = '/mount/arbeitsdaten31/studenten1/linku/pretrain_models' + '/' + MODEL_NAME + '_SQuAD_full_dataset'
-strategy_model_dir = model_dir + '/lowRes_' + str(args_input.quota) + '_' + STRATEGY_NAME + '_' + MODEL_NAME +  '_' + DATA_NAME
-
-CACHE_DIR = '/mount/arbeitsdaten31/studenten1/linku/.cache'
-
 args_input = arguments.get_args()
 NUM_QUERY = args_input.batch
-NUM_INIT_LB = args_input.initseed
+# NUM_INIT_LB = args_input.initseed
 ITERATION = int(args_input.quota / args_input.batch)
 DATA_NAME = args_input.dataset_name
 STRATEGY_NAME = args_input.ALstrategy
@@ -41,17 +35,15 @@ EXPE_ROUND = args_input.expe_round
 MODEL_BATCH = args_input.model_batch
 NUM_TRAIN_EPOCH = args_input.train_epochs
 
+model_dir = '/mount/arbeitsdaten31/studenten1/linku/models'
+pretrain_model_dir = '/mount/arbeitsdaten31/studenten1/linku/pretrain_models' + '/' + MODEL_NAME + '_SQuAD_full_dataset'
+strategy_model_dir = model_dir + '/lowRes_' + str(args_input.quota) + '_' + STRATEGY_NAME + '_' + MODEL_NAME +  '_' + DATA_NAME
+
+CACHE_DIR = '/mount/arbeitsdaten31/studenten1/linku/.cache'
+
 ## load data
 train_data, val_data = load_dataset_mrqa(DATA_NAME.lower())
 # cache_dir=CACHE_DIR is build-in in the func.
-
-# seem the following part does not needed
-# if args_input.toy_exp:
-# 	print('Use 4000 training data and 1500 testing data.')
-# 	data["train"] = data["train"].select(range(4000))
-# 	data["validation"] = data["validation"].select(range(1500))
-# else:
-# 	print('Use full training data and full testing data.')
 
 ## load the tokenizer
 tokenizer = AutoTokenizer.from_pretrained(get_model(MODEL_NAME))
@@ -106,7 +98,7 @@ torch.manual_seed(SEED)
 ## device
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-sys.stdout = Logger(os.path.abspath('') + '/logfile_lowRes/' + str(NUM_INIT_LB) + '_' + str(args_input.quota) + '_' + STRATEGY_NAME + '_' + MODEL_NAME + '_' + DATA_NAME + '_normal_log.txt')
+sys.stdout = Logger(os.path.abspath('') + '/logfile_lowRes/' + str(args_input.quota) + '_' + STRATEGY_NAME + '_' + MODEL_NAME + '_' + DATA_NAME + '_normal_log.txt')
 warnings.filterwarnings('ignore')
 
 ## start experiment
@@ -228,15 +220,15 @@ while (EXPE_ROUND > 0):
 		)
 		
 		## train
-		to_train(NUM_TRAIN_EPOCH, train_dataloader_i, device, model_i, optimizer_i, lr_scheduler_i)
+		to_train_lowRes(NUM_TRAIN_EPOCH, train_dataloader_i, device, model_i, optimizer_i, lr_scheduler_i)
 
 		## iteration i accuracy
 		print('iter_{} get_pred!'.format(i))
-		acc_scores_i = get_pred(eval_dataloader, device, val_features, val_data)
-		acc[i] = acc_scores_i['f1']
-		acc_em[i] = acc_scores_i['exact_match']
-		print('testing accuracy {}'.format(acc[i]))
-		print('testing accuracy em {}'.format(acc_em[i]))
+		acc_scores_i = get_pred_lowRes(eval_dataloader, device, val_features, val_data)
+		acc[i-1] = acc_scores_i['f1']
+		acc_em[i-1] = acc_scores_i['exact_match']
+		print('testing accuracy {}'.format(acc[i-1]))
+		print('testing accuracy em {}'.format(acc_em[i-1]))
 		print('Time spent for training after querying:', (datetime.datetime.now() - time))
 		time = datetime.datetime.now()
 		print('\n')
@@ -251,7 +243,7 @@ while (EXPE_ROUND > 0):
 	
 	## save model and record acq time
 	timestamp = re.sub('\.[0-9]*','_',str(datetime.datetime.now())).replace(" ", "_").replace("-", "").replace(":","")
-	final_model_dir = model_dir + '/' + timestamp + DATA_NAME+ '_'  + STRATEGY_NAME + '_' + str(NUM_QUERY) + '_' + str(NUM_INIT_LB) +  '_' + str(args_input.quota)
+	final_model_dir = model_dir + '/' + timestamp + DATA_NAME+ '_'  + STRATEGY_NAME + '_' + str(NUM_QUERY) + '_' + str(args_input.quota)
 	os.makedirs(final_model_dir, exist_ok=True)
 	end = datetime.datetime.now()
 	acq_time.append(round(float((end-start).seconds), 3))
@@ -262,13 +254,12 @@ while (EXPE_ROUND > 0):
 
 # cal mean & standard deviation
 acc_m = []
-file_name_res_tot = str(NUM_INIT_LB) + '_' + str(args_input.quota) + '_' + STRATEGY_NAME + '_' + MODEL_NAME + '_' + DATA_NAME + '_normal_res_tot.txt'
+file_name_res_tot = str(args_input.quota) + '_' + STRATEGY_NAME + '_' + MODEL_NAME + '_' + DATA_NAME + '_normal_res_tot.txt'
 file_res_tot =  open(os.path.join(os.path.abspath('') + '/results_lowRes', '%s' % file_name_res_tot),'w')
 
 file_res_tot.writelines('dataset: {}'.format(DATA_NAME) + '\n')
 file_res_tot.writelines('AL strategy: {}'.format(STRATEGY_NAME) + '\n')
-file_res_tot.writelines('number of labeled pool: {}'.format(NUM_INIT_LB) + '\n')
-file_res_tot.writelines('number of unlabeled pool: {}'.format(len(train_dataset) - NUM_INIT_LB) + '\n')
+file_res_tot.writelines('number of unlabeled pool: {}'.format(len(train_dataset)) + '\n')
 file_res_tot.writelines('number of testing pool: {}'.format(len(val_dataset)) + '\n')
 file_res_tot.writelines('batch size: {}'.format(NUM_QUERY) + '\n')
 file_res_tot.writelines('quota: {}'.format(ITERATION*NUM_QUERY)+ '\n')
@@ -289,23 +280,20 @@ file_res_tot.writelines('mean acc: '+str(mean_acc)+'. std dev acc: '+str(stddev_
 file_res_tot.writelines('mean time: '+str(mean_time)+'. std dev acc: '+str(stddev_time)+'\n')
 
 # save result
-file_name_res = str(NUM_INIT_LB) + '_' + str(args_input.quota) + '_' + STRATEGY_NAME + '_' + MODEL_NAME + '_' + DATA_NAME + '_normal_res.txt'
+file_name_res = str(args_input.quota) + '_' + STRATEGY_NAME + '_' + MODEL_NAME + '_' + DATA_NAME + '_normal_res.txt'
 file_res =  open(os.path.join(os.path.abspath('') + '/results_lowRes', '%s' % file_name_res),'w')
 
 
 file_res.writelines('dataset: {}'.format(DATA_NAME) + '\n')
 file_res.writelines('AL strategy: {}'.format(STRATEGY_NAME) + '\n')
-file_res.writelines('number of labeled pool: {}'.format(NUM_INIT_LB) + '\n')
-# file_res.writelines('number of unlabeled pool: {}'.format(dataset.n_pool - NUM_INIT_LB) + '\n')
-file_res.writelines('number of unlabeled pool: {}'.format(len(train_dataset) - NUM_INIT_LB) + '\n')
-# file_res.writelines('number of testing pool: {}'.format(dataset.n_test) + '\n')
+file_res.writelines('number of unlabeled pool: {}'.format(len(train_dataset)) + '\n')
 file_res.writelines('number of testing pool: {}'.format(len(val_dataset)) + '\n')
 file_res.writelines('batch size: {}'.format(NUM_QUERY) + '\n')
 file_res.writelines('quota: {}'.format(ITERATION*NUM_QUERY)+ '\n')
 file_res.writelines('time of repeat experiments: {}'.format(args_input.expe_round)+ '\n')
 avg_acc = np.mean(np.array(all_acc),axis=0)
 for i in range(len(avg_acc)):
-	tmp = 'Size of training set is ' + str(NUM_INIT_LB + i*NUM_QUERY) + ', ' + 'accuracy is ' + str(round(avg_acc[i],4)) + '.' + '\n'
+	tmp = 'Size of training set is ' + str(i*NUM_QUERY) + ', ' + 'accuracy is ' + str(round(avg_acc[i],4)) + '.' + '\n'
 	file_res.writelines(tmp)
 
 file_res.close()

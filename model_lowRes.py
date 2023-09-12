@@ -10,28 +10,23 @@ import torch.nn.functional as F
 from copy import deepcopy
 
 
-from utils import softmax
+from utils import softmax, evaluate
 import arguments
-
-# TODO: use different evaluation function
-metric = evaluate.load("squad")
-
-model_dir = '/mount/arbeitsdaten31/studenten1/linku/models'
 
 args_input = arguments.get_args()
 NUM_QUERY = args_input.batch
-NUM_INIT_LB = args_input.initseed
+# NUM_INIT_LB = args_input.initseed
 NUM_ROUND = int(args_input.quota / args_input.batch)
 DATA_NAME = args_input.dataset_name
 STRATEGY_NAME = args_input.ALstrategy
 MODEL_NAME = args_input.model
 
+model_dir = '/mount/arbeitsdaten31/studenten1/linku/models'
 strategy_model_dir = model_dir + '/lowRes_' + str(args_input.quota) + '_' + STRATEGY_NAME + '_' + MODEL_NAME +  '_' + DATA_NAME
-
 pretrain_model_dir = '/mount/arbeitsdaten31/studenten1/linku/pretrain_models' + '/' + MODEL_NAME + '_SQuAD_full_dataset'
 
-def to_train(num_train_epochs, train_dataloader, device, model, optimizer, lr_scheduler, record_loss=False):
-	print('Training was performed using the sum of {} initial data and {} query data, i.e. {} data.'.format(NUM_INIT_LB, NUM_QUERY, len(train_dataloader.dataset)))
+def to_train_lowRes(num_train_epochs, train_dataloader, device, model, optimizer, lr_scheduler, record_loss=False):
+	print('Training was performed using {} query data, i.e. {} data.'.format(NUM_QUERY, len(train_dataloader.dataset)))
 	for epoch in range(num_train_epochs):
 		model.train()
 		for step, batch in enumerate(tqdm(train_dataloader, desc="Training")):
@@ -51,31 +46,6 @@ def to_train(num_train_epochs, train_dataloader, device, model, optimizer, lr_sc
 	model_to_save.save_pretrained(strategy_model_dir)
 	print('TRAIN done!')
 
-def to_pretrain(num_train_epochs, train_dataloader, device, model, optimizer, lr_scheduler, scaler):
-    
-    # TODO: 
-	print('Training was performed using the full dataset ({} data).'.format(len(train_dataloader.dataset)))
-	for epoch in range(num_train_epochs):
-		model.train()
-		for step, batch in enumerate(tqdm(train_dataloader, desc="Training")):
-			batch = {key: value.to(device) for key, value in batch.items()}
-			with amp.autocast():
-				outputs = model(**batch)
-				loss = outputs.loss
-			
-			scaler.scale(loss).backward()
-
-			scaler.step(optimizer)
-			scaler.update()
-			lr_scheduler.step()
-			optimizer.zero_grad()
-
-		print('Train Epoch: {}\tLoss: {:.6f}'.format(epoch, loss.item()))
-
-	model_to_save = model.module if hasattr(model, 'module') else model 
-	model_to_save.save_pretrained(pretrain_model_dir)
-	print('TRAIN done!')
-
 def compute_metrics(start_logits, end_logits, features, examples):
     example_to_features = collections.defaultdict(list)
     max_answer_length = 30
@@ -83,7 +53,7 @@ def compute_metrics(start_logits, end_logits, features, examples):
     for idx, feature in enumerate(features):
         example_to_features[feature["example_id"]].append(idx)
 
-    predicted_answers = []
+    predicted_answers = dict()
     for example in tqdm(examples, desc="Computing metrics"):
         example_id = example["qid"]
         context = example["context"]
@@ -118,16 +88,15 @@ def compute_metrics(start_logits, end_logits, features, examples):
         # Select the answer with the best score
         if len(answers) > 0:
             best_answer = max(answers, key=lambda x: x["logit_score"])
-            predicted_answers.append(
-                {"id": example_id, "prediction_text": best_answer["text"]}
-            )
+            predicted_answers[example_id] = best_answer["text"]
         else:
-            predicted_answers.append({"id": example_id, "prediction_text": ""})
+            predicted_answers[example_id] = ""
 
-    theoretical_answers = [{"id": ex["qid"], "answers": ex["answers"]} for ex in examples]
-    return metric.compute(predictions=predicted_answers, references=theoretical_answers)
+    theoretical_answers = dict()
+    for ex in examples: theoretical_answers[ex["qid"]] = ex["answers"]
+    return evaluate(theoretical_answers, predicted_answers)
 
-def get_pred(dataloader, device, features, examples):
+def get_pred_lowRes(dataloader, device, features, examples):
     model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir).to(device)
     
     model.eval()
@@ -149,7 +118,7 @@ def get_pred(dataloader, device, features, examples):
 
     return compute_metrics(start_logits, end_logits, features, examples)
 
-def get_prob(dataloader, device, features, examples, rd=0):
+def get_prob_lowRes(dataloader, device, features, examples, rd=0):
     if rd == 1:
         model = AutoModelForQuestionAnswering.from_pretrained(pretrain_model_dir).to(device)
     else:
@@ -213,7 +182,7 @@ def get_prob(dataloader, device, features, examples, rd=0):
     
     return prob_dict
 
-def get_prob_dropout(dataloader, device, features, examples, n_drop=10, rd=0):
+def get_prob_dropout_lowRes(dataloader, device, features, examples, n_drop=10, rd=0):
     if rd == 1:
         model = AutoModelForQuestionAnswering.from_pretrained(pretrain_model_dir).to(device)
     else:
@@ -292,7 +261,7 @@ def get_prob_dropout(dataloader, device, features, examples, n_drop=10, rd=0):
 
     return prob_dict
 
-def get_prob_dropout_split(dataloader, device, features, examples, n_drop=10, rd=0):
+def get_prob_dropout_split_lowRes(dataloader, device, features, examples, n_drop=10, rd=0):
     ## use tensor to save the answers
 
     if rd == 1:
@@ -365,7 +334,7 @@ def get_prob_dropout_split(dataloader, device, features, examples, n_drop=10, rd
 
     return probs
 
-def get_embeddings(dataloader, device, rd=0):
+def get_embeddings_lowRes(dataloader, device, rd=0):
     if rd == 1:
         model = AutoModelForQuestionAnswering.from_pretrained(pretrain_model_dir).to(device)
     else:
@@ -390,7 +359,7 @@ def get_embeddings(dataloader, device, rd=0):
         
     return embeddings
 
-def get_grad_embeddings(dataloader, device, features, examples, rd=0):
+def get_grad_embeddings_lowRes(dataloader, device, features, examples, rd=0):
     if rd == 1:
         model = AutoModelForQuestionAnswering.from_pretrained(pretrain_model_dir).to(device)
     else:
