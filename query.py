@@ -11,9 +11,11 @@ from sklearn.decomposition import PCA
 import arguments
 from utils import get_unlabel_data, init_centers
 from model import get_prob, get_prob_dropout, get_prob_dropout_split, get_embeddings, get_grad_embeddings
+from model_lowRes import get_prob_lowRes, get_prob_dropout_lowRes, get_prob_dropout_split_lowRes, get_embeddings_lowRes, get_grad_embeddings_lowRes
 
 args_input = arguments.get_args()
 model_batch = args_input.model_batch
+LOW_RES = args_input.low_resource
 
 def random_sampling_query(labeled_idxs, n):
     print('Random querying starts!')
@@ -29,7 +31,10 @@ def margin_sampling_query(n_pool, labeled_idxs, train_dataset, train_features, e
 	)
     print('Margin querying starts!')
     print('Query {} data from {} unlabeled training data.'.format(n, len(unlabeled_data)))
-    prob_dict = get_prob(unlabeled_dataloader, device, unlabeled_features, examples, rd)
+    if LOW_RES:
+        prob_dict = get_prob_lowRes(unlabeled_dataloader, device, unlabeled_features, examples, rd)
+    else:
+        prob_dict = get_prob(unlabeled_dataloader, device, unlabeled_features, examples, rd)
     print('Got probability!')
     uncertainties_dict = {}
     for idx, probs in prob_dict.items():
@@ -52,7 +57,10 @@ def least_confidence_query(n_pool, labeled_idxs, train_dataset, train_features, 
 	)
 
     print('LC querying starts!')
-    prob_dict = get_prob(unlabeled_dataloader, device, unlabeled_features, examples, rd)
+    if LOW_RES:
+        prob_dict = get_prob_lowRes(unlabeled_dataloader, device, unlabeled_features, examples, rd)
+    else:
+        prob_dict = get_prob(unlabeled_dataloader, device, unlabeled_features, examples, rd)
     print('Got probability!')
 
     confidence_dict = {}
@@ -75,7 +83,10 @@ def var_ratio_query(n_pool, labeled_idxs, train_dataset, train_features, example
 	)
     # TODO: print for recording
     print('Var Ratio querying starts!')
-    prob_dict = get_prob(unlabeled_dataloader, device, unlabeled_features, examples, rd)
+    if LOW_RES:
+        prob_dict = get_prob_lowRes(unlabeled_dataloader, device, unlabeled_features, examples, rd)
+    else:
+        prob_dict = get_prob(unlabeled_dataloader, device, unlabeled_features, examples, rd)
     # TODO: print for recording
     print('Got probability!')
     confidence_dict = {}
@@ -98,7 +109,10 @@ def entropy_query(n_pool, labeled_idxs, train_dataset, train_features, examples,
 	)
     # TODO: print for recording
     print('Entropy querying starts!')
-    prob_dict = get_prob(unlabeled_dataloader, device, unlabeled_features, examples, rd)
+    if LOW_RES:
+        prob_dict = get_prob_lowRes(unlabeled_dataloader, device, unlabeled_features, examples, rd)
+    else:
+        prob_dict = get_prob(unlabeled_dataloader, device, unlabeled_features, examples, rd)
     # TODO: print for recording
     print('Got probability!')
     entropy_dict = {}
@@ -121,7 +135,10 @@ def margin_sampling_dropout_query(n_pool, labeled_idxs, train_dataset, train_fea
 	)
     # TODO: print for recording
     print('Margin dropout querying starts!')
-    prob_dict = get_prob_dropout(unlabeled_dataloader, device, unlabeled_features, examples, n_drop=10, rd=rd)
+    if LOW_RES:
+        prob_dict = get_prob_dropout_lowRes(unlabeled_dataloader, device, unlabeled_features, examples, n_drop=10, rd=rd)
+    else:
+        prob_dict = get_prob_dropout(unlabeled_dataloader, device, unlabeled_features, examples, n_drop=10, rd=rd)
     # TODO: print for recording
     print('Got probability!')
     uncertainties_dict = {}
@@ -145,7 +162,10 @@ def least_confidence_dropout_query(n_pool, labeled_idxs, train_dataset, train_fe
 	)
     # TODO: print for recording
     print('LC dropout querying starts!')
-    prob_dict = get_prob_dropout(unlabeled_dataloader, device, unlabeled_features, examples, n_drop=10, rd=rd)
+    if LOW_RES:
+        prob_dict = get_prob_dropout_lowRes(unlabeled_dataloader, device, unlabeled_features, examples, n_drop=10, rd=rd)
+    else:
+        prob_dict = get_prob_dropout(unlabeled_dataloader, device, unlabeled_features, examples, n_drop=10, rd=rd)
     # TODO: print for recording
     print('Got probability!')
 
@@ -169,7 +189,10 @@ def entropy_dropout_query(n_pool, labeled_idxs, train_dataset, train_features, e
 	)
     # TODO: print for recording
     print('Entropy dropout querying starts!')
-    prob_dict = get_prob_dropout(unlabeled_dataloader, device, unlabeled_features, examples, n_drop=10, rd=rd)
+    if LOW_RES:
+        prob_dict = get_prob_dropout_lowRes(unlabeled_dataloader, device, unlabeled_features, examples, n_drop=10, rd=rd)
+    else:
+        prob_dict = get_prob_dropout(unlabeled_dataloader, device, unlabeled_features, examples, n_drop=10, rd=rd)
     # TODO: print for recording
     print('Got probability!')
     entropy_dict = {}
@@ -191,7 +214,10 @@ def bald_query(n_pool, labeled_idxs, train_dataset, train_features, examples, de
         batch_size=model_batch,
     )
     print('BALD querying starts!')
-    probs = get_prob_dropout_split(unlabeled_dataloader, device, unlabeled_features, examples, n_drop=10, rd=rd)
+    if LOW_RES:
+        probs = get_prob_dropout_split_lowRes(unlabeled_dataloader, device, unlabeled_features, examples, n_drop=10, rd=rd)
+    else:
+        probs = get_prob_dropout_split(unlabeled_dataloader, device, unlabeled_features, examples, n_drop=10, rd=rd)
     print('Got probability!')
     probs_mean = probs.mean(0)
     entropy1 = (-probs_mean*torch.log(probs_mean)).sum(1)
@@ -209,7 +235,10 @@ def mean_std_query(n_pool, labeled_idxs, train_dataset, train_features, examples
         batch_size=model_batch,
     )
     print('Mean STD querying starts!')
-    probs = get_prob_dropout_split(unlabeled_dataloader, device, unlabeled_features, examples, n_drop=10, rd=rd).numpy()
+    if LOW_RES:
+        probs = get_prob_dropout_split_lowRes(unlabeled_dataloader, device, unlabeled_features, examples, n_drop=10, rd=rd).numpy()
+    else:
+        probs = get_prob_dropout_split(unlabeled_dataloader, device, unlabeled_features, examples, n_drop=10, rd=rd).numpy()
     print('Got probability!')
     sigma_c = np.std(probs, axis=0)
     uncertainties = torch.from_numpy(np.mean(sigma_c, axis=-1)) # use tensor.sort() will sort the data and produce sorted indexes
@@ -223,7 +252,10 @@ def kmeans_query(n_pool, labeled_idxs, train_dataset, device, n, rd=0):
                                       batch_size=model_batch,
                                     )
     print('KMean querying starts!')
-    embeddings = get_embeddings(unlabeled_dataloader, device, rd)
+    if LOW_RES:
+        embeddings = get_embeddings_lowRes(unlabeled_dataloader, device, rd)
+    else:
+        embeddings = get_embeddings(unlabeled_dataloader, device, rd)
     print('Got embeddings!')
     embeddings = embeddings.numpy()
 
@@ -246,7 +278,10 @@ def kcenter_greedy_query(n_pool, labeled_idxs, train_dataset, device, n, rd=0):
                                   batch_size=model_batch,
                                 )
     print('KCenter greedy querying starts!')
-    embeddings = get_embeddings(train_dataloader, device, rd)
+    if LOW_RES:
+        embeddings = get_embeddings_lowRes(train_dataloader, device, rd)
+    else:
+        embeddings = get_embeddings(train_dataloader, device, rd)
     print('Got embeddings!')
     embeddings = embeddings.numpy()
 
@@ -278,7 +313,10 @@ def kcenter_greedy_PCA_query(n_pool, labeled_idxs, train_dataset, device, n, rd=
                                   batch_size=model_batch,
                                 )
     print('KCenter greedy PCA querying starts!')
-    embeddings = get_embeddings(train_dataloader, device, rd)
+    if LOW_RES:
+        embeddings = get_embeddings_lowRes(train_dataloader, device, rd)
+    else:
+        embeddings = get_embeddings(train_dataloader, device, rd)
     print('Got embeddings!')
     embeddings = embeddings.numpy()
     dist_mat = np.matmul(embeddings, embeddings.transpose())
@@ -315,7 +353,10 @@ def badge_query(n_pool, labeled_idxs, train_dataset, train_features, examples, d
                                       batch_size=model_batch,
                                     )
     print('BADGE querying starts!')
-    gradEmbedding = get_grad_embeddings(unlabeled_dataloader, device, unlabeled_features, examples, rd)
+    if LOW_RES:
+        gradEmbedding = get_grad_embeddings_lowRes(unlabeled_dataloader, device, unlabeled_features, examples, rd)
+    else:
+        gradEmbedding = get_grad_embeddings(unlabeled_dataloader, device, unlabeled_features, examples, rd)
     print('Got embeddings!')
     chosen = init_centers(gradEmbedding, n)
     return unlabeled_idxs[chosen]
