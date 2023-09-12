@@ -121,6 +121,7 @@ python main.py \
 
 # KMeans
 ## 9/3 waldweihe
+## 9/12 strass 
 python main.py \
     -a KMeansSampling \
     -s 500 \
@@ -131,10 +132,11 @@ python main.py \
     -e 1127 \
     -l 3e-5 \
     -p 5 \
-    -g 1
+    -g 3
 
 # KCenterGreedy
 ## 7/17
+## 9/12 strass
 python main.py \
     -a KCenterGreedy \
     -s 500 \
@@ -145,9 +147,10 @@ python main.py \
     -e 1127 \
     -l 3e-5 \
     -p 5 \
-    -g 2
+    -g 4
 
 # BALD
+## 9/12 strass
 python main.py \
     -a BALDDropout \
     -s 500 \
@@ -158,7 +161,7 @@ python main.py \
     -e 1127 \
     -l 3e-5 \
     -p 5 \
-    -g 3
+    -g 5
 
 # MeanSTD
 ## 9/4 kapweihe
