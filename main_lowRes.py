@@ -85,7 +85,7 @@ val_dataset.set_format("torch")
 val_features.set_format("torch")
 
 # get the number of extra data after preprocessing
-extra = len(train_dataset) - len(train_data)
+extra = min(NUM_QUERY, len(train_dataset) - len(train_data))
 
 ## seed
 SEED = 1127
@@ -104,6 +104,8 @@ warnings.filterwarnings('ignore')
 ## start experiment
 all_acc = []
 acq_time = []
+
+begin = datetime.datetime.now()
 
 ## repeate experiment trials
 while (EXPE_ROUND > 0): 
@@ -177,21 +179,23 @@ while (EXPE_ROUND > 0):
 		time = datetime.datetime.now()
 
 		## update
-		 
+    
 		## goal of total query data: NUM_QUERY * i
 		num_set_query_i = NUM_QUERY * i
-		
-		difference_i = 0
-		num_set_ex_id_i = 0
 
-		while num_set_ex_id_i != num_set_query_i:        
-			labeled_idxs[q_idxs[:NUM_QUERY + difference_i]] = True
+		# difference_i = 0
+		# num_set_ex_id_i = 0
+		labeled_idxs[q_idxs[:NUM_QUERY]] = True
+		run_i_labeled_idxs = np.arange(n_pool)[labeled_idxs]
+
+		run_i_samples = train_features.select(indices=run_i_labeled_idxs)
+		num_set_ex_id_i = len(set(run_i_samples['example_id']))
+
+		difference_i = num_set_query_i - num_set_ex_id_i
+
+		if difference_i:
+			labeled_idxs[q_idxs[NUM_QUERY:(NUM_QUERY + difference_i)]] = True
 			run_i_labeled_idxs = np.arange(n_pool)[labeled_idxs]
-
-			run_i_samples = train_features.select(indices=run_i_labeled_idxs)
-			num_set_ex_id_i = len(set(run_i_samples['example_id']))
-
-			difference_i = num_set_query_i - num_set_ex_id_i
 
 		train_dataloader_i = DataLoader(
 			train_dataset.select(indices=run_i_labeled_idxs),
@@ -253,48 +257,39 @@ while (EXPE_ROUND > 0):
 	model_to_save.save_pretrained(final_model_dir)
 
 # cal mean & standard deviation
+print('Time spent in total:', (datetime.datetime.now() - begin))
 acc_m = []
-file_name_res_tot = str(args_input.quota) + '_' + STRATEGY_NAME + '_' + MODEL_NAME + '_' + DATA_NAME + '_normal_res_tot.txt'
-file_res_tot =  open(os.path.join(os.path.abspath('') + '/results_lowRes', '%s' % file_name_res_tot),'w')
-
-file_res_tot.writelines('dataset: {}'.format(DATA_NAME) + '\n')
-file_res_tot.writelines('AL strategy: {}'.format(STRATEGY_NAME) + '\n')
-file_res_tot.writelines('number of unlabeled pool: {}'.format(len(train_dataset)) + '\n')
-file_res_tot.writelines('number of testing pool: {}'.format(len(val_dataset)) + '\n')
-file_res_tot.writelines('batch size: {}'.format(NUM_QUERY) + '\n')
-file_res_tot.writelines('quota: {}'.format(ITERATION*NUM_QUERY)+ '\n')
-file_res_tot.writelines('time of repeat experiments: {}'.format(args_input.expe_round)+ '\n')
-
-# result
-for i in range(len(all_acc)):
-	acc_m.append(get_aubc(args_input.quota, NUM_QUERY, all_acc[i]))
-	print(str(i)+': '+str(acc_m[i]))
-	file_res_tot.writelines(str(i)+': '+str(acc_m[i])+'\n')
-mean_acc, stddev_acc = get_mean_stddev(acc_m)
-mean_time, stddev_time = get_mean_stddev(acq_time)
-
-print('mean AUBC(acc): '+str(mean_acc)+'. std dev AUBC(acc): '+str(stddev_acc))
-print('mean time: '+str(mean_time)+'. std dev time: '+str(stddev_time))
-
-file_res_tot.writelines('mean acc: '+str(mean_acc)+'. std dev acc: '+str(stddev_acc)+'\n')
-file_res_tot.writelines('mean time: '+str(mean_time)+'. std dev acc: '+str(stddev_time)+'\n')
-
-# save result
 file_name_res = str(args_input.quota) + '_' + STRATEGY_NAME + '_' + MODEL_NAME + '_' + DATA_NAME + '_normal_res.txt'
-file_res =  open(os.path.join(os.path.abspath('') + '/results_lowRes', '%s' % file_name_res),'w')
-
+file_res =  open(os.path.join(os.path.abspath('') + '/results', '%s' % file_name_res),'w')
 
 file_res.writelines('dataset: {}'.format(DATA_NAME) + '\n')
 file_res.writelines('AL strategy: {}'.format(STRATEGY_NAME) + '\n')
 file_res.writelines('number of unlabeled pool: {}'.format(len(train_dataset)) + '\n')
 file_res.writelines('number of testing pool: {}'.format(len(val_dataset)) + '\n')
 file_res.writelines('batch size: {}'.format(NUM_QUERY) + '\n')
-file_res.writelines('quota: {}'.format(ITERATION*NUM_QUERY)+ '\n')
-file_res.writelines('time of repeat experiments: {}'.format(args_input.expe_round)+ '\n')
+file_res.writelines('quota: {}'.format(ITERATION * NUM_QUERY) + '\n')
+file_res.writelines('learning rate: {}'.format(LEARNING_RATE) + '\n')
+file_res.writelines('training batch size: {}'.format(MODEL_BATCH) + '\n')
+file_res.writelines('time of repeat experiments: {}'.format(args_input.expe_round) + '\n')
+
+# save result
+file_res.writelines('\nAUBC in each experiment round.')
+for i in range(len(all_acc)):
+	acc_m.append(get_aubc(args_input.quota, NUM_QUERY, all_acc[i]))
+	print(str(i) + ': ' + str(acc_m[i]))
+	file_res.writelines(str(i) + ': ' + str(acc_m[i]) + '\n')
+mean_acc, stddev_acc = get_mean_stddev(acc_m)
+mean_time, stddev_time = get_mean_stddev(acq_time)
+
+print('mean AUBC(acc): ' + str(mean_acc) + '. std dev AUBC(acc): ' + str(stddev_acc))
+print('mean time: ' + str(mean_time) + '. std dev time: ' + str(stddev_time))
+
 avg_acc = np.mean(np.array(all_acc),axis=0)
 for i in range(len(avg_acc)):
-	tmp = 'Size of training set is ' + str(i*NUM_QUERY) + ', ' + 'accuracy is ' + str(round(avg_acc[i],4)) + '.' + '\n'
+	tmp = 'Size of training set is ' + str(i * NUM_QUERY) + ', ' + 'accuracy is ' + str(round(avg_acc[i],4)) + '.' + '\n'
 	file_res.writelines(tmp)
 
+file_res.writelines('mean acc: ' + str(mean_acc) + '. std dev acc: ' + str(stddev_acc) + '\n')
+file_res.writelines('mean time: ' + str(mean_time) + '. std dev acc: ' + str(stddev_time) + '\n')
+
 file_res.close()
-file_res_tot.close()
