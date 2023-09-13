@@ -57,6 +57,7 @@ def least_confidence_query(n_pool, labeled_idxs, train_dataset, train_features, 
 	)
 
     print('LC querying starts!')
+    print('Query {} data from {} unlabeled training data.'.format(n, len(unlabeled_data)))
     if LOW_RES:
         prob_dict = get_prob_lowRes(unlabeled_dataloader, device, unlabeled_features, examples, rd)
     else:
@@ -83,6 +84,7 @@ def var_ratio_query(n_pool, labeled_idxs, train_dataset, train_features, example
 	)
     # TODO: print for recording
     print('Var Ratio querying starts!')
+    print('Query {} data from {} unlabeled training data.'.format(n, len(unlabeled_data)))
     if LOW_RES:
         prob_dict = get_prob_lowRes(unlabeled_dataloader, device, unlabeled_features, examples, rd)
     else:
@@ -109,6 +111,7 @@ def entropy_query(n_pool, labeled_idxs, train_dataset, train_features, examples,
 	)
     # TODO: print for recording
     print('Entropy querying starts!')
+    print('Query {} data from {} unlabeled training data.'.format(n, len(unlabeled_data)))
     if LOW_RES:
         prob_dict = get_prob_lowRes(unlabeled_dataloader, device, unlabeled_features, examples, rd)
     else:
@@ -135,6 +138,7 @@ def margin_sampling_dropout_query(n_pool, labeled_idxs, train_dataset, train_fea
 	)
     # TODO: print for recording
     print('Margin dropout querying starts!')
+    print('Query {} data from {} unlabeled training data.'.format(n, len(unlabeled_data)))
     if LOW_RES:
         prob_dict = get_prob_dropout_lowRes(unlabeled_dataloader, device, unlabeled_features, examples, n_drop=10, rd=rd)
     else:
@@ -162,6 +166,7 @@ def least_confidence_dropout_query(n_pool, labeled_idxs, train_dataset, train_fe
 	)
     # TODO: print for recording
     print('LC dropout querying starts!')
+    print('Query {} data from {} unlabeled training data.'.format(n, len(unlabeled_data)))
     if LOW_RES:
         prob_dict = get_prob_dropout_lowRes(unlabeled_dataloader, device, unlabeled_features, examples, n_drop=10, rd=rd)
     else:
@@ -189,6 +194,7 @@ def entropy_dropout_query(n_pool, labeled_idxs, train_dataset, train_features, e
 	)
     # TODO: print for recording
     print('Entropy dropout querying starts!')
+    print('Query {} data from {} unlabeled training data.'.format(n, len(unlabeled_data)))
     if LOW_RES:
         prob_dict = get_prob_dropout_lowRes(unlabeled_dataloader, device, unlabeled_features, examples, n_drop=10, rd=rd)
     else:
@@ -214,6 +220,7 @@ def bald_query(n_pool, labeled_idxs, train_dataset, train_features, examples, de
         batch_size=model_batch,
     )
     print('BALD querying starts!')
+    print('Query {} data from {} unlabeled training data.'.format(n, len(unlabeled_data)))
     if LOW_RES:
         probs = get_prob_dropout_split_lowRes(unlabeled_dataloader, device, unlabeled_features, examples, n_drop=10, rd=rd)
     else:
@@ -235,6 +242,7 @@ def mean_std_query(n_pool, labeled_idxs, train_dataset, train_features, examples
         batch_size=model_batch,
     )
     print('Mean STD querying starts!')
+    print('Query {} data from {} unlabeled training data.'.format(n, len(unlabeled_data)))
     if LOW_RES:
         probs = get_prob_dropout_split_lowRes(unlabeled_dataloader, device, unlabeled_features, examples, n_drop=10, rd=rd).numpy()
     else:
@@ -252,6 +260,7 @@ def kmeans_query(n_pool, labeled_idxs, train_dataset, device, n, rd=0):
                                       batch_size=model_batch,
                                     )
     print('KMean querying starts!')
+    print('Query {} data from {} unlabeled training data.'.format(n, len(unlabeled_data)))
     if LOW_RES:
         embeddings = get_embeddings_lowRes(unlabeled_dataloader, device, rd)
     else:
@@ -273,11 +282,11 @@ def kcenter_greedy_query(n_pool, labeled_idxs, train_dataset, device, n, rd=0):
     labeled_idxs_in_query = labeled_idxs.copy()
     # train_data = train_dataset
     train_dataloader = DataLoader(train_dataset,
-                                  shuffle=False,
                                   collate_fn=default_data_collator,
                                   batch_size=model_batch,
                                 )
     print('KCenter greedy querying starts!')
+    print('Query {} data from {} unlabeled training data.'.format(n, len(unlabeled_data)))
     if LOW_RES:
         embeddings = get_embeddings_lowRes(train_dataloader, device, rd)
     else:
@@ -308,11 +317,11 @@ def kcenter_greedy_PCA_query(n_pool, labeled_idxs, train_dataset, device, n, rd=
     labeled_idxs_in_query = labeled_idxs.copy()
     # train_data = train_dataset
     train_dataloader = DataLoader(train_dataset,
-                                  shuffle=False,
                                   collate_fn=default_data_collator,
                                   batch_size=model_batch,
                                 )
     print('KCenter greedy PCA querying starts!')
+    print('Query {} data from {} unlabeled training data.'.format(n, len(unlabeled_data)))
     if LOW_RES:
         embeddings = get_embeddings_lowRes(train_dataloader, device, rd)
     else:
@@ -348,11 +357,11 @@ def badge_query(n_pool, labeled_idxs, train_dataset, train_features, examples, d
     unlabeled_idxs, unlabeled_data = get_unlabel_data(n_pool, labeled_idxs, train_dataset)
     unlabeled_features = train_features.select(unlabeled_idxs)
     unlabeled_dataloader = DataLoader(unlabeled_data,
-                                      shuffle=False,
                                       collate_fn=default_data_collator,
                                       batch_size=model_batch,
                                     )
     print('BADGE querying starts!')
+    print('Query {} data from {} unlabeled training data.'.format(n, len(unlabeled_data)))
     if LOW_RES:
         gradEmbedding = get_grad_embeddings_lowRes(unlabeled_dataloader, device, unlabeled_features, examples, rd)
     else:
