@@ -1,5 +1,5 @@
 # ####################
-# Model: RoBERTa-base
+# Model: RoBERTa-base (lr=3e-5)
 #
 # source domain: SQuAD
 #
@@ -10,19 +10,9 @@
 # Experiment Iteration: 5
 # ####################
 
-# Pretrain
-python pretrain.py \
-    -d SQuAD \
-    -m RoBERTa \
-    -e 1127 \
-    -l 1e-4 \
-    -g 3
-
 # Random
-## 9/3 strauss
-## 9/12 strauss
-## 9/13 strauss (test lr=1e-4)
-python main_lowRes.py \
+## 9/15 strauss
+python main_lowRes_new.py \
     -a RandomSampling \
     -q 200 \
     -b 50 \
@@ -30,13 +20,12 @@ python main_lowRes.py \
     -m RoBERTa \
     -r True \
     -e 1127 \
-    -l 1e-4 \
+    -l 3e-5 \
     -p 5 \
-    -g 2
+    -g 3
 
-## 9/12 strauss
-## 9/13 strauss (test lr=1e-4)
-python main_lowRes.py \
+## 9/15 strauss
+python main_lowRes_new.py \
     -a RandomSampling \
     -q 200 \
     -b 50 \
@@ -44,13 +33,12 @@ python main_lowRes.py \
     -m RoBERTa \
     -r True \
     -e 1127 \
-    -l 1e-4 \
+    -l 3e-5 \
     -p 5 \
-    -g 6
+    -g 4
 
-## 9/12 strauss
-## 9/13 strauss (test lr=1e-4)
-python main_lowRes.py \
+## 9/15 strauss
+python main_lowRes_new.py \
     -a RandomSampling \
     -q 200 \
     -b 50 \
@@ -58,13 +46,12 @@ python main_lowRes.py \
     -m RoBERTa \
     -r True \
     -e 1127 \
-    -l 1e-4 \
+    -l 3e-5 \
     -p 5 \
-    -g 3
+    -g 5
 
-## 9/12 strauss
-## 9/13 strauss (test lr=1e-4)
-python main_lowRes.py \
+## 9/15 strauss
+python main_lowRes_new.py \
     -a RandomSampling \
     -q 200 \
     -b 50 \
@@ -76,9 +63,8 @@ python main_lowRes.py \
     -p 5 \
     -g 6
 
-## 9/12 kapweihe
-## 9/13 strauss (test lr=1e-4)
-python main_lowRes.py \
+## 9/15 strauss
+python main_lowRes_new.py \
     -a RandomSampling \
     -q 200 \
     -b 50 \
@@ -86,16 +72,14 @@ python main_lowRes.py \
     -m RoBERTa \
     -r True \
     -e 1127 \
-    -l 1e-4 \
+    -l 3e-5 \
     -p 5 \
-    -g 4
+    -g 3
 
 ######################################
 # Margin
-## 9/13 strauss (fail)
-## 9/13 strauss
-## 9/14 strauss (test lr=1e-4)
-python main_lowRes.py \
+## 9/15 strauss
+python main_lowRes_new.py \
     -a MarginSampling \
     -q 200 \
     -b 50 \
@@ -103,13 +87,12 @@ python main_lowRes.py \
     -m RoBERTa \
     -r True \
     -e 1127 \
-    -l 1e-4 \
+    -l 3e-5 \
     -p 5 \
-    -g 3
+    -g 4
 
-## 9/13 kapweihe
-## 9/14 strauss (test lr=1e-4)
-python main_lowRes.py \
+## 9/15 strauss
+python main_lowRes_new.py \
     -a MarginSampling \
     -q 200 \
     -b 50 \
@@ -117,11 +100,12 @@ python main_lowRes.py \
     -m RoBERTa \
     -r True \
     -e 1127 \
-    -l 1e-4 \
+    -l 3e-5 \
     -p 5 \
-    -g 4
+    -g 5
 
-python main_lowRes.py \
+## 9/15 strauss
+python main_lowRes_new.py \
     -a MarginSampling \
     -q 200 \
     -b 50 \
@@ -131,10 +115,10 @@ python main_lowRes.py \
     -e 1127 \
     -l 3e-5 \
     -p 5 \
-    -g 8
- 
-## 9/13 strauss (fail)
-python main_lowRes.py \
+    -g 4
+
+## 9/15 strauss
+python main_lowRes_new.py \
     -a MarginSampling \
     -q 200 \
     -b 50 \
@@ -144,10 +128,10 @@ python main_lowRes.py \
     -e 1127 \
     -l 3e-5 \
     -p 5 \
-    -g 6
+    -g 5
 
-## 9/13 kapweihe (fail)
-python main_lowRes.py \
+## 9/15 strauss
+python main_lowRes_new.py \
     -a MarginSampling \
     -q 200 \
     -b 50 \
@@ -157,13 +141,12 @@ python main_lowRes.py \
     -e 1127 \
     -l 3e-5 \
     -p 5 \
-    -g 3
+    -g 4
 
 ####################################
 # LC
-## 9/13 strauss
-## 9/14 strauss (test lr=1e-4)
-python main_lowRes.py \
+## 9/15 strauss (done in comparison)
+python main_lowRes_new.py \
     -a LeastConfidence \
     -q 200 \
     -b 50 \
@@ -171,13 +154,12 @@ python main_lowRes.py \
     -m RoBERTa \
     -r True \
     -e 1127 \
-    -l 1e-4 \
+    -l 3e-5 \
     -p 5 \
-    -g 2
+    -g 6
 
-## 9/13 strauss
-## 9/14 strauss (test lr=1e-4)
-python main_lowRes.py \
+## 9/15 strauss (done in comparison)
+python main_lowRes_new.py \
     -a LeastConfidence \
     -q 200 \
     -b 50 \
@@ -185,11 +167,12 @@ python main_lowRes.py \
     -m RoBERTa \
     -r True \
     -e 1127 \
-    -l 1e-4 \
+    -l 3e-5 \
     -p 5 \
     -g 6
 
-python main_lowRes.py \
+## 9/15 strauss
+python main_lowRes_new.py \
     -a LeastConfidence \
     -q 200 \
     -b 50 \
@@ -201,7 +184,8 @@ python main_lowRes.py \
     -p 5 \
     -g 6
 
-python main_lowRes.py \
+## 9/15 strauss
+python main_lowRes_new.py \
     -a LeastConfidence \
     -q 200 \
     -b 50 \
@@ -211,10 +195,10 @@ python main_lowRes.py \
     -e 1127 \
     -l 3e-5 \
     -p 5 \
-    -g 4
+    -g 6
 
-## 9/13 strauss
-python main_lowRes.py \
+###### hold-up
+python main_lowRes_new.py \
     -a LeastConfidence \
     -q 200 \
     -b 50 \
@@ -228,11 +212,8 @@ python main_lowRes.py \
 
 #################################
 # Entropy
-## 7/13 exp1 strauss 8
-## iter. = 3 # wrong =.=
-## 9/13 strauss
-## 9/14 strauss (test lr=1e-4)
-python main_lowRes.py \
+## 9/15 strauss
+python main_lowRes_new.py \
     -a EntropySampling \
     -q 200 \
     -b 50 \
@@ -240,13 +221,12 @@ python main_lowRes.py \
     -m RoBERTa \
     -r True \
     -e 1127 \
-    -l 1e-4 \
+    -l 3e-5 \
     -p 5 \
     -g 3
 
-## 9/13 strauss
-## 9/14 strauss (test lr=1e-4)
-python main_lowRes.py \
+## 9/15 strauss
+python main_lowRes_new.py \
     -a EntropySampling \
     -q 200 \
     -b 50 \
@@ -256,9 +236,10 @@ python main_lowRes.py \
     -e 1127 \
     -l 3e-5 \
     -p 5 \
-    -g 3
+    -g 2
 
-python main_lowRes.py \
+## 9/15 strauss
+python main_lowRes_new.py \
     -a EntropySampling \
     -q 200 \
     -b 50 \
@@ -268,9 +249,9 @@ python main_lowRes.py \
     -e 1127 \
     -l 3e-5 \
     -p 5 \
-    -g 4
+    -g 3
 
-python main_lowRes.py \
+python main_lowRes_new.py \
     -a EntropySampling \
     -q 200 \
     -b 50 \
@@ -282,7 +263,7 @@ python main_lowRes.py \
     -p 5 \
     -g 6
 
-python main_lowRes.py \
+python main_lowRes_new.py \
     -a EntropySampling \
     -q 200 \
     -b 50 \
@@ -296,7 +277,7 @@ python main_lowRes.py \
 
 ####################################
 # MarginDropout
-python main_lowRes.py \
+python main_lowRes_new.py \
     -a MarginSamplingDropout \
     -q 200 \
     -b 50 \
@@ -309,7 +290,7 @@ python main_lowRes.py \
     -g 3
 
 # LCDropout
-python main_lowRes.py \
+python main_lowRes_new.py \
     -a LeastConfidenceDropout \
     -q 200 \
     -b 50 \
@@ -322,23 +303,23 @@ python main_lowRes.py \
     -g 2
 
 # EntropyDropout
-python main_lowRes.py \
+## 9/15 strauss
+python main_lowRes_new.py \
     -a EntropySamplingDropout \
     -q 200 \
     -b 50 \
-    -d SearchQA \
+    -d DROP \
     -m RoBERTa \
     -r True \
     -e 1127 \
     -l 3e-5 \
     -p 5 \
-    -g 2
+    -g 3
 
 ####################################
 # KMeans
-## 9/14 strauss
-## 9/14 strauss (test lr=1e-4)
-python main_lowRes.py \
+## 9/15 strauss (done in comparison)
+python main_lowRes_new.py \
     -a KMeansSampling \
     -q 200 \
     -b 50 \
@@ -346,13 +327,12 @@ python main_lowRes.py \
     -m RoBERTa \
     -r True \
     -e 1127 \
-    -l 1e-4 \
+    -l 3e-5 \
     -p 5 \
     -g 6
 
-## 9/14 strauss
-## 9/14 strauss (test lr=1e-4)
-python main_lowRes.py \
+## 9/15 strauss (done in comparison)
+python main_lowRes_new.py \
     -a KMeansSampling \
     -q 200 \
     -b 50 \
@@ -360,13 +340,13 @@ python main_lowRes.py \
     -m RoBERTa \
     -r True \
     -e 1127 \
-    -l 1e-4 \
+    -l 3e-5 \
     -p 5 \
     -g 6
 
 ###############################
 # KCenterGreedy
-python main_lowRes.py \
+python main_lowRes_new.py \
     -a KCenterGreedy \
     -q 200 \
     -b 50 \
@@ -378,7 +358,7 @@ python main_lowRes.py \
     -p 5 \
     -g 4
 
-python main_lowRes.py \
+python main_lowRes_new.py \
     -a KCenterGreedy \
     -q 200 \
     -b 50 \
@@ -392,7 +372,7 @@ python main_lowRes.py \
 
 #################################
 # Bayesian
-python main_lowRes.py \
+python main_lowRes_new.py \
     -a BALDDropout \
     -q 200 \
     -b 50 \
@@ -405,7 +385,7 @@ python main_lowRes.py \
     -g 3
 
 # MeanSTD
-python main_lowRes.py \
+python main_lowRes_new.py \
     -a MeanSTD \
     -q 200 \
     -b 50 \
@@ -418,7 +398,7 @@ python main_lowRes.py \
     -g 2
 
 # BADGE
-python main_lowRes.py \
+python main_lowRes_new.py \
     -a BadgeSampling \
     -q 200 \
     -b 50 \
@@ -431,7 +411,7 @@ python main_lowRes.py \
     -g 0
 
 # LPL
-python main_lowRes.py \
+python main_lowRes_new.py \
     -a LossPredictionLoss \
     -q 200 \
     -b 50 \
@@ -444,7 +424,7 @@ python main_lowRes.py \
     -g 2
 
 # CEAL
-python main_lowRes.py \
+python main_lowRes_new.py \
     -a CEALSampling \
     -q 200 \
     -b 50 \

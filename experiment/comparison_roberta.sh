@@ -150,7 +150,8 @@ python main.py \
     -g 4
 
 # BALD
-## 9/12 strass
+## 9/12 strass (fail because of accidently delete the saved model = =")
+## 9/14 kapweihe 
 python main.py \
     -a BALDDropout \
     -s 500 \
@@ -161,7 +162,7 @@ python main.py \
     -e 1127 \
     -l 3e-5 \
     -p 5 \
-    -g 5
+    -g 3
 
 # MeanSTD
 ## 9/4 kapweihe
