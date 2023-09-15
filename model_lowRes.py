@@ -1,21 +1,17 @@
-# import evaluate
-import collections
+from collections import defaultdict
 from tqdm.auto import tqdm
 import numpy as np
 import torch
 from transformers import AutoModelForQuestionAnswering
-from torch.cuda import amp # automatic mixed precision training 
 from torch.autograd import Variable
 import torch.nn.functional as F
 from copy import deepcopy
-
 
 from utils import softmax, evaluate
 import arguments
 
 args_input = arguments.get_args()
 NUM_QUERY = args_input.batch
-# NUM_INIT_LB = args_input.initseed
 NUM_ROUND = int(args_input.quota / args_input.batch)
 DATA_NAME = args_input.dataset_name
 STRATEGY_NAME = args_input.ALstrategy
@@ -23,7 +19,7 @@ MODEL_NAME = args_input.model
 
 model_dir = '/mount/arbeitsdaten31/studenten1/linku/models'
 strategy_model_dir = model_dir + '/lowRes_' + str(args_input.quota) + '_' + STRATEGY_NAME + '_' + MODEL_NAME +  '_' + DATA_NAME
-pretrain_model_dir = '/mount/arbeitsdaten31/studenten1/linku/pretrain_models' + '/' + MODEL_NAME + '_SQuAD_full_dataset'
+pretrain_model_dir = '/mount/arbeitsdaten31/studenten1/linku/pretrain_models' + '/' + MODEL_NAME + '_SQuAD_full_dataset_lr_3e-5'
 
 def to_train_lowRes(num_train_epochs, train_dataloader, device, model, optimizer, lr_scheduler, record_loss=False):
 	print('Training was performed using {} query data, i.e. {} data.'.format(NUM_QUERY, len(train_dataloader.dataset)))
@@ -47,7 +43,7 @@ def to_train_lowRes(num_train_epochs, train_dataloader, device, model, optimizer
 	print('TRAIN done!')
 
 def compute_metrics(start_logits, end_logits, features, examples):
-    example_to_features = collections.defaultdict(list)
+    example_to_features = defaultdict(list)
     max_answer_length = 30
     n_best = 20
     for idx, feature in enumerate(features):
@@ -142,7 +138,7 @@ def get_prob_lowRes(dataloader, device, features, examples, rd=0):
     end_logits = end_logits[: len(features)]
 
     prob_dict = {}
-    example_to_features = collections.defaultdict(list)
+    example_to_features = defaultdict(list)
     max_answer_length = 30
     n_best = 20
     
@@ -207,7 +203,7 @@ def get_prob_dropout_lowRes(dataloader, device, features, examples, n_drop=10, r
         start_logits = start_logits[: len(features)]
         end_logits = end_logits[: len(features)]
 
-        example_to_features = collections.defaultdict(list)
+        example_to_features = defaultdict(list)
         max_answer_length = 30
         n_best = 20
             
@@ -289,7 +285,7 @@ def get_prob_dropout_split_lowRes(dataloader, device, features, examples, n_drop
         start_logits = start_logits[: len(features)]
         end_logits = end_logits[: len(features)]
 
-        example_to_features = collections.defaultdict(list)
+        example_to_features = defaultdict(list)
         max_answer_length = 30
         n_best = 20
             
@@ -336,7 +332,7 @@ def get_prob_dropout_split_lowRes(dataloader, device, features, examples, n_drop
 
 def get_embeddings_lowRes(dataloader, device, rd=0):
     if rd == 1:
-        model = AutoModelForQuestionAnswering.from_pretrained(pretrain_model_dir).to(device)
+        model = AutoModelForQuestionAnswering.from_pretrained(pretrain_model_dir, output_hidden_states=True).to(device)
     else:
         model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir, output_hidden_states=True).to(device)
     
@@ -361,7 +357,7 @@ def get_embeddings_lowRes(dataloader, device, rd=0):
 
 def get_grad_embeddings_lowRes(dataloader, device, features, examples, rd=0):
     if rd == 1:
-        model = AutoModelForQuestionAnswering.from_pretrained(pretrain_model_dir).to(device)
+        model = AutoModelForQuestionAnswering.from_pretrained(pretrain_model_dir, output_hidden_states=True).to(device)
     else:
         model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir, output_hidden_states=True).to(device)
     
@@ -379,9 +375,7 @@ def get_grad_embeddings_lowRes(dataloader, device, features, examples, rd=0):
         for batch in tqdm(dataloader, desc="Evaluating_prob"):
             batch = {key: Variable(value.to(device)) for key, value in batch.items()}
                 
-            # deepAL+: out, e1 = self.clf(x)
             outputs = model(**batch)
-            # deepAL+: e1 = e1.data.cpu().numpy()
             hidden_states = outputs.hidden_states
             embedding_of_last_layer = hidden_states[-2][:, 0, :]
             embedding_of_last_layer = embedding_of_last_layer.data.cpu().numpy()
@@ -393,8 +387,6 @@ def get_grad_embeddings_lowRes(dataloader, device, features, examples, rd=0):
             batch_feat = features.select(batch_idx)
             idxs_start = idxs_end
 
-            # deepAL+: batchProbs = F.softmax(out, dim=1).data.cpu().numpy()
-            # deepAL+: maxInds = np.argmax(batchProbs, 1)
             out = logits_to_prob(outputs.start_logits.cpu().numpy(), outputs.end_logits.cpu().numpy(), batch_feat, batch_idx, examples, 200)
             batchProbs = F.softmax(out, dim=1).data.cpu().numpy()
             maxInds = np.argmax(batchProbs, 1)
@@ -411,7 +403,7 @@ def get_grad_embeddings_lowRes(dataloader, device, features, examples, rd=0):
 def logits_to_prob(start_logits, end_logits, features, batch_idx, examples, num_classes):
     probs = torch.zeros([len(batch_idx), num_classes])
     
-    example_to_features = collections.defaultdict(list)
+    example_to_features = defaultdict(list)
     max_answer_length = 30
     n_best = 20
 
@@ -420,7 +412,7 @@ def logits_to_prob(start_logits, end_logits, features, batch_idx, examples, num_
     
     # for example in tqdm(examples, desc="Computing metrics"):
     for example in examples:    
-        example_id = example["id"]
+        example_id = example["qid"]
         answers = []
         
         # Loop through all features associated with that example
@@ -444,7 +436,6 @@ def logits_to_prob(start_logits, end_logits, features, batch_idx, examples, num_
                         continue
                     answers.append(start_logit[start_index] + end_logit[end_index])
 
-
             if 1 < len(answers) < num_classes: # pad to same numbers of possible answers
                 zero_list = [0] * (num_classes - len(answers))
                 answers.extend(zero_list)
@@ -453,4 +444,3 @@ def logits_to_prob(start_logits, end_logits, features, batch_idx, examples, num_
             probs[feature_index] = torch.tensor(answers)
 
     return probs
-

@@ -20,7 +20,7 @@ import datetime
 import arguments
 from preprocess import *
 from model_lowRes import to_train_lowRes, get_pred_lowRes
-from utils import Logger, load_dataset_mrqa, get_model, save_model, get_aubc, get_mean_stddev
+from utils import *
 from query import *
 
 args_input = arguments.get_args()
@@ -35,7 +35,7 @@ MODEL_BATCH = args_input.model_batch
 NUM_TRAIN_EPOCH = args_input.train_epochs
 
 model_dir = '/mount/arbeitsdaten31/studenten1/linku/models'
-pretrain_model_dir = '/mount/arbeitsdaten31/studenten1/linku/pretrain_models' + '/' + MODEL_NAME + '_SQuAD_full_dataset_lr_1e-4'
+pretrain_model_dir = '/mount/arbeitsdaten31/studenten1/linku/pretrain_models' + '/' + MODEL_NAME + '_SQuAD_full_dataset_lr_3e-5'
 strategy_model_dir = model_dir + '/lowRes_' + str(args_input.quota) + '_' + STRATEGY_NAME + '_' + MODEL_NAME +  '_' + DATA_NAME
 
 CACHE_DIR = '/mount/arbeitsdaten31/studenten1/linku/.cache'
@@ -126,8 +126,6 @@ while (EXPE_ROUND > 0):
 		batch_size=MODEL_BATCH
 	)
 
-	save_model()
-
 	time = datetime.datetime.now()
 	
 	## iteration 1 to i
@@ -197,12 +195,8 @@ while (EXPE_ROUND > 0):
 		num_update_steps_per_epoch_i = len(train_dataloader_i)
 		num_training_steps_i = NUM_TRAIN_EPOCH * num_update_steps_per_epoch_i
 
-		if i == 1:
-			print('Use pretrain model in iteration ', i)
-			model_i = AutoModelForQuestionAnswering.from_pretrained(pretrain_model_dir).to(device)
-		else:
-			print('Use strategy model in iteration ', i)
-			model_i = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir).to(device)
+		model_i = AutoModelForQuestionAnswering.from_pretrained(pretrain_model_dir).to(device)
+		
 
 		optimizer_i = AdamW(model_i.parameters(), lr=LEARNING_RATE)
 		
@@ -250,7 +244,7 @@ while (EXPE_ROUND > 0):
 total_time = datetime.datetime.now() - begin
 print('Time spent in total:', total_time)
 acc_m = []
-file_name_res = str(args_input.quota) + '_' + STRATEGY_NAME + '_' + MODEL_NAME + '_' + DATA_NAME + '_normal_res.txt'
+file_name_res = str(args_input.quota) + '_' + STRATEGY_NAME + '_new_' + MODEL_NAME + '_' + DATA_NAME + '_res.txt'
 file_res =  open(os.path.join(os.path.abspath('') + '/results_lowRes', '%s' % file_name_res),'w')
 
 file_res.writelines('dataset: {}'.format(DATA_NAME) + '\n')

@@ -22,9 +22,7 @@ from preprocess import *
 from model import *
 from utils import *
 
-pretrain_model_dir = '/mount/arbeitsdaten31/studenten1/linku/pretrain_models' + '/' + MODEL_NAME + '_' + DATA_NAME + '_full_dataset'
 
-CACHE_DIR = '/mount/arbeitsdaten31/studenten1/linku/.cache'
 
 args_input = arguments.get_args()
 NUM_INIT_LB = args_input.initseed
@@ -33,6 +31,9 @@ MODEL_BATCH = args_input.model_batch
 MODEL_NAME = args_input.model
 LEARNING_RATE = args_input.learning_rate
 NUM_TRAIN_EPOCH = args_input.train_epochs
+
+pretrain_model_dir = '/mount/arbeitsdaten31/studenten1/linku/pretrain_models' + '/' + MODEL_NAME + '_SQuAD_full_dataset_lr_3e-5'
+CACHE_DIR = '/mount/arbeitsdaten31/studenten1/linku/.cache'
 
 ## load data
 squad = load_dataset(DATA_NAME.lower(), cache_dir=CACHE_DIR)
