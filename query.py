@@ -260,7 +260,7 @@ def kmeans_query(n_pool, labeled_idxs, train_dataset, device, n, rd=0):
                                       batch_size=model_batch,
                                     )
     print('KMean querying starts!')
-    print('Query {} data from {} unlabeled training data.'.format(n, len(unlabeled_data)))
+    print('Query {} data.'.format(n))
     if LOW_RES:
         embeddings = get_embeddings_lowRes(unlabeled_dataloader, device, rd)
     else:
@@ -286,7 +286,7 @@ def kcenter_greedy_query(n_pool, labeled_idxs, train_dataset, device, n, rd=0):
                                   batch_size=model_batch,
                                 )
     print('KCenter greedy querying starts!')
-    print('Query {} data from {} unlabeled training data.'.format(n, len(unlabeled_data)))
+    print('Query {} data.'.format(n))
     if LOW_RES:
         embeddings = get_embeddings_lowRes(train_dataloader, device, rd)
     else:

@@ -96,7 +96,7 @@ val_dataset.set_format("torch")
 val_features.set_format("torch")
 
 # get the number of extra data after preprocessing
-extra = len(train_dataset) - len(squad['train'])
+extra = min(NUM_QUERY, len(train_dataset) - len(squad['train']))
 
 ## seed
 SEED = 1127
@@ -312,7 +312,8 @@ while (EXPE_ROUND > 0):
 	model_to_save.save_pretrained(final_model_dir)
 
 # cal mean & standard deviation
-print('Time spent in total:', (datetime.datetime.now() - begin))
+total_time = datetime.datetime.now() - begin
+print('Time spent in total:', total_time)
 acc_m = []
 file_name_res = str(NUM_INIT_LB) + '_' + str(args_input.quota) + '_' + STRATEGY_NAME + '_' + MODEL_NAME + '_' + DATA_NAME + '_normal_res.txt'
 file_res =  open(os.path.join(os.path.abspath('') + '/results', '%s' % file_name_res),'w')
@@ -327,6 +328,7 @@ file_res.writelines('quota: {}'.format(ITERATION * NUM_QUERY) + '\n')
 file_res.writelines('learning rate: {}'.format(LEARNING_RATE) + '\n')
 file_res.writelines('training batch size: {}'.format(MODEL_BATCH) + '\n')
 file_res.writelines('time of repeat experiments: {}'.format(args_input.expe_round) + '\n')
+file_res.writelines('Time spent in total: {}'.format(total_time) + '\n')
 
 # save result
 file_res.writelines('\nAUBC in each experiment round.')
@@ -346,6 +348,6 @@ for i in range(len(avg_acc)):
 	file_res.writelines(tmp)
 
 file_res.writelines('mean acc: ' + str(mean_acc) + '. std dev acc: ' + str(stddev_acc) + '\n')
-file_res.writelines('mean time: ' + str(mean_time) + '. std dev acc: ' + str(stddev_time) + '\n')
+file_res.writelines('mean time: ' + str(datetime.timedelta(seconds=mean_time)) + '. std dev acc: ' + str(datetime.timedelta(seconds=stddev_time)) + '\n')
 
 file_res.close()

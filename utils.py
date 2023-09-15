@@ -194,3 +194,9 @@ def evaluate(theoretical_answers, predicted_answers, skip_no_answer=False):
     f1 = 100.0 * f1 / total
 
     return {'exact_match': exact_match, 'f1': f1}
+
+def save_model():
+    '''
+    Copy pretrain_models to current trained models.
+    '''
+    pass
