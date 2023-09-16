@@ -158,7 +158,9 @@ while (EXPE_ROUND > 0):
 			q_idxs = mean_std_query(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, total_query, i)
 		elif STRATEGY_NAME == 'KMeansSampling':
 			q_idxs = kmeans_query(n_pool, labeled_idxs, train_dataset, device, total_query, i)
-		elif STRATEGY_NAME == 'KCenterGreedy':
+		elif STRATEGY_NAME == 'KCenterGreedy' and i == 1:
+			q_idxs = random_sampling_query(labeled_idxs, total_query)
+		elif STRATEGY_NAME == 'KCenterGreedy' and i > 1:
 			q_idxs = kcenter_greedy_query(n_pool, labeled_idxs, train_dataset, device, total_query, i)
 		elif STRATEGY_NAME == 'BadgeSampling':
 			q_idxs = badge_query(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, total_query, i)
@@ -229,16 +231,16 @@ while (EXPE_ROUND > 0):
 	print(acc)
 	all_acc.append(acc)
 	
-	## save model and record acq time
+	## record acq time
 	timestamp = re.sub('\.[0-9]*','_',str(datetime.datetime.now())).replace(" ", "_").replace("-", "").replace(":","")
-	final_model_dir = model_dir + '/' + timestamp + DATA_NAME+ '_'  + STRATEGY_NAME + '_' + str(NUM_QUERY) + '_' + str(args_input.quota)
-	os.makedirs(final_model_dir, exist_ok=True)
+	# final_model_dir = model_dir + '/' + timestamp + DATA_NAME+ '_'  + STRATEGY_NAME + '_' + str(NUM_QUERY) + '_' + str(args_input.quota)
+	# os.makedirs(final_model_dir, exist_ok=True)
 	end = datetime.datetime.now()
 	acq_time.append(round(float((end-start).seconds), 3))
 
-	final_model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir).to(device)
-	model_to_save = final_model.module if hasattr(final_model, 'module') else final_model 
-	model_to_save.save_pretrained(final_model_dir)
+	# final_model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir).to(device)
+	# model_to_save = final_model.module if hasattr(final_model, 'module') else final_model 
+	# model_to_save.save_pretrained(final_model_dir)
 
 # cal mean & standard deviation
 total_time = datetime.datetime.now() - begin

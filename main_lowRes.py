@@ -160,7 +160,9 @@ while (EXPE_ROUND > 0):
 			q_idxs = mean_std_query(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, total_query, i)
 		elif STRATEGY_NAME == 'KMeansSampling':
 			q_idxs = kmeans_query(n_pool, labeled_idxs, train_dataset, device, total_query, i)
-		elif STRATEGY_NAME == 'KCenterGreedy':
+		elif STRATEGY_NAME == 'KCenterGreedy' and i == 1:
+			q_idxs = random_sampling_query(labeled_idxs, total_query)
+		elif STRATEGY_NAME == 'KCenterGreedy' and i > 1:
 			q_idxs = kcenter_greedy_query(n_pool, labeled_idxs, train_dataset, device, total_query, i)
 		elif STRATEGY_NAME == 'BadgeSampling':
 			q_idxs = badge_query(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, total_query, i)
