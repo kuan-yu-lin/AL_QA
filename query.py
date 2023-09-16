@@ -321,7 +321,7 @@ def kcenter_greedy_PCA_query(n_pool, labeled_idxs, train_dataset, device, n, rd=
                                   batch_size=model_batch,
                                 )
     print('KCenter greedy PCA querying starts!')
-    print('Query {} data from {} unlabeled training data.'.format(n, len(unlabeled_data)))
+    print('Query {} data.'.format(n))
     if LOW_RES:
         embeddings = get_embeddings_lowRes(train_dataloader, device, rd)
     else:
