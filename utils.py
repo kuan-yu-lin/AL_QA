@@ -1,13 +1,14 @@
+from datasets import load_dataset
+from transformers import AutoModelForQuestionAnswering
 import numpy as np
-import sys
-from tqdm.auto import tqdm
 from scipy import stats
 from sklearn.metrics import pairwise_distances
 import pdb
-from datasets import load_dataset
+import sys
 from collections import Counter
 import string
 import re
+import random
 
 CACHE_DIR = '/mount/arbeitsdaten31/studenten1/linku/.cache'
 
@@ -102,12 +103,22 @@ def load_dataset_mrqa(d):
 		return data['train'].select(range(86588)), data['validation'].select(range(10507))
 	elif d == 'newsqa':
 		# the 86589th to 160748th in train set
-		# the 10508th to 14719th in val set		
-		return data['train'].select(range(86588, 160748)), data['validation'].select(range(10507, 14719))
+		# the 10508th to 14719th in val set
+		data_set = data['train'].select(range(86588, 160748))
+		idx = list(range(len(data_set)))
+		random.seed(1127)
+		small_idx = random.sample(idx, 1500)
+		return data_set.select(small_idx[150:]), data_set.select(small_idx[:150]) 		
+		# return data['train'].select(range(86588, 160748)), data['validation'].select(range(10507, 14719))
 	elif d == 'searchqa':
 		# the 222437th to 339820th in train set
 		# the 22505th to 39484th in val set
-		return data['train'].select(range(222436, 339820)), data['validation'].select(range(22504, 39484))
+		data_set = data['train'].select(range(222436, 339820))
+		idx = list(range(len(data_set)))
+		random.seed(1127)
+		small_idx = random.sample(idx, 1500)
+		return data_set.select(small_idx[150:]), data_set.select(small_idx[:150]) 	
+		# return data['train'].select(range(222436, 339820)), data['validation'].select(range(22504, 39484))
 	elif d == 'bioasq':
 		# the first to the 1504th in the test set
 		sub = data['test'].select(range(1504))
@@ -118,7 +129,8 @@ def load_dataset_mrqa(d):
 		sub = data['test'].select(range(8130, 9633))
 		len_sub_val = len(sub) // 10
 		return sub.select(range(len_sub_val, len(sub))), sub.select(range(len_sub_val)) 
-	elif d == 'drop': # Discrete Reasoning Over Paragraphs
+	elif d == 'drop':
+        # Discrete Reasoning Over Paragraphs
 		# the 1505th to 3007th in test set
 		sub = data['test'].select(range(1504, 3007))
 		len_sub_val = len(sub) // 10
@@ -195,8 +207,10 @@ def evaluate(theoretical_answers, predicted_answers, skip_no_answer=False):
 
     return {'exact_match': exact_match, 'f1': f1}
 
-def save_model():
+def save_model(device, pretrain_dir, strategy_dir):
     '''
-    Copy pretrain_models to current trained models.
+    Copy and save model from pretrain_models to current trained models.
     '''
-    pass
+    pretrain_model = AutoModelForQuestionAnswering.from_pretrained(pretrain_dir).to(device)
+    model_to_save = pretrain_model.module if hasattr(pretrain_model, 'module') else pretrain_model 
+    model_to_save.save_pretrained(strategy_dir)
