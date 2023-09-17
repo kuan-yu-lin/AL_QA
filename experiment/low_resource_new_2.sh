@@ -1,24 +1,37 @@
 # ####################
-# Part 1: Margin, LC, Entropy, MarginDropout, LCDroupout, EntropyDroupout
+# Part 2: Random, KMeans, KCenter, BALD, MeanSTD, BADGE
 #
 # Model: RoBERTa-base (lr=3e-5)
 #
 # source domain: SQuAD
 #
-# target domain: DROP, BioASQ, TextbookQA, NewsQA, SearchQA
+# target domain: BioASQ, TextbookQA, DROP, NewsQA, SearchQA
 #
 # Query: 50, 100, 150, 200
 # Query batch: 50 
 # Experiment Iteration: 5
 # ####################
 
-# Margin
+# Random
 ## 9/15 strauss
 python main_lowRes_new.py \
-    -a MarginSampling \
+    -a RandomSampling \
     -q 200 \
     -b 50 \
     -d DROP \
+    -m RoBERTa \
+    -r True \
+    -e 1127 \
+    -l 3e-5 \
+    -p 5 \
+    -g 3
+
+## 9/15 strauss
+python main_lowRes_new.py \
+    -a RandomSampling \
+    -q 200 \
+    -b 50 \
+    -d BioASQ \
     -m RoBERTa \
     -r True \
     -e 1127 \
@@ -28,10 +41,10 @@ python main_lowRes_new.py \
 
 ## 9/15 strauss
 python main_lowRes_new.py \
-    -a MarginSampling \
+    -a RandomSampling \
     -q 200 \
     -b 50 \
-    -d BioASQ \
+    -d TextbookQA \
     -m RoBERTa \
     -r True \
     -e 1127 \
@@ -41,21 +54,7 @@ python main_lowRes_new.py \
 
 ## 9/15 strauss
 python main_lowRes_new.py \
-    -a MarginSampling \
-    -q 200 \
-    -b 50 \
-    -d TextbookQA \
-    -m RoBERTa \
-    -r True \
-    -e 1127 \
-    -l 3e-5 \
-    -p 5 \
-    -g 4
-
-## 9/15 strauss
-## 9/17 strauss (with 1500 data)
-python main_lowRes_new.py \
-    -a MarginSampling \
+    -a RandomSampling \
     -q 200 \
     -b 50 \
     -d NewsQA \
@@ -67,9 +66,8 @@ python main_lowRes_new.py \
     -g 6
 
 ## 9/15 strauss
-## 9/17 strauss (with 1500 data)
 python main_lowRes_new.py \
-    -a MarginSampling \
+    -a RandomSampling \
     -q 200 \
     -b 50 \
     -d SearchQA \
@@ -81,10 +79,10 @@ python main_lowRes_new.py \
     -g 3
 
 ####################################
-# LC
+# KMeans
 ## 9/15 strauss (done in comparison)
 python main_lowRes_new.py \
-    -a LeastConfidence \
+    -a KMeansSampling \
     -q 200 \
     -b 50 \
     -d DROP \
@@ -97,7 +95,7 @@ python main_lowRes_new.py \
 
 ## 9/15 strauss (done in comparison)
 python main_lowRes_new.py \
-    -a LeastConfidence \
+    -a KMeansSampling \
     -q 200 \
     -b 50 \
     -d BioASQ \
@@ -108,9 +106,9 @@ python main_lowRes_new.py \
     -p 5 \
     -g 6
 
-## 9/15 strauss
+## 9/16 strauss
 python main_lowRes_new.py \
-    -a LeastConfidence \
+    -a KMeansSampling \
     -q 200 \
     -b 50 \
     -d TextbookQA \
@@ -119,12 +117,11 @@ python main_lowRes_new.py \
     -e 1127 \
     -l 3e-5 \
     -p 5 \
-    -g 6
+    -g 7
 
-## 9/15 strauss
-## 9/17 strauss (with 1500 data)
+###### hold-up
 python main_lowRes_new.py \
-    -a LeastConfidence \
+    -a KMeansSampling \
     -q 200 \
     -b 50 \
     -d NewsQA \
@@ -133,12 +130,11 @@ python main_lowRes_new.py \
     -e 1127 \
     -l 3e-5 \
     -p 5 \
-    -g 7
+    -g 3
 
 ###### hold-up
-## 9/17 strauss (with 1500 data)
 python main_lowRes_new.py \
-    -a LeastConfidence \
+    -a KMeansSampling \
     -q 200 \
     -b 50 \
     -d SearchQA \
@@ -147,82 +143,80 @@ python main_lowRes_new.py \
     -e 1127 \
     -l 3e-5 \
     -p 5 \
-    -g 5
+    -g 3
+
+###############################
+# KCenterGreedy
+## 9/16 strauss
+python main_lowRes_new.py \
+    -a KCenterGreedy \
+    -q 200 \
+    -b 50 \
+    -d DROP \
+    -m RoBERTa \
+    -r True \
+    -e 1127 \
+    -l 3e-5 \
+    -p 5 \
+    -g 3
+
+## 9/16 strauss
+python main_lowRes_new.py \
+    -a KCenterGreedy \
+    -q 200 \
+    -b 50 \
+    -d BioASQ \
+    -m RoBERTa \
+    -r True \
+    -e 1127 \
+    -l 3e-5 \
+    -p 5 \
+    -g 8
+
+## 9/16 strauss
+python main_lowRes_new.py \
+    -a KCenterGreedy \
+    -q 200 \
+    -b 50 \
+    -d TextbookQA \
+    -m RoBERTa \
+    -r True \
+    -e 1127 \
+    -l 3e-5 \
+    -p 5 \
+    -g 3
+
+###### hold-up
+python main_lowRes_new.py \
+    -a KCenterGreedy \
+    -q 200 \
+    -b 50 \
+    -d NewsQA \
+    -m RoBERTa \
+    -r True \
+    -e 1127 \
+    -l 3e-5 \
+    -p 5 \
+    -g 3
+
+###### hold-up
+python main_lowRes_new.py \
+    -a KCenterGreedy \
+    -q 200 \
+    -b 50 \
+    -d SearchQA \
+    -m RoBERTa \
+    -r True \
+    -e 1127 \
+    -l 3e-5 \
+    -p 5 \
+    -g 3
 
 #################################
-# Entropy
-## 9/15 strauss
-python main_lowRes_new.py \
-    -a EntropySampling \
-    -q 200 \
-    -b 50 \
-    -d DROP \
-    -m RoBERTa \
-    -r True \
-    -e 1127 \
-    -l 3e-5 \
-    -p 5 \
-    -g 3
-
-## 9/15 strauss
-python main_lowRes_new.py \
-    -a EntropySampling \
-    -q 200 \
-    -b 50 \
-    -d BioASQ \
-    -m RoBERTa \
-    -r True \
-    -e 1127 \
-    -l 3e-5 \
-    -p 5 \
-    -g 2
-
-## 9/15 strauss
-python main_lowRes_new.py \
-    -a EntropySampling \
-    -q 200 \
-    -b 50 \
-    -d TextbookQA \
-    -m RoBERTa \
-    -r True \
-    -e 1127 \
-    -l 3e-5 \
-    -p 5 \
-    -g 3
-
-###### hold-up
-## 9/17 strauss (with 1500 data)
-python main_lowRes_new.py \
-    -a EntropySampling \
-    -q 200 \
-    -b 50 \
-    -d NewsQA \
-    -m RoBERTa \
-    -r True \
-    -e 1127 \
-    -l 3e-5 \
-    -p 5 \
-    -g 8
-
-###### hold-up
-## 9/17 strauss (with 1500 data)
-python main_lowRes_new.py \
-    -a EntropySampling \
-    -q 200 \
-    -b 50 \
-    -d SearchQA \
-    -m RoBERTa \
-    -r True \
-    -e 1127 \
-    -l 3e-5 \
-    -p 5 \
-    -g 2
-
-####################################
-# MarginDropout
+# Bayesian
 ## 9/16 strauss
 python main_lowRes_new.py \
-    -a MarginSamplingDropout \
+    -a BALDDropout \
     -q 200 \
     -b 50 \
     -d DROP \
@@ -235,7 +229,7 @@ python main_lowRes_new.py \
 
 ## 9/16 strauss
 python main_lowRes_new.py \
-    -a MarginSamplingDropout \
+    -a BALDDropout \
     -q 200 \
     -b 50 \
     -d BioASQ \
@@ -248,7 +242,7 @@ python main_lowRes_new.py \
 
 ## 9/16 strauss
 python main_lowRes_new.py \
-    -a MarginSamplingDropout \
+    -a BALDDropout \
     -q 200 \
     -b 50 \
     -d TextbookQA \
@@ -257,11 +251,11 @@ python main_lowRes_new.py \
     -e 1127 \
     -l 3e-5 \
     -p 5 \
-    -g 6
+    -g 8
 
 ###### hold-up
 python main_lowRes_new.py \
-    -a MarginSamplingDropout \
+    -a BALDDropout \
     -q 200 \
     -b 50 \
     -d NewsQA \
@@ -274,7 +268,7 @@ python main_lowRes_new.py \
 
 ###### hold-up
 python main_lowRes_new.py \
-    -a MarginSamplingDropout \
+    -a BALDDropout \
     -q 200 \
     -b 50 \
     -d SearchQA \
@@ -285,11 +279,11 @@ python main_lowRes_new.py \
     -p 5 \
     -g 3
 
-###################################
-# LCDropout
+##################################
+# MeanSTD
 ## 9/16 strauss
 python main_lowRes_new.py \
-    -a LeastConfidenceDropout \
+    -a MeanSTD \
     -q 200 \
     -b 50 \
     -d DROP \
@@ -302,23 +296,10 @@ python main_lowRes_new.py \
 
 ## 9/16 strauss
 python main_lowRes_new.py \
-    -a LeastConfidenceDropout \
+    -a MeanSTD \
     -q 200 \
     -b 50 \
     -d BioASQ \
-    -m RoBERTa \
-    -r True \
-    -e 1127 \
-    -l 3e-5 \
-    -p 5 \
-    -g 3
-
-## 9/16 strauss
-python main_lowRes_new.py \
-    -a LeastConfidenceDropout \
-    -q 200 \
-    -b 50 \
-    -d TextbookQA \
     -m RoBERTa \
     -r True \
     -e 1127 \
@@ -326,9 +307,22 @@ python main_lowRes_new.py \
     -p 5 \
     -g 7
 
+## 9/16 strauss
+python main_lowRes_new.py \
+    -a MeanSTD \
+    -q 200 \
+    -b 50 \
+    -d TextbookQA \
+    -m RoBERTa \
+    -r True \
+    -e 1127 \
+    -l 3e-5 \
+    -p 5 \
+    -g 3
+
 ###### hold-up
 python main_lowRes_new.py \
-    -a LeastConfidenceDropout \
+    -a MeanSTD \
     -q 200 \
     -b 50 \
     -d NewsQA \
@@ -341,7 +335,7 @@ python main_lowRes_new.py \
 
 ###### hold-up
 python main_lowRes_new.py \
-    -a LeastConfidenceDropout \
+    -a MeanSTD \
     -q 200 \
     -b 50 \
     -d SearchQA \
@@ -352,27 +346,14 @@ python main_lowRes_new.py \
     -p 5 \
     -g 3
 
-####################################
-# EntropyDropout
-## 9/15 strauss
+##################################
+# BADGE
+## 9/16 strauss
 python main_lowRes_new.py \
-    -a EntropySamplingDropout \
+    -a BadgeSampling \
     -q 200 \
     -b 50 \
     -d DROP \
-    -m RoBERTa \
-    -r True \
-    -e 1127 \
-    -l 3e-5 \
-    -p 5 \
-    -g 3
-
-## 9/16 strauss
-python main_lowRes_new.py \
-    -a EntropySamplingDropout \
-    -q 200 \
-    -b 50 \
-    -d BioASQ \
     -m RoBERTa \
     -r True \
     -e 1127 \
@@ -382,7 +363,20 @@ python main_lowRes_new.py \
 
 ## 9/16 strauss
 python main_lowRes_new.py \
-    -a EntropySamplingDropout \
+    -a BadgeSampling \
+    -q 200 \
+    -b 50 \
+    -d BioASQ \
+    -m RoBERTa \
+    -r True \
+    -e 1127 \
+    -l 3e-5 \
+    -p 5 \
+    -g 7
+
+## 9/16 strauss
+python main_lowRes_new.py \
+    -a BadgeSampling \
     -q 200 \
     -b 50 \
     -d TextbookQA \
@@ -395,7 +389,7 @@ python main_lowRes_new.py \
 
 ###### hold-up
 python main_lowRes_new.py \
-    -a EntropySamplingDropout \
+    -a BadgeSampling \
     -q 200 \
     -b 50 \
     -d NewsQA \
@@ -408,7 +402,7 @@ python main_lowRes_new.py \
 
 ###### hold-up
 python main_lowRes_new.py \
-    -a EntropySamplingDropout \
+    -a BadgeSampling \
     -q 200 \
     -b 50 \
     -d SearchQA \
