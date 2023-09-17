@@ -114,11 +114,8 @@ def get_pred_lowRes(dataloader, device, features, examples):
 
     return compute_metrics(start_logits, end_logits, features, examples)
 
-def get_prob_lowRes(dataloader, device, features, examples, rd=0):
-    if rd == 1:
-        model = AutoModelForQuestionAnswering.from_pretrained(pretrain_model_dir).to(device)
-    else:
-        model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir).to(device)
+def get_prob_lowRes(dataloader, device, features, examples):
+    model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir).to(device)
 
     model.eval()
     start_logits = []
@@ -178,11 +175,8 @@ def get_prob_lowRes(dataloader, device, features, examples, rd=0):
     
     return prob_dict
 
-def get_prob_dropout_lowRes(dataloader, device, features, examples, n_drop=10, rd=0):
-    if rd == 1:
-        model = AutoModelForQuestionAnswering.from_pretrained(pretrain_model_dir).to(device)
-    else:
-        model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir).to(device)
+def get_prob_dropout_lowRes(dataloader, device, features, examples, n_drop=10):
+    model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir).to(device)
     
     model.train()
     prob_dict = {}
@@ -257,13 +251,10 @@ def get_prob_dropout_lowRes(dataloader, device, features, examples, n_drop=10, r
 
     return prob_dict
 
-def get_prob_dropout_split_lowRes(dataloader, device, features, examples, n_drop=10, rd=0):
+def get_prob_dropout_split_lowRes(dataloader, device, features, examples, n_drop=10):
     ## use tensor to save the answers
 
-    if rd == 1:
-        model = AutoModelForQuestionAnswering.from_pretrained(pretrain_model_dir).to(device)
-    else:
-        model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir).to(device)
+    model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir).to(device)
     
     model.train()
 
@@ -330,11 +321,8 @@ def get_prob_dropout_split_lowRes(dataloader, device, features, examples, n_drop
 
     return probs
 
-def get_embeddings_lowRes(dataloader, device, rd=0):
-    if rd == 1:
-        model = AutoModelForQuestionAnswering.from_pretrained(pretrain_model_dir, output_hidden_states=True).to(device)
-    else:
-        model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir, output_hidden_states=True).to(device)
+def get_embeddings_lowRes(dataloader, device):
+    model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir, output_hidden_states=True).to(device)
     
     model.eval()
     embeddings = torch.zeros([len(dataloader.dataset), model.config.to_dict()['hidden_size']])
@@ -355,11 +343,8 @@ def get_embeddings_lowRes(dataloader, device, rd=0):
         
     return embeddings
 
-def get_grad_embeddings_lowRes(dataloader, device, features, examples, rd=0):
-    if rd == 1:
-        model = AutoModelForQuestionAnswering.from_pretrained(pretrain_model_dir, output_hidden_states=True).to(device)
-    else:
-        model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir, output_hidden_states=True).to(device)
+def get_grad_embeddings_lowRes(dataloader, device, features, examples):
+    model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir, output_hidden_states=True).to(device)
     
     model.eval()
 

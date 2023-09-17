@@ -18,10 +18,24 @@ import re
 import datetime
 
 import arguments
-from preprocess import *
+from preprocess import preprocess_training_examples_lowRes, preprocess_training_features_lowRes, preprocess_validation_examples_lowRes
 from model_lowRes import to_train_lowRes, get_pred_lowRes
-from utils import *
-from query import *
+from utils import load_dataset_mrqa, get_model, Logger, get_aubc, get_mean_stddev, save_model
+from query import (
+    random_sampling_query, 
+    margin_sampling_query, 
+    least_confidence_query, 
+    entropy_query,
+    margin_sampling_dropout_query,
+    least_confidence_dropout_query,
+    entropy_dropout_query,
+    var_ratio_query,
+    bald_query,
+    mean_std_query,
+    kmeans_query,
+    kcenter_greedy_query,
+    badge_query
+)
 
 args_input = arguments.get_args()
 NUM_QUERY = args_input.batch
@@ -126,6 +140,8 @@ while (EXPE_ROUND > 0):
 		batch_size=MODEL_BATCH
 	)
 
+	save_model(device, pretrain_model_dir, strategy_model_dir)
+
 	time = datetime.datetime.now()
 	
 	## iteration 1 to i
@@ -139,31 +155,31 @@ while (EXPE_ROUND > 0):
 		if STRATEGY_NAME == 'RandomSampling':
 			q_idxs = random_sampling_query(labeled_idxs, total_query)
 		elif STRATEGY_NAME == 'MarginSampling':
-			q_idxs = margin_sampling_query(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, total_query, i)
+			q_idxs = margin_sampling_query(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, total_query)
 		elif STRATEGY_NAME == 'LeastConfidence':
-			q_idxs = least_confidence_query(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, total_query, i)
+			q_idxs = least_confidence_query(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, total_query)
 		elif STRATEGY_NAME == 'EntropySampling':
-			q_idxs = entropy_query(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, total_query, i)
+			q_idxs = entropy_query(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, total_query)
 		elif STRATEGY_NAME == 'MarginSamplingDropout':
-			q_idxs = margin_sampling_dropout_query(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, total_query, i)
+			q_idxs = margin_sampling_dropout_query(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, total_query)
 		elif STRATEGY_NAME == 'LeastConfidenceDropout':
-			q_idxs = least_confidence_dropout_query(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, total_query, i)
+			q_idxs = least_confidence_dropout_query(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, total_query)
 		elif STRATEGY_NAME == 'EntropySamplingDropout':
-			q_idxs = entropy_dropout_query(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, total_query, i)
+			q_idxs = entropy_dropout_query(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, total_query)
 		elif STRATEGY_NAME == 'VarRatio':
-			q_idxs = var_ratio_query(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, total_query, i)
+			q_idxs = var_ratio_query(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, total_query)
 		elif STRATEGY_NAME == 'BALDDropout':
-			q_idxs = bald_query(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, total_query, i)
+			q_idxs = bald_query(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, total_query)
 		elif STRATEGY_NAME == 'MeanSTD':
-			q_idxs = mean_std_query(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, total_query, i)
+			q_idxs = mean_std_query(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, total_query)
 		elif STRATEGY_NAME == 'KMeansSampling':
-			q_idxs = kmeans_query(n_pool, labeled_idxs, train_dataset, device, total_query, i)
+			q_idxs = kmeans_query(n_pool, labeled_idxs, train_dataset, device, total_query)
 		elif STRATEGY_NAME == 'KCenterGreedy' and i == 1:
 			q_idxs = random_sampling_query(labeled_idxs, total_query)
 		elif STRATEGY_NAME == 'KCenterGreedy' and i > 1:
-			q_idxs = kcenter_greedy_query(n_pool, labeled_idxs, train_dataset, device, total_query, i)
+			q_idxs = kcenter_greedy_query(n_pool, labeled_idxs, train_dataset, device, total_query)
 		elif STRATEGY_NAME == 'BadgeSampling':
-			q_idxs = badge_query(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, total_query, i)
+			q_idxs = badge_query(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, total_query)
 		else:
 			raise NotImplementedError
 
@@ -171,8 +187,7 @@ while (EXPE_ROUND > 0):
 		time = datetime.datetime.now()
 
 		## update
-    
-		## goal of total query data: NUM_QUERY * i
+		# goal of total query data: NUM_QUERY * i
 		num_set_query_i = NUM_QUERY * i
 
 		labeled_idxs[q_idxs[:NUM_QUERY]] = True
@@ -198,7 +213,6 @@ while (EXPE_ROUND > 0):
 		num_training_steps_i = NUM_TRAIN_EPOCH * num_update_steps_per_epoch_i
 
 		model_i = AutoModelForQuestionAnswering.from_pretrained(pretrain_model_dir).to(device)
-		
 
 		optimizer_i = AdamW(model_i.parameters(), lr=LEARNING_RATE)
 		
@@ -233,14 +247,8 @@ while (EXPE_ROUND > 0):
 	
 	## record acq time
 	timestamp = re.sub('\.[0-9]*','_',str(datetime.datetime.now())).replace(" ", "_").replace("-", "").replace(":","")
-	# final_model_dir = model_dir + '/' + timestamp + DATA_NAME+ '_'  + STRATEGY_NAME + '_' + str(NUM_QUERY) + '_' + str(args_input.quota)
-	# os.makedirs(final_model_dir, exist_ok=True)
 	end = datetime.datetime.now()
 	acq_time.append(round(float((end-start).seconds), 3))
-
-	# final_model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir).to(device)
-	# model_to_save = final_model.module if hasattr(final_model, 'module') else final_model 
-	# model_to_save.save_pretrained(final_model_dir)
 
 # cal mean & standard deviation
 total_time = datetime.datetime.now() - begin
