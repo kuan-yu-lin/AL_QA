@@ -260,6 +260,7 @@ python main_lowRes_new.py \
     -g 6
 
 ###### hold-up
+## 9/17 strauss (with 1500 data)
 python main_lowRes_new.py \
     -a MarginSamplingDropout \
     -q 200 \
@@ -273,6 +274,7 @@ python main_lowRes_new.py \
     -g 3
 
 ###### hold-up
+## 9/17 strauss (with 1500 data)
 python main_lowRes_new.py \
     -a MarginSamplingDropout \
     -q 200 \
@@ -283,7 +285,7 @@ python main_lowRes_new.py \
     -e 1127 \
     -l 3e-5 \
     -p 5 \
-    -g 3
+    -g 5
 
 ###################################
 # LCDropout
@@ -326,7 +328,7 @@ python main_lowRes_new.py \
     -p 5 \
     -g 7
 
-###### hold-up
+## 9/17 strauss (with 1500 data)
 python main_lowRes_new.py \
     -a LeastConfidenceDropout \
     -q 200 \
@@ -337,9 +339,9 @@ python main_lowRes_new.py \
     -e 1127 \
     -l 3e-5 \
     -p 5 \
-    -g 3
+    -g 6
 
-###### hold-up
+## 9/17 strauss (with 1500 data)
 python main_lowRes_new.py \
     -a LeastConfidenceDropout \
     -q 200 \
@@ -350,7 +352,7 @@ python main_lowRes_new.py \
     -e 1127 \
     -l 3e-5 \
     -p 5 \
-    -g 3
+    -g 7
 
 ####################################
 # EntropyDropout
@@ -393,7 +395,7 @@ python main_lowRes_new.py \
     -p 5 \
     -g 5
 
-###### hold-up
+## 9/17 strauss (with 1500 data)
 python main_lowRes_new.py \
     -a EntropySamplingDropout \
     -q 200 \
@@ -404,9 +406,9 @@ python main_lowRes_new.py \
     -e 1127 \
     -l 3e-5 \
     -p 5 \
-    -g 3
+    -g 8
 
-###### hold-up
+## 9/17 strauss (with 1500 data)
 python main_lowRes_new.py \
     -a EntropySamplingDropout \
     -q 200 \
@@ -417,4 +419,4 @@ python main_lowRes_new.py \
     -e 1127 \
     -l 3e-5 \
     -p 5 \
-    -g 3
+    -g 2

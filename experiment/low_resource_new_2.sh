@@ -53,6 +53,7 @@ python main_lowRes_new.py \
     -g 5
 
 ## 9/15 strauss
+## 9/17 strauss (with 1500 data)
 python main_lowRes_new.py \
     -a RandomSampling \
     -q 200 \
@@ -63,9 +64,10 @@ python main_lowRes_new.py \
     -e 1127 \
     -l 3e-5 \
     -p 5 \
-    -g 6
+    -g 3
 
 ## 9/15 strauss
+## 9/17 strauss (with 1500 data)
 python main_lowRes_new.py \
     -a RandomSampling \
     -q 200 \
@@ -76,7 +78,7 @@ python main_lowRes_new.py \
     -e 1127 \
     -l 3e-5 \
     -p 5 \
-    -g 3
+    -g 6
 
 ####################################
 # KMeans
@@ -119,7 +121,7 @@ python main_lowRes_new.py \
     -p 5 \
     -g 7
 
-###### hold-up
+## 9/17 strauss (with 1500 data)
 python main_lowRes_new.py \
     -a KMeansSampling \
     -q 200 \
@@ -132,7 +134,7 @@ python main_lowRes_new.py \
     -p 5 \
     -g 3
 
-###### hold-up
+## 9/17 strauss (with 1500 data)
 python main_lowRes_new.py \
     -a KMeansSampling \
     -q 200 \
@@ -143,7 +145,7 @@ python main_lowRes_new.py \
     -e 1127 \
     -l 3e-5 \
     -p 5 \
-    -g 3
+    -g 5
 
 ###############################
 # KCenterGreedy
@@ -186,7 +188,7 @@ python main_lowRes_new.py \
     -p 5 \
     -g 3
 
-###### hold-up
+## 9/17 strauss (with 1500 data)
 python main_lowRes_new.py \
     -a KCenterGreedy \
     -q 200 \
@@ -197,9 +199,9 @@ python main_lowRes_new.py \
     -e 1127 \
     -l 3e-5 \
     -p 5 \
-    -g 3
+    -g 6
 
-###### hold-up
+## 9/17 strauss (with 1500 data)
 python main_lowRes_new.py \
     -a KCenterGreedy \
     -q 200 \
@@ -210,7 +212,7 @@ python main_lowRes_new.py \
     -e 1127 \
     -l 3e-5 \
     -p 5 \
-    -g 3
+    -g 7
 
 #################################
 # Bayesian
@@ -253,7 +255,7 @@ python main_lowRes_new.py \
     -p 5 \
     -g 8
 
-###### hold-up
+## 9/17 strauss (with 1500 data)
 python main_lowRes_new.py \
     -a BALDDropout \
     -q 200 \
@@ -264,9 +266,9 @@ python main_lowRes_new.py \
     -e 1127 \
     -l 3e-5 \
     -p 5 \
-    -g 3
+    -g 8
 
-###### hold-up
+## 9/17 strauss (with 1500 data)
 python main_lowRes_new.py \
     -a BALDDropout \
     -q 200 \
@@ -277,7 +279,7 @@ python main_lowRes_new.py \
     -e 1127 \
     -l 3e-5 \
     -p 5 \
-    -g 3
+    -g 2
 
 ##################################
 # MeanSTD
@@ -320,7 +322,7 @@ python main_lowRes_new.py \
     -p 5 \
     -g 3
 
-###### hold-up
+## 9/17 strauss (with 1500 data)
 python main_lowRes_new.py \
     -a MeanSTD \
     -q 200 \
@@ -331,9 +333,9 @@ python main_lowRes_new.py \
     -e 1127 \
     -l 3e-5 \
     -p 5 \
-    -g 3
+    -g 7
 
-###### hold-up
+## 9/17 strauss (with 1500 data)
 python main_lowRes_new.py \
     -a MeanSTD \
     -q 200 \
@@ -344,7 +346,7 @@ python main_lowRes_new.py \
     -e 1127 \
     -l 3e-5 \
     -p 5 \
-    -g 3
+    -g 5
 
 ##################################
 # BADGE
@@ -387,7 +389,7 @@ python main_lowRes_new.py \
     -p 5 \
     -g 5
 
-###### hold-up
+## 9/17 strauss (with 1500 data)
 python main_lowRes_new.py \
     -a BadgeSampling \
     -q 200 \
@@ -400,7 +402,7 @@ python main_lowRes_new.py \
     -p 5 \
     -g 3
 
-###### hold-up
+## 9/17 strauss (with 1500 data)
 python main_lowRes_new.py \
     -a BadgeSampling \
     -q 200 \
@@ -411,4 +413,4 @@ python main_lowRes_new.py \
     -e 1127 \
     -l 3e-5 \
     -p 5 \
-    -g 3
+    -g 6
