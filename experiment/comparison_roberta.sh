@@ -1,6 +1,7 @@
 #####################
-# how well they work
-# Model: Bert-base Bert-large(how long) RoBERTa \-large RoBERTa \-base(http://arxiv.org/abs/2101.00438)
+# Model: RoBERTa-base
+#
+# Data: SQuAD
 #
 # Init pool: 500
 # Query: 500, 1000, 1500, 2000 (mention it the proposal)
