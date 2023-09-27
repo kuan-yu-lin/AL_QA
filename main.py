@@ -23,18 +23,24 @@ import re
 import datetime
 
 import arguments
-from preprocess import *
-from model import *
-from utils import *
-from query import *
-
-# from pathlib import Path
-# import datasets
-
-model_dir = '/mount/arbeitsdaten31/studenten1/linku/models'
-strategy_model_dir = model_dir + '/' + str(NUM_INIT_LB) + '_' + str(args_input.quota) + '_' + STRATEGY_NAME + '_' + MODEL_NAME +  '_' + DATA_NAME
-
-CACHE_DIR = '/mount/arbeitsdaten31/studenten1/linku/.cache'
+from preprocess import preprocess_training_examples, preprocess_training_features, preprocess_validation_examples
+from model import to_train, get_pred
+from utils import get_model, Logger, get_aubc, get_mean_stddev
+from query import (
+    random_sampling_query, 
+    margin_sampling_query, 
+    least_confidence_query, 
+    entropy_query,
+    margin_sampling_dropout_query,
+    least_confidence_dropout_query,
+    entropy_dropout_query,
+    var_ratio_query,
+    bald_query,
+    mean_std_query,
+    kmeans_query,
+    kcenter_greedy_query,
+    badge_query
+)
 
 args_input = arguments.get_args()
 NUM_QUERY = args_input.batch
@@ -47,6 +53,11 @@ LEARNING_RATE = args_input.learning_rate
 EXPE_ROUND = args_input.expe_round
 MODEL_BATCH = args_input.model_batch
 NUM_TRAIN_EPOCH = args_input.train_epochs
+
+model_dir = '/mount/arbeitsdaten31/studenten1/linku/models'
+strategy_model_dir = model_dir + '/' + str(NUM_INIT_LB) + '_' + str(args_input.quota) + '_' + STRATEGY_NAME + '_' + MODEL_NAME +  '_' + DATA_NAME
+
+CACHE_DIR = '/mount/arbeitsdaten31/studenten1/linku/.cache'
 
 ## load data
 squad = load_dataset(DATA_NAME.lower(), cache_dir=CACHE_DIR)
@@ -224,8 +235,6 @@ while (EXPE_ROUND > 0):
 			q_idxs = kmeans_query(n_pool, labeled_idxs, train_dataset, device, total_query)
 		elif STRATEGY_NAME == 'KCenterGreedy':
 			q_idxs = kcenter_greedy_query(n_pool, labeled_idxs, train_dataset, device, total_query)
-		elif STRATEGY_NAME == 'KCenterGreedyPCA': # not sure
-			q_idxs = kcenter_greedy_PCA_query(n_pool, labeled_idxs, train_dataset, device, total_query)
 		elif STRATEGY_NAME == 'BadgeSampling':
 			q_idxs = badge_query(n_pool, labeled_idxs, train_dataset, train_features, squad['train'], device, total_query)
 		# elif STRATEGY_NAME == 'LossPredictionLoss':
@@ -299,17 +308,10 @@ while (EXPE_ROUND > 0):
 	print(acc)
 	all_acc.append(acc)
 	
-	## save model and record acq time
+	## record acq time
 	timestamp = re.sub('\.[0-9]*', '_', str(datetime.datetime.now())).replace(" ", "_").replace("-", "").replace(":","")
-	final_model_dir = model_dir + '/' + timestamp + str(NUM_INIT_LB) + '_' + str(args_input.quota) + '_' + STRATEGY_NAME + '_' + MODEL_NAME + '_' + DATA_NAME
-	os.makedirs(final_model_dir, exist_ok=True)
 	end = datetime.datetime.now()
-	print('Time spent in experiment round {}: {}'.format(5 - EXPE_ROUND, datetime.datetime.now() - begin))
 	acq_time.append(round(float((end-start).seconds), 3))
-
-	final_model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir).to(device)
-	model_to_save = final_model.module if hasattr(final_model, 'module') else final_model 
-	model_to_save.save_pretrained(final_model_dir)
 
 # cal mean & standard deviation
 total_time = datetime.datetime.now() - begin
@@ -328,6 +330,8 @@ file_res.writelines('quota: {}'.format(ITERATION * NUM_QUERY) + '\n')
 file_res.writelines('learning rate: {}'.format(LEARNING_RATE) + '\n')
 file_res.writelines('training batch size: {}'.format(MODEL_BATCH) + '\n')
 file_res.writelines('time of repeat experiments: {}'.format(args_input.expe_round) + '\n')
+file_res.writelines('The experiment started at {}'.format(begin) + '\n')
+file_res.writelines('The experiment ended at {}'.format(end) + '\n')
 file_res.writelines('Time spent in total: {}'.format(total_time) + '\n')
 
 # save result

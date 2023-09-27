@@ -266,6 +266,8 @@ file_res.writelines('quota: {}'.format(ITERATION * NUM_QUERY) + '\n')
 file_res.writelines('learning rate: {}'.format(LEARNING_RATE) + '\n')
 file_res.writelines('training batch size: {}'.format(MODEL_BATCH) + '\n')
 file_res.writelines('time of repeat experiments: {}'.format(args_input.expe_round) + '\n')
+file_res.writelines('The experiment started at {}'.format(begin) + '\n')
+file_res.writelines('The experiment ended at {}'.format(end) + '\n')
 file_res.writelines('Time spent in total: {}'.format(total_time) + '\n')
 
 # save result
