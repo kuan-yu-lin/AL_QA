@@ -92,6 +92,7 @@ def init_centers(X, K):
     return indsAll
 
 
+import random
 def load_dataset_mrqa(d):
 	'''
 	return train_set, val_set
@@ -99,42 +100,57 @@ def load_dataset_mrqa(d):
 	data = load_dataset("mrqa", cache_dir=CACHE_DIR)
 	if d == 'squad':
 		# the first to 86588th in train set
-		# the first to 10507th in val set		
-		return data['train'].select(range(86588)), data['validation'].select(range(10507))
+		# the first to 10507th in val set
+		squad_train = data['train'].select(range(86588))
+		squad_val = data['validation'].select(range(10507))
+		for t in squad_train: assert t['subset'] == 'SQuAD', 'Please select corrrect train data for SQuAD.'
+		for v in squad_val: assert v['subset'] == 'SQuAD', 'Please select corrrect validation data for SQuAD.'
+		return squad_train, squad_val
 	elif d == 'newsqa':
 		# the 86589th to 160748th in train set
 		# the 10508th to 14719th in val set
 		data_set = data['train'].select(range(86588, 160748))
-		idx = list(range(len(data_set)))
-		random.seed(1127)
-		small_idx = random.sample(idx, 1500)
-		return data_set.select(small_idx[150:]), data_set.select(small_idx[:150]) 		
-		# return data['train'].select(range(86588, 160748)), data['validation'].select(range(10507, 14719))
+		newsqa_train = data_set.shuffle(1127).select(range(10000))
+		newsqa_val = data['validation'].select(range(10507, 14719))
+		for t in newsqa_train: assert t['subset'] == 'NewsQA', 'Please select corrrect train data for NewQA.'
+		for v in newsqa_val: assert v['subset'] == 'NewsQA', 'Please select corrrect validation data for NewQA.'
+		return newsqa_train, newsqa_val
 	elif d == 'searchqa':
 		# the 222437th to 339820th in train set
 		# the 22505th to 39484th in val set
 		data_set = data['train'].select(range(222436, 339820))
-		idx = list(range(len(data_set)))
-		random.seed(1127)
-		small_idx = random.sample(idx, 1500)
-		return data_set.select(small_idx[150:]), data_set.select(small_idx[:150]) 	
-		# return data['train'].select(range(222436, 339820)), data['validation'].select(range(22504, 39484))
+		searchqa_train = data_set.shuffle(1127).select(range(10000))
+		searchqa_val = data['validation'].select(range(22504, 39484))	
+		for t in searchqa_train: assert t['subset'] == 'SearchQA', 'Please select corrrect train data for SearchQA.'
+		for v in searchqa_val: assert v['subset'] == 'SearchQA', 'Please select corrrect validation data for SearchQA.'
+		return searchqa_train, searchqa_val
 	elif d == 'bioasq':
 		# the first to the 1504th in the test set
 		sub = data['test'].select(range(1504))
 		len_sub_val = len(sub) // 10
-		return sub.select(range(len_sub_val, len(sub))), sub.select(range(len_sub_val))
+		bioasq_train = sub.select(range(len_sub_val, len(sub)))
+		bioasq_val = sub.select(range(len_sub_val))
+		for t in bioasq_train: assert t['subset'] == 'BioASQ', 'Please select corrrect train data for BioASQ.'
+		for v in bioasq_val: assert v['subset'] == 'BioASQ', 'Please select corrrect validation data for BioASQ.'
+		return bioasq_train, bioasq_val
 	elif d == 'textbookqa':
 		# the 8131st to 9633rd
 		sub = data['test'].select(range(8130, 9633))
 		len_sub_val = len(sub) // 10
-		return sub.select(range(len_sub_val, len(sub))), sub.select(range(len_sub_val)) 
-	elif d == 'drop':
-        # Discrete Reasoning Over Paragraphs
+		textbookqa_train = sub.select(range(len_sub_val, len(sub)))
+		textbookqa_val = sub.select(range(len_sub_val)) 
+		for t in textbookqa_train: assert t['subset'] == 'TextbookQA', 'Please select corrrect train data for TextbookQA.'
+		for v in textbookqa_val: assert v['subset'] == 'TextbookQA', 'Please select corrrect validation data for TextbookQA.'
+		return textbookqa_train, textbookqa_val
+	elif d == 'drop': # Discrete Reasoning Over Paragraphs
 		# the 1505th to 3007th in test set
 		sub = data['test'].select(range(1504, 3007))
 		len_sub_val = len(sub) // 10
-		return sub.select(range(len_sub_val, len(sub))), sub.select(range(len_sub_val))
+		drop_train = sub.select(range(len_sub_val, len(sub)))
+		drop_val = sub.select(range(len_sub_val))
+		for t in drop_train: assert t['subset'] == 'DROP', 'Please select corrrect train data for DROP.'
+		for v in drop_val: assert v['subset'] == 'DROP', 'Please select corrrect validation data for DROP.'
+		return drop_train, drop_val
 	
 
 def normalize_answer(s):
