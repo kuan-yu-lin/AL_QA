@@ -20,7 +20,7 @@ import datetime
 import arguments
 from preprocess import preprocess_training_examples_lowRes, preprocess_training_features_lowRes, preprocess_validation_examples_lowRes
 from model_lowRes import to_train_lowRes, get_pred_lowRes
-from utils import load_dataset_mrqa, get_model, Logger, get_aubc, get_mean_stddev, save_model
+from utils import load_dataset_mrqa, get_model, Logger, get_aubc, get_mean_stddev, save_model, get_unique_sample, get_unique_sample_and_context
 from query import (
     random_sampling_query, 
     margin_sampling_query, 
@@ -47,6 +47,7 @@ LEARNING_RATE = args_input.learning_rate
 EXPE_ROUND = args_input.expe_round
 MODEL_BATCH = args_input.model_batch
 NUM_TRAIN_EPOCH = args_input.train_epochs
+UNIQ_CONTEXT = args_input.unique_context
 
 model_dir = '/mount/arbeitsdaten31/studenten1/linku/models'
 pretrain_model_dir = '/mount/arbeitsdaten31/studenten1/linku/pretrain_models' + '/' + MODEL_NAME + '_SQuAD_full_dataset_lr_3e-5'
@@ -187,23 +188,32 @@ while (EXPE_ROUND > 0):
 		time = datetime.datetime.now()
 
 		## update
-		# goal of total query data: NUM_QUERY * i
-		num_set_query_i = NUM_QUERY * i
+		if UNIQ_CONTEXT:
+			iter_i_labeled_idxs = get_unique_sample_and_context(labeled_idxs, q_idxs, n_pool, train_features, i)
+		else:
+			iter_i_labeled_idxs = get_unique_sample(labeled_idxs, q_idxs, n_pool, train_features, i)
+		# # check to have unique example_id
+		# # goal of total query data: NUM_QUERY * i
+		# num_set_query_i = NUM_QUERY * i
 
-		labeled_idxs[q_idxs[:NUM_QUERY]] = True
-		run_i_labeled_idxs = np.arange(n_pool)[labeled_idxs]
+		# labeled_idxs[q_idxs[:NUM_QUERY]] = True
+		# iter_i_labeled_idxs = np.arange(n_pool)[labeled_idxs]
 
-		run_i_samples = train_features.select(indices=run_i_labeled_idxs)
-		num_set_ex_id_i = len(set(run_i_samples['example_id']))
+		# iter_i_samples = train_features.select(indices=iter_i_labeled_idxs)
+		# num_set_ex_id_i = len(set(iter_i_samples['example_id']))
 
-		difference_i = num_set_query_i - num_set_ex_id_i
+		# difference_i = num_set_query_i - num_set_ex_id_i
 
-		if difference_i:
-			labeled_idxs[q_idxs[NUM_QUERY:(NUM_QUERY + difference_i)]] = True
-			run_i_labeled_idxs = np.arange(n_pool)[labeled_idxs]
+		# if difference_i:
+		# 	labeled_idxs[q_idxs[NUM_QUERY:(NUM_QUERY + difference_i)]] = True
+		# 	iter_i_labeled_idxs = np.arange(n_pool)[labeled_idxs]
+
+		# # check to have unique context
+		# iter_i_samples = train_features.select(indices=iter_i_labeled_idxs)
+		# num_set_ex_id_i = len(set(iter_i_samples['example_id']))
 
 		train_dataloader_i = DataLoader(
-			train_dataset.select(indices=run_i_labeled_idxs),
+			train_dataset.select(indices=iter_i_labeled_idxs),
 			shuffle=True,
 			collate_fn=default_data_collator,
 			batch_size=MODEL_BATCH,
@@ -283,8 +293,9 @@ print('mean AUBC(acc): ' + str(mean_acc) + '. std dev AUBC(acc): ' + str(stddev_
 print('mean time: ' + str(mean_time) + '. std dev time: ' + str(stddev_time))
 
 avg_acc = np.mean(np.array(all_acc),axis=0)
+stddev_i_acc = np.std(np.array(all_acc), axis=0)
 for i in range(len(avg_acc)):
-	tmp = 'Size of training set is ' + str(i * NUM_QUERY + NUM_QUERY) + ', ' + 'accuracy is ' + str(round(avg_acc[i],4)) + '.' + '\n'
+	tmp = 'When the size of training set is ' + str(i * NUM_QUERY + NUM_QUERY) + ', ' + 'average accuracy is ' + str(round(avg_acc[i], 4)) + ', ' + 'std dev is ' + str(round(stddev_i_acc[i], 4)) + '.' + '\n'
 	file_res.writelines(tmp)
 
 file_res.writelines('mean acc: ' + str(mean_acc) + '. std dev acc: ' + str(stddev_acc) + '\n')

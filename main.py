@@ -25,7 +25,7 @@ import datetime
 import arguments
 from preprocess import preprocess_training_examples, preprocess_training_features, preprocess_validation_examples
 from model import to_train, get_pred
-from utils import get_model, Logger, get_aubc, get_mean_stddev
+from utils import get_model, Logger, get_aubc, get_mean_stddev, get_unique_sample, get_unique_sample_and_context
 from query import (
     random_sampling_query, 
     margin_sampling_query, 
@@ -53,6 +53,7 @@ LEARNING_RATE = args_input.learning_rate
 EXPE_ROUND = args_input.expe_round
 MODEL_BATCH = args_input.model_batch
 NUM_TRAIN_EPOCH = args_input.train_epochs
+UNIQ_CONTEXT = args_input.unique_context
 
 model_dir = '/mount/arbeitsdaten31/studenten1/linku/models'
 strategy_model_dir = model_dir + '/' + str(NUM_INIT_LB) + '_' + str(args_input.quota) + '_' + STRATEGY_NAME + '_' + MODEL_NAME +  '_' + DATA_NAME
@@ -142,17 +143,22 @@ while (EXPE_ROUND > 0):
 	tmp_idxs = np.arange(n_pool)
 	np.random.shuffle(tmp_idxs)
 	
-	difference_0 = 0
-	num_set_ex_id_0 = 0
+	if UNIQ_CONTEXT:
+		iter_0_labeled_idxs = get_unique_sample_and_context(labeled_idxs, tmp_idxs, n_pool, train_features)
+	else:
+		iter_0_labeled_idxs = get_unique_sample(labeled_idxs, tmp_idxs, n_pool, train_features)
+	
+	# difference_0 = 0
+	# num_set_ex_id_0 = 0
 
-	while num_set_ex_id_0 != NUM_INIT_LB:        
-		labeled_idxs[tmp_idxs[:NUM_INIT_LB + difference_0]] = True
-		iter_0_labeled_idxs = np.arange(n_pool)[labeled_idxs]
+	# while num_set_ex_id_0 != NUM_INIT_LB:        
+	# 	labeled_idxs[tmp_idxs[:NUM_INIT_LB + difference_0]] = True
+	# 	iter_0_labeled_idxs = np.arange(n_pool)[labeled_idxs]
 
-		iter_0_samples = train_features.select(indices=iter_0_labeled_idxs)
-		num_set_ex_id_0 = len(set(iter_0_samples['example_id']))
+	# 	iter_0_samples = train_features.select(indices=iter_0_labeled_idxs)
+	# 	num_set_ex_id_0 = len(set(iter_0_samples['example_id']))
 
-		difference_0 = NUM_INIT_LB - num_set_ex_id_0
+	# 	difference_0 = NUM_INIT_LB - num_set_ex_id_0
 
 	## record acc performance 
 	acc = np.zeros(ITERATION + 1) # quota/batch runs + iter_0
@@ -237,12 +243,6 @@ while (EXPE_ROUND > 0):
 			q_idxs = kcenter_greedy_query(n_pool, labeled_idxs, train_dataset, device, total_query)
 		elif STRATEGY_NAME == 'BadgeSampling':
 			q_idxs = badge_query(n_pool, labeled_idxs, train_dataset, train_features, squad['train'], device, total_query)
-		# elif STRATEGY_NAME == 'LossPredictionLoss':
-		# 	# different net!
-		# 	q_idxs = loss_prediction_query()
-		# elif STRATEGY_NAME == 'CEALSampling':
-		# 	# why use 'CEALSampling' in STRATEGY_NAME
-		# 	q_idxs = ceal_query()
 		else:
 			raise NotImplementedError
 
@@ -250,21 +250,25 @@ while (EXPE_ROUND > 0):
 		time = datetime.datetime.now()
 
 		## update
+		if UNIQ_CONTEXT:
+			iter_i_labeled_idxs = get_unique_sample_and_context(labeled_idxs, q_idxs, n_pool, train_features, i)
+		else:
+			iter_i_labeled_idxs = get_unique_sample(labeled_idxs, q_idxs, n_pool, train_features, i)
 		 
-		## goal of total query data: sum NUM_QUERY and the number of set iter_0_data
-		num_set_query_i = NUM_QUERY * i + NUM_INIT_LB
+		# ## goal of total query data: sum NUM_QUERY and the number of set iter_0_data
+		# num_set_query_i = NUM_QUERY * i + NUM_INIT_LB
 		
-		difference_i = 0
-		num_set_ex_id_i = 0
+		# difference_i = 0
+		# num_set_ex_id_i = 0
 
-		while num_set_ex_id_i != num_set_query_i:        
-			labeled_idxs[q_idxs[:NUM_QUERY + difference_i]] = True
-			iter_i_labeled_idxs = np.arange(n_pool)[labeled_idxs]
+		# while num_set_ex_id_i != num_set_query_i:        
+		# 	labeled_idxs[q_idxs[:NUM_QUERY + difference_i]] = True
+		# 	iter_i_labeled_idxs = np.arange(n_pool)[labeled_idxs]
 
-			iter_i_samples = train_features.select(indices=iter_i_labeled_idxs)
-			num_set_ex_id_i = len(set(iter_i_samples['example_id']))
+		# 	iter_i_samples = train_features.select(indices=iter_i_labeled_idxs)
+		# 	num_set_ex_id_i = len(set(iter_i_samples['example_id']))
 
-			difference_i = num_set_query_i - num_set_ex_id_i
+		# 	difference_i = num_set_query_i - num_set_ex_id_i
 
 		train_dataloader_i = DataLoader(
 			train_dataset.select(indices=iter_i_labeled_idxs),
@@ -335,20 +339,21 @@ file_res.writelines('The experiment ended at {}'.format(end) + '\n')
 file_res.writelines('Time spent in total: {}'.format(total_time) + '\n')
 
 # save result
-file_res.writelines('\nAUBC in each experiment round.')
+file_res.writelines('\nAUBC in each experiment round.\n')
 for i in range(len(all_acc)):
 	acc_m.append(get_aubc(args_input.quota, NUM_QUERY, all_acc[i]))
-	print(str(i) + ': ' + str(acc_m[i]))
+	print('The experiment round ' + str(i) + ': ' + str(acc_m[i]))
 	file_res.writelines(str(i) + ': ' + str(acc_m[i]) + '\n')
 mean_acc, stddev_acc = get_mean_stddev(acc_m)
 mean_time, stddev_time = get_mean_stddev(acq_time)
 
 print('mean AUBC(acc): ' + str(mean_acc) + '. std dev AUBC(acc): ' + str(stddev_acc))
-print('mean time: ' + str(mean_time) + '. std dev time: ' + str(stddev_time))
+print('mean time: ' + str(mean_time) + '. std dev time: ' + str(stddev_time) + '\n')
 
-avg_acc = np.mean(np.array(all_acc),axis=0)
+avg_acc = np.mean(np.array(all_acc), axis=0)
+stddev_i_acc = np.std(np.array(all_acc), axis=0)
 for i in range(len(avg_acc)):
-	tmp = 'Size of training set is ' + str(NUM_INIT_LB + i * NUM_QUERY) + ', ' + 'accuracy is ' + str(round(avg_acc[i],4)) + '.' + '\n'
+	tmp = 'When the size of training set is ' + str(NUM_INIT_LB + i * NUM_QUERY) + ', ' + 'average accuracy is ' + str(round(avg_acc[i], 4)) + ', ' + 'std dev is ' + str(round(stddev_i_acc[i], 4)) + '.' + '\n'
 	file_res.writelines(tmp)
 
 file_res.writelines('mean acc: ' + str(mean_acc) + '. std dev acc: ' + str(stddev_acc) + '\n')

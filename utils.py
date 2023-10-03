@@ -8,9 +8,12 @@ import sys
 from collections import Counter
 import string
 import re
-import random
+
+import arguments
 
 CACHE_DIR = '/mount/arbeitsdaten31/studenten1/linku/.cache'
+args_input = arguments.get_args()
+LOW_RES = args_input.low_resource
 
 class Logger(object):
 	def __init__(self, filename="Default.log"):
@@ -23,6 +26,7 @@ class Logger(object):
 
 	def flush(self):
 		pass
+
 
 def get_aubc(quota, bsize, resseq):
 	# it is equal to use np.trapz for calculation
@@ -40,17 +44,21 @@ def get_aubc(quota, bsize, resseq):
 	
 	return ressum
 
+
 def get_mean_stddev(datax):
 	return round(np.mean(datax),4),round(np.std(datax),4)
+
 
 def get_unlabel_data(n_pool, labeled_idxs, train_dataset):
     unlabeled_idxs = np.arange(n_pool)[~labeled_idxs]
     unlabeled_data = train_dataset.select(indices=unlabeled_idxs)
     return unlabeled_idxs, unlabeled_data
 
+
 def softmax(x):
     """Compute softmax values for each sets of scores in x."""
     return np.exp(x) / np.sum(np.exp(x), axis=0)
+
 
 def get_model(m):
 	if m.lower() == 'bert':
@@ -61,6 +69,7 @@ def get_model(m):
 		return 'roberta-base'
 	elif m.lower() == 'robertalarge':
 		return 'roberta-large'
+
 
 # kmeans ++ initialization
 def init_centers(X, K):
@@ -92,7 +101,6 @@ def init_centers(X, K):
     return indsAll
 
 
-import random
 def load_dataset_mrqa(d):
 	'''
 	return train_set, val_set
@@ -223,6 +231,7 @@ def evaluate(theoretical_answers, predicted_answers, skip_no_answer=False):
 
     return {'exact_match': exact_match, 'f1': f1}
 
+
 def save_model(device, pretrain_dir, strategy_dir):
     '''
     Copy and save model from pretrain_models to current trained models.
@@ -230,3 +239,57 @@ def save_model(device, pretrain_dir, strategy_dir):
     pretrain_model = AutoModelForQuestionAnswering.from_pretrained(pretrain_dir).to(device)
     model_to_save = pretrain_model.module if hasattr(pretrain_model, 'module') else pretrain_model 
     model_to_save.save_pretrained(strategy_dir)
+    
+def get_unique_sample(labeled_idxs, q_idxs, n_pool, train_features, iteration=0):
+	if LOW_RES:
+		num_set_query_i = NUM_QUERY * iteration
+		print('num_set_query_i', num_set_query_i)
+	elif iteration == 0:
+		num_set_query_i = NUM_INIT_LB
+	else:
+		num_set_query_i = NUM_QUERY * iteration + NUM_INIT_LB
+
+	difference_i = 0
+	
+	while True:
+		labeled_idxs[q_idxs[:NUM_QUERY + difference_i]] = True	# get first num_query, e.g. 50
+		run_i_labeled_idxs = np.arange(n_pool)[labeled_idxs]
+		run_i_samples = train_features.select(indices=run_i_labeled_idxs)
+		num_set_ex_id_i = len(set(run_i_samples['example_id']))
+		print('number of unique example id:', num_set_ex_id_i)
+
+		difference_i = num_set_query_i - num_set_ex_id_i
+		print('difference_i', difference_i)
+		
+		if difference_i == 0:
+			break
+	
+	return run_i_labeled_idxs
+
+def get_unique_sample_and_context(labeled_idxs, q_idxs, n_pool, train_features, iteration=0):
+	if LOW_RES:
+		num_set_query_i = NUM_QUERY * iteration
+		print('num_set_query_i', num_set_query_i)
+	elif iteration == 0:
+		num_set_query_i = NUM_INIT_LB
+	else:
+		num_set_query_i = NUM_QUERY * iteration + NUM_INIT_LB
+
+	difference_i = 0
+	
+	while True:
+		labeled_idxs[q_idxs[:NUM_QUERY + difference_i]] = True	# get first num_query, e.g. 50
+		run_i_labeled_idxs = np.arange(n_pool)[labeled_idxs]
+		run_i_samples = train_features.select(indices=run_i_labeled_idxs)
+		num_set_co_id_i = len(set(run_i_samples['context_id']))
+		print('number of unique context id:', num_set_co_id_i)
+		num_set_ex_id_i = len(set(run_i_samples['example_id']))
+		print('number of unique example id:', num_set_ex_id_i)
+
+		difference_i = max((num_set_query_i - num_set_co_id_i), (num_set_query_i - num_set_ex_id_i))
+		print('difference_i', difference_i)
+		
+		if difference_i <= 0:
+			break
+	
+	return run_i_labeled_idxs
