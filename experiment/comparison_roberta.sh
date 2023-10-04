@@ -152,7 +152,9 @@ python main.py \
 
 # BALD
 ## 9/12 strass (fail because of accidently delete the saved model = =")
-## 9/14 kapweihe 
+## 9/14 kapweihe (fail)
+## 9/25 kapweihe (fail)
+## 9/27 kapweihe
 python main.py \
     -a BALDDropout \
     -s 500 \
@@ -182,7 +184,9 @@ python main.py \
 
 # BADGE
 ## 7/17-? kapweihe
-## 9/6 kapweihe
+## 9/6 kapweihe (fail)
+## 9/25 kapweihe 
+## 9/28 strauss (faster than kapweihe 4)
 python main.py \
     -a BadgeSampling \
     -s 500 \
@@ -193,7 +197,7 @@ python main.py \
     -e 1127 \
     -l 3e-5 \
     -p 5 \
-    -g 4
+    -g 2
 
 # LPL
 # python main.py \

@@ -1,6 +1,7 @@
 #####################
-# how well they work
-# Model: Bert-base Bert-large(how long) RoBerta-large RoBerta-base(http://arxiv.org/abs/2101.00438)
+# Model: Bert-base (fixed)
+#
+# Data: SQuAD
 #
 # Init pool: 500
 # Query: 500, 1000, 1500, 2000 (mention it the proposal)
@@ -9,9 +10,7 @@
 #####################
 
 # Random
-## 7/13 exp1 waldweihe 2
-## seed 4666
-## 7/15 exp2 waldweihe 2
+## 9/22 strauss
 python main.py \
     -a RandomSampling \
     -s 500 \
@@ -21,12 +20,10 @@ python main.py \
     -m Bert \
     -e 1127 \
     -p 5 \
-    -g 2
+    -g 8
 
 # Margin
-## 7/13 exp1 waldweihe 3
-## seed 4666
-## 7/15 exp2 waldweihe 3
+## 9/22 strauss
 python main.py \
     -a MarginSampling \
     -s 500 \
@@ -36,13 +33,10 @@ python main.py \
     -m Bert \
     -e 1127 \
     -p 5 \
-    -g 3
+    -g 4
 
 # LC
-## 7/13 exp1 strauss 1
-## iter. = 3 # wrong =.=
-## seed 4666
-## 7/15 exp2 strauss 0
+## 9/22 strauss
 python main.py \
     -a LeastConfidence \
     -s 500 \
@@ -52,13 +46,10 @@ python main.py \
     -m Bert \
     -e 1127 \
     -p 5 \
-    -g 0
+    -g 5
 
 # Entropy
-## 7/13 exp1 strauss 8
-## iter. = 3 # wrong =.=
-## seed 4666
-## 7/15 exp2 strauss 1
+## 9/22 strauss
 python main.py \
     -a EntropySampling \
     -s 500 \
@@ -68,10 +59,11 @@ python main.py \
     -m Bert \
     -e 1127 \
     -p 5 \
-    -g 1
+    -g 6
 
 # MarginDropout
-## 7/15 exp2 strauss 2
+## 9/22 strauss (fail)
+## 9/27 - 10/3 strauss
 python main.py \
     -a MarginSamplingDropout \
     -s 500 \
@@ -81,10 +73,11 @@ python main.py \
     -m Bert \
     -e 1127 \
     -p 5 \
-    -g 2
+    -g 3
 
 # LCDropout
-## 7/15 exp2 strauss 3
+## 9/22 strauss (fail)
+## 9/27 - 10/3 strauss
 python main.py \
     -a LeastConfidenceDropout \
     -s 500 \
@@ -94,10 +87,11 @@ python main.py \
     -m Bert \
     -e 1127 \
     -p 5 \
-    -g 3
+    -g 4
 
 # EntropyDropout
-## 7/15 exp2 strauss 0
+## 9/22 strauss (fail)
+## 9/27 - 10/3 strauss
 python main.py \
     -a EntropySamplingDropout \
     -s 500 \
@@ -107,12 +101,10 @@ python main.py \
     -m Bert \
     -e 1127 \
     -p 5 \
-    -g 0
+    -g 5
 
 # KMeans
-## 7/15 exp2 waldweihe 2
-## batch size in dataloader are 16
-## 7/17 exp2.1 strauss 1: change the embedding from layer 0 to layer -2
+## 9/22 strauss
 python main.py \
     -a KMeansSampling \
     -s 500 \
@@ -122,11 +114,10 @@ python main.py \
     -m Bert \
     -e 1127 \
     -p 5 \
-    -g 1
+    -g 7
 
 # KCenterGreedy
-## 7/15 exp2 strauss 1
-## 7/17 exp2.1 strauss 1: change the embedding from layer 0 to layer -2
+## 9/22 strauss
 python main.py \
     -a KCenterGreedy \
     -s 500 \
@@ -136,10 +127,10 @@ python main.py \
     -m Bert \
     -e 1127 \
     -p 5 \
-    -g 1
+    -g 3
 
-# Bayesian
-## 7/15 exp2 strauss 4
+# Bayesian/BALD
+## 10/3 strauss
 python main.py \
     -a BALDDropout \
     -s 500 \
@@ -149,10 +140,11 @@ python main.py \
     -m Bert \
     -e 1127 \
     -p 5 \
-    -g 4
+    -g 8
 
 # MeanSTD
-## 7/15 exp2 strauss 5
+## 9/22 strauss (fail)
+## 9/27 - 10/3 strauss
 python main.py \
     -a MeanSTD \
     -s 500 \
@@ -162,10 +154,10 @@ python main.py \
     -m Bert \
     -e 1127 \
     -p 5 \
-    -g 5
+    -g 8
 
 # BADGE
-## 7/15 exp2 strauss 6
+## 10/3 kapweihe
 python main.py \
     -a BadgeSampling \
     -s 500 \
@@ -175,28 +167,4 @@ python main.py \
     -m Bert \
     -e 1127 \
     -p 5 \
-    -g 7
-
-# LPL
-python main.py \
-    -a LossPredictionLoss \
-    -s 500 \
-    -q 2000 \
-    -b 500 \
-    -d SQuAD \
-    -m Bert \
-    -e 1127 \
-    -p 5 \
-    -g 2
-
-# CEAL
-python main.py \
-    -a CEALSampling \
-    -s 500 \
-    -q 2000 \
-    -b 500 \
-    -d SQuAD \
-    -m Bert \
-    -e 1127 \
-    -p 5 \
-    -g 2
+    -g 3
