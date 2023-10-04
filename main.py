@@ -323,7 +323,10 @@ print('mean time: ' + str(mean_time) + '. std dev time: ' + str(stddev_time) + '
 avg_acc = np.mean(np.array(all_acc), axis=0)
 stddev_i_acc = np.std(np.array(all_acc), axis=0)
 for i in range(len(avg_acc)):
-	tmp = 'When the size of training set is ' + str(NUM_INIT_LB + i * NUM_QUERY) + ', ' + 'average accuracy is ' + str(round(avg_acc[i], 4)) + ', ' + 'std dev is ' + str(round(stddev_i_acc[i], 4)) + '.' + '\n'
+	if LOW_RES:
+		tmp = 'When the size of training set is ' + str(i * NUM_QUERY + NUM_QUERY) + ', ' + 'average accuracy is ' + str(round(avg_acc[i], 4)) + ', ' + 'std dev is ' + str(round(stddev_i_acc[i], 4)) + '.' + '\n'
+	else:
+		tmp = 'When the size of training set is ' + str(NUM_INIT_LB + i * NUM_QUERY) + ', ' + 'average accuracy is ' + str(round(avg_acc[i], 4)) + ', ' + 'std dev is ' + str(round(stddev_i_acc[i], 4)) + '.' + '\n'
 	file_res.writelines(tmp)
 
 file_res.writelines('mean acc: ' + str(mean_acc) + '. std dev acc: ' + str(stddev_acc) + '\n')
