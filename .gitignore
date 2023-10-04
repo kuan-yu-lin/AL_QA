@@ -166,6 +166,7 @@ logfile_lowRes/
 results_lowRes/
 results_Bert/
 results_RoBERTa/
+archived/
 
 # sidenote
 sideNote.md

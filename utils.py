@@ -1,19 +1,26 @@
 from datasets import load_dataset
-from transformers import AutoModelForQuestionAnswering
+from transformers import AutoModelForQuestionAnswering, AutoTokenizer
 import numpy as np
+
 from scipy import stats
 from sklearn.metrics import pairwise_distances
 import pdb
+
 import sys
 from collections import Counter
 import string
 import re
+from tqdm.auto import tqdm
 
 import arguments
+from preprocess import preprocess_training_examples, preprocess_training_features, preprocess_validation_examples, preprocess_training_examples_lowRes, preprocess_training_features_lowRes, preprocess_validation_examples_lowRes
 
 CACHE_DIR = '/mount/arbeitsdaten31/studenten1/linku/.cache'
 args_input = arguments.get_args()
 LOW_RES = args_input.low_resource
+NUM_QUERY = args_input.batch
+NUM_INIT_LB = args_input.initseed
+MODEL_NAME = args_input.model
 
 class Logger(object):
 	def __init__(self, filename="Default.log"):
@@ -69,6 +76,76 @@ def get_model(m):
 		return 'roberta-base'
 	elif m.lower() == 'robertalarge':
 		return 'roberta-large'
+
+
+def get_context_id(data):
+    context_id = {}
+    for i, c in enumerate(set(data['context'])):
+        context_id[c] = i+1
+    return context_id
+
+
+def preprocess_data(train_data, val_data):
+	tokenizer = AutoTokenizer.from_pretrained(get_model(MODEL_NAME))
+
+	if LOW_RES:
+		train_dataset = train_data.map(
+			preprocess_training_examples_lowRes,
+			batched=True,
+			remove_columns=train_data.column_names,
+			fn_kwargs=dict(tokenizer=tokenizer)
+		)
+		train_features = train_data.map(
+			preprocess_training_features_lowRes,
+			batched=True,
+			remove_columns=train_data.column_names,
+			fn_kwargs=dict(tokenizer=tokenizer)
+		)
+		val_dataset = val_data.map(
+			preprocess_validation_examples_lowRes,
+			batched=True,
+			remove_columns=val_data.column_names,
+			fn_kwargs=dict(tokenizer=tokenizer)
+		)
+		val_features = val_data.map(
+			preprocess_validation_examples_lowRes,
+			batched=True,
+			remove_columns=val_data.column_names,
+			fn_kwargs=dict(tokenizer=tokenizer)
+		)
+	else:
+		train_dataset = train_data.map(
+			preprocess_training_examples,
+			batched=True,
+			remove_columns=train_data.column_names,
+			fn_kwargs=dict(tokenizer=tokenizer)
+		)
+		train_features = train_data.map(
+			preprocess_training_features,
+			batched=True,
+			remove_columns=train_data.column_names,
+			fn_kwargs=dict(tokenizer=tokenizer)
+		)
+		val_dataset = val_data.map(
+			preprocess_validation_examples,
+			batched=True,
+			remove_columns=val_data.column_names,
+			fn_kwargs=dict(tokenizer=tokenizer)
+		)
+		val_features = val_data.map(
+			preprocess_validation_examples,
+			batched=True,
+			remove_columns=val_data.column_names,
+			fn_kwargs=dict(tokenizer=tokenizer)
+		)
+
+	train_dataset.set_format("torch")
+	train_features.set_format("torch")
+	val_dataset = val_dataset.remove_columns(["offset_mapping"])
+	val_dataset.set_format("torch")
+	val_features.set_format("torch")
+
+	return train_dataset, train_features, val_dataset, val_features
 
 
 # kmeans ++ initialization
@@ -204,7 +281,7 @@ def metric_max_over_ground_truths(metric_fn, prediction, ground_truths):
     return max(scores_for_ground_truths)
 
 
-def evaluate(theoretical_answers, predicted_answers, skip_no_answer=False):
+def evaluation(theoretical_answers, predicted_answers, skip_no_answer=False):
     '''
 	theoretical_answers, datatype=dict
 	{strings of id: list of ground truth answers}
@@ -239,57 +316,60 @@ def save_model(device, pretrain_dir, strategy_dir):
     pretrain_model = AutoModelForQuestionAnswering.from_pretrained(pretrain_dir).to(device)
     model_to_save = pretrain_model.module if hasattr(pretrain_model, 'module') else pretrain_model 
     model_to_save.save_pretrained(strategy_dir)
-    
+
+def get_unique_context(q_idxs, features, context_dict, exist_c_id=None):	
+	# create a new_q_idxs with unique context_id
+	if exist_c_id:
+		c_id_lst = exist_c_id
+	else:
+		c_id_lst = []
+
+	new_q_idxs = []
+	for q_i in tqdm(q_idxs, "Creating unique context idxs"):
+		sample = features.select(indices=[q_i])
+		c_id = context_dict[sample['context'][0]]
+		if c_id not in c_id_lst:
+			new_q_idxs.append(q_i)
+			c_id_lst.append(c_id)
+	print('len(new_q_idxs):', len(new_q_idxs))
+	return new_q_idxs
+
+def get_final_c_id(iter_labeled_idxs, features, context_dict):
+	c_id_lst = []
+	for i in tqdm(iter_labeled_idxs, "Creating final context id"):
+		sample = features.select(indices=[i])
+		c_id_lst.append(context_dict[sample['context'][0]])
+	return c_id_lst
+
 def get_unique_sample(labeled_idxs, q_idxs, n_pool, train_features, iteration=0):
 	if LOW_RES:
-		num_set_query_i = NUM_QUERY * iteration
-		print('num_set_query_i', num_set_query_i)
-	elif iteration == 0:
-		num_set_query_i = NUM_INIT_LB
+		num_query_i = NUM_QUERY * iteration
+		print('num_query_i in get_unique_sample in LOW_RES:', num_query_i)
 	else:
-		num_set_query_i = NUM_QUERY * iteration + NUM_INIT_LB
+		num_query_i = NUM_QUERY * iteration + NUM_INIT_LB
+		print('num_query_i in get_unique_sample:', num_query_i)
 
 	difference_i = 0
-	
-	while True:
+	num_set_ex_id_i = 0
+
+	n = 0
+
+	while num_set_ex_id_i < num_query_i:
 		labeled_idxs[q_idxs[:NUM_QUERY + difference_i]] = True	# get first num_query, e.g. 50
-		run_i_labeled_idxs = np.arange(n_pool)[labeled_idxs]
-		run_i_samples = train_features.select(indices=run_i_labeled_idxs)
-		num_set_ex_id_i = len(set(run_i_samples['example_id']))
+		iter_i_labeled_idxs = np.arange(n_pool)[labeled_idxs]
+		print('len(iter_i_labeled_idxs):', len(iter_i_labeled_idxs))
+
+		iter_i_samples = train_features.select(indices=iter_i_labeled_idxs)
+		num_set_ex_id_i = len(set(iter_i_samples['example_id']))
 		print('number of unique example id:', num_set_ex_id_i)
 
-		difference_i = num_set_query_i - num_set_ex_id_i
+		assert num_set_ex_id_i <= num_query_i, 'Select too many examples!'
+		assert num_set_ex_id_i > 0, "Did not select examples!"
+
+		difference_i = num_query_i - num_set_ex_id_i
 		print('difference_i', difference_i)
-		
-		if difference_i == 0:
-			break
-	
-	return run_i_labeled_idxs
 
-def get_unique_sample_and_context(labeled_idxs, q_idxs, n_pool, train_features, iteration=0):
-	if LOW_RES:
-		num_set_query_i = NUM_QUERY * iteration
-		print('num_set_query_i', num_set_query_i)
-	elif iteration == 0:
-		num_set_query_i = NUM_INIT_LB
-	else:
-		num_set_query_i = NUM_QUERY * iteration + NUM_INIT_LB
-
-	difference_i = 0
+		n += 1
+		if n == 3: break
 	
-	while True:
-		labeled_idxs[q_idxs[:NUM_QUERY + difference_i]] = True	# get first num_query, e.g. 50
-		run_i_labeled_idxs = np.arange(n_pool)[labeled_idxs]
-		run_i_samples = train_features.select(indices=run_i_labeled_idxs)
-		num_set_co_id_i = len(set(run_i_samples['context_id']))
-		print('number of unique context id:', num_set_co_id_i)
-		num_set_ex_id_i = len(set(run_i_samples['example_id']))
-		print('number of unique example id:', num_set_ex_id_i)
-
-		difference_i = max((num_set_query_i - num_set_co_id_i), (num_set_query_i - num_set_ex_id_i))
-		print('difference_i', difference_i)
-		
-		if difference_i <= 0:
-			break
-	
-	return run_i_labeled_idxs
+	return iter_i_labeled_idxs

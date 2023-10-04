@@ -1,30 +1,19 @@
-###########################
-# use it with main_with_pretrain
-###########################
-
-# TODO: merge to_pretrain (include scaler) to to_train
-
 import evaluate
-import collections
+from collections import defaultdict
 from tqdm.auto import tqdm
 import numpy as np
 import torch
 from transformers import AutoModelForQuestionAnswering
-from torch.cuda import amp # automatic mixed precision training 
-# from torch.nn.parallel import DistributedDataParallel as DDP
-# from torch.nn.parallel import DistributedDataParallel as DDP
-# from torch import nn
+from torch.cuda import amp
 from torch.autograd import Variable
 import torch.nn.functional as F
 from copy import deepcopy
 
 
-from utils import softmax
+from utils import softmax, evaluation
 import arguments
 
 metric = evaluate.load("squad")
-
-model_dir = '/mount/arbeitsdaten31/studenten1/linku/models'
 
 args_input = arguments.get_args()
 NUM_QUERY = args_input.batch
@@ -33,13 +22,21 @@ NUM_ROUND = int(args_input.quota / args_input.batch)
 DATA_NAME = args_input.dataset_name
 STRATEGY_NAME = args_input.ALstrategy
 MODEL_NAME = args_input.model
+LOW_RES = args_input.low_resource
 
-strategy_model_dir = model_dir + '/' + str(NUM_INIT_LB) + '_' + str(args_input.quota) + '_' + STRATEGY_NAME + '_' + MODEL_NAME +  '_' + DATA_NAME
-
+model_dir = '/mount/arbeitsdaten31/studenten1/linku/models'
+if LOW_RES:
+    strategy_model_dir = model_dir + '/lowRes_' + str(args_input.quota) + '_' + STRATEGY_NAME + '_' + MODEL_NAME +  '_' + DATA_NAME
+else:
+    strategy_model_dir = model_dir + '/' + str(NUM_INIT_LB) + '_' + str(args_input.quota) + '_' + STRATEGY_NAME + '_' + MODEL_NAME +  '_' + DATA_NAME
 pretrain_model_dir = '/mount/arbeitsdaten31/studenten1/linku/pretrain_models' + '/' + MODEL_NAME + '_SQuAD_full_dataset_lr_3e-5'
 
 def to_train(num_train_epochs, train_dataloader, device, model, optimizer, lr_scheduler, record_loss=False):
-	print('Training was performed using the sum of {} initial data and {} query data, i.e. {} data.'.format(NUM_INIT_LB, NUM_QUERY, len(train_dataloader.dataset)))
+	if LOW_RES:
+		print('Training was performed using {} query data, i.e. {} data.'.format(NUM_QUERY, len(train_dataloader.dataset)))
+	else:
+		print('Training was performed using the sum of {} initial data and {} query data, i.e. {} data.'.format(NUM_INIT_LB, NUM_QUERY, len(train_dataloader.dataset)))
+	
 	for epoch in range(num_train_epochs):
 		model.train()
 		for step, batch in enumerate(tqdm(train_dataloader, desc="Training")):
@@ -83,7 +80,7 @@ def to_pretrain(num_train_epochs, train_dataloader, device, model, optimizer, lr
 	print('TRAIN done!')
 
 def compute_metrics(start_logits, end_logits, features, examples):
-    example_to_features = collections.defaultdict(list)
+    example_to_features = defaultdict(list)
     max_answer_length = 30
     n_best = 20
     for idx, feature in enumerate(features):
@@ -133,6 +130,56 @@ def compute_metrics(start_logits, end_logits, features, examples):
     theoretical_answers = [{"id": ex["id"], "answers": ex["answers"]} for ex in examples]
     return metric.compute(predictions=predicted_answers, references=theoretical_answers)
 
+def compute_metrics_lowRes(start_logits, end_logits, features, examples):
+    example_to_features = defaultdict(list)
+    max_answer_length = 30
+    n_best = 20
+    for idx, feature in enumerate(features):
+        example_to_features[feature["example_id"]].append(idx)
+
+    predicted_answers = dict()
+    for example in tqdm(examples, desc="Computing metrics"):
+        example_id = example["qid"]
+        context = example["context"]
+        answers = []
+
+        # Loop through all features associated with that example
+        for feature_index in example_to_features[example_id]:
+            start_logit = start_logits[feature_index]
+            end_logit = end_logits[feature_index]
+            offsets = features[feature_index]["offset_mapping"]
+
+            start_indexes = np.argsort(start_logit)[-1 : -n_best - 1 : -1].tolist()
+            end_indexes = np.argsort(end_logit)[-1 : -n_best - 1 : -1].tolist()
+            for start_index in start_indexes:
+                for end_index in end_indexes:
+                    # Skip answers that are not fully in the context
+                    if offsets[start_index] is None or offsets[end_index] is None:
+                        continue
+                    # Skip answers with a length that is either < 0 or > max_answer_length
+                    if (
+                        end_index < start_index
+                        or end_index - start_index + 1 > max_answer_length
+                    ):
+                        continue
+
+                    answer = {
+                        "text": context[offsets[start_index][0] : offsets[end_index][1]],
+                        "logit_score": start_logit[start_index] + end_logit[end_index],
+                    }
+                    answers.append(answer)
+
+        # Select the answer with the best score
+        if len(answers) > 0:
+            best_answer = max(answers, key=lambda x: x["logit_score"])
+            predicted_answers[example_id] = best_answer["text"]
+        else:
+            predicted_answers[example_id] = ""
+
+    theoretical_answers = dict()
+    for ex in examples: theoretical_answers[ex["qid"]] = ex["answers"]
+    return evaluation(theoretical_answers, predicted_answers)
+
 def get_pred(dataloader, device, features, examples):
     model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir).to(device)
     
@@ -153,7 +200,10 @@ def get_pred(dataloader, device, features, examples):
     start_logits = start_logits[: len(features)]
     end_logits = end_logits[: len(features)]
 
-    return compute_metrics(start_logits, end_logits, features, examples)
+    if LOW_RES:
+        return compute_metrics_lowRes(start_logits, end_logits, features, examples)
+    else:
+        return compute_metrics(start_logits, end_logits, features, examples)
 
 def get_pretrain_pred(dataloader, device, features, examples):
     model = AutoModelForQuestionAnswering.from_pretrained(pretrain_model_dir).to(device)
@@ -177,7 +227,7 @@ def get_pretrain_pred(dataloader, device, features, examples):
 
     return compute_metrics(start_logits, end_logits, features, examples)
 
-def get_prob(dataloader, device, features, examples, rd=0):
+def get_prob(dataloader, device, features, examples):
     model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir).to(device)
 
     model.eval()
@@ -198,7 +248,7 @@ def get_prob(dataloader, device, features, examples, rd=0):
     end_logits = end_logits[: len(features)]
 
     prob_dict = {}
-    example_to_features = collections.defaultdict(list)
+    example_to_features = defaultdict(list)
     max_answer_length = 30
     n_best = 20
     
@@ -206,7 +256,10 @@ def get_prob(dataloader, device, features, examples, rd=0):
         example_to_features[feature["example_id"]].append(idx)
 
     for example in tqdm(examples):
-        example_id = example["id"]
+        if LOW_RES:
+            example_id = example["qid"]
+        else:
+            example_id = example["id"]
         answers = []
 
         # Loop through all features associated with that example
@@ -238,7 +291,7 @@ def get_prob(dataloader, device, features, examples, rd=0):
     
     return prob_dict
 
-def get_prob_dropout(dataloader, device, features, examples, n_drop=10, rd=0):
+def get_prob_dropout(dataloader, device, features, examples, n_drop=10):
     model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir).to(device)
     
     model.train()
@@ -260,7 +313,7 @@ def get_prob_dropout(dataloader, device, features, examples, n_drop=10, rd=0):
         start_logits = start_logits[: len(features)]
         end_logits = end_logits[: len(features)]
 
-        example_to_features = collections.defaultdict(list)
+        example_to_features = defaultdict(list)
         max_answer_length = 30
         n_best = 20
             
@@ -269,7 +322,10 @@ def get_prob_dropout(dataloader, device, features, examples, n_drop=10, rd=0):
 
         n = 0
         for example in tqdm(examples):
-            example_id = example["id"]
+            if LOW_RES:
+                example_id = example["qid"]
+            else:
+                example_id = example["id"]
             answers = []
 
             # Loop through all features associated with that example
@@ -314,7 +370,7 @@ def get_prob_dropout(dataloader, device, features, examples, n_drop=10, rd=0):
 
     return prob_dict
 
-def get_prob_dropout_split(dataloader, device, features, examples, n_drop=10, rd=0):
+def get_prob_dropout_split(dataloader, device, features, examples, n_drop=10):
     ## use tensor to save the answers
 
     model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir).to(device)
@@ -339,7 +395,7 @@ def get_prob_dropout_split(dataloader, device, features, examples, n_drop=10, rd
         start_logits = start_logits[: len(features)]
         end_logits = end_logits[: len(features)]
 
-        example_to_features = collections.defaultdict(list)
+        example_to_features = defaultdict(list)
         max_answer_length = 30
         n_best = 20
             
@@ -348,7 +404,10 @@ def get_prob_dropout_split(dataloader, device, features, examples, n_drop=10, rd
 
         n = 0
         for example in tqdm(examples, desc="Computing metrics"):
-            example_id = example["id"]
+            if LOW_RES:
+                example_id = example["qid"]
+            else:
+                example_id = example["id"]
             answers = []
 
             # Loop through all features associated with that example
@@ -384,7 +443,7 @@ def get_prob_dropout_split(dataloader, device, features, examples, n_drop=10, rd
 
     return probs
 
-def get_embeddings(dataloader, device, rd=0):
+def get_embeddings(dataloader, device):
     model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir, output_hidden_states=True).to(device)
     
     model.eval()
@@ -406,12 +465,11 @@ def get_embeddings(dataloader, device, rd=0):
         
     return embeddings
 
-def get_grad_embeddings(dataloader, device, features, examples, rd=0):
+def get_grad_embeddings(dataloader, device, features, examples):
     model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir, output_hidden_states=True).to(device)
     
     model.eval()
 
-    # deepAL+: nLab = self.params['num_class']
     nLab = 20
     embDim = model.config.to_dict()['hidden_size']
     embeddings = np.zeros([len(dataloader.dataset), embDim * nLab])
@@ -437,8 +495,6 @@ def get_grad_embeddings(dataloader, device, features, examples, rd=0):
             batch_feat = features.select(batch_idx)
             idxs_start = idxs_end
 
-            # deepAL+: batchProbs = F.softmax(out, dim=1).data.cpu().numpy()
-            # deepAL+: maxInds = np.argmax(batchProbs, 1)
             out = logits_to_prob(outputs.start_logits.cpu().numpy(), outputs.end_logits.cpu().numpy(), batch_feat, batch_idx, examples, 200)
             batchProbs = F.softmax(out, dim=1).data.cpu().numpy()
             maxInds = np.argmax(batchProbs, 1)
@@ -455,16 +511,18 @@ def get_grad_embeddings(dataloader, device, features, examples, rd=0):
 def logits_to_prob(start_logits, end_logits, features, batch_idx, examples, num_classes):
     probs = torch.zeros([len(batch_idx), num_classes])
     
-    example_to_features = collections.defaultdict(list)
+    example_to_features = defaultdict(list)
     max_answer_length = 30
     n_best = 20
 
     for idx, feature in enumerate(features):
         example_to_features[feature["example_id"]].append((idx, batch_idx[idx]))
     
-    # for example in tqdm(examples, desc="Computing metrics"):
-    for example in examples:    
-        example_id = example["id"]
+    for example in tqdm(examples, desc="Computing metrics"):
+        if LOW_RES:
+            example_id = example["qid"]
+        else:
+            example_id = example["id"]
         answers = []
         
         # Loop through all features associated with that example

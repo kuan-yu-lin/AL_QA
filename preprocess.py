@@ -4,6 +4,7 @@ args_input = arguments.get_args()
 MAX_LENGTH = args_input.max_length
 stride = 128
 
+
 def preprocess_training_examples(examples, tokenizer):
     # no ['offset_mapping'], for .train() and .eval()
     questions = [q.strip() for q in examples["question"]]
@@ -23,7 +24,6 @@ def preprocess_training_examples(examples, tokenizer):
     answers = examples["answers"]
     start_positions = []
     end_positions = []
-    example_ids = []
 
     for i, offset in enumerate(offset_mapping):
         sample_idx = sample_map[i]
@@ -31,8 +31,6 @@ def preprocess_training_examples(examples, tokenizer):
         start_char = answer["answer_start"][0]
         end_char = answer["answer_start"][0] + len(answer["text"][0])
         sequence_ids = inputs.sequence_ids(i)
-        
-        example_ids.append(examples["id"][sample_idx]) # newly added for used in unlabel data predict
 
         # Find the start and end of the context
         idx = 0
@@ -63,6 +61,7 @@ def preprocess_training_examples(examples, tokenizer):
     inputs["end_positions"] = end_positions
     return inputs
 
+
 def preprocess_training_features(examples, tokenizer):
     # keep ["offset_mapping"] and ["example_id"], for compute_metrics()
     questions = [q.strip() for q in examples["question"]]
@@ -83,6 +82,7 @@ def preprocess_training_features(examples, tokenizer):
     start_positions = []
     end_positions = []
     example_ids = []
+    contexts = []
 
     for i, offset in enumerate(offset_mapping):
         sample_idx = sample_map[i]
@@ -91,7 +91,10 @@ def preprocess_training_features(examples, tokenizer):
         end_char = answer["answer_start"][0] + len(answer["text"][0])
         sequence_ids = inputs.sequence_ids(i)
         
-        example_ids.append(examples["id"][sample_idx]) # newly added for used in unlabel data predict
+        # added for used in unlabel data predict
+        example_ids.append(examples["id"][sample_idx]) 
+        # added for unique context filter
+        contexts.append(examples["context"][sample_idx])
 
         # Find the start and end of the context
         idx = 0
@@ -118,6 +121,7 @@ def preprocess_training_features(examples, tokenizer):
                 idx -= 1
             end_positions.append(idx + 1)
 
+    inputs["context"] = contexts
     inputs["example_id"] = example_ids
     inputs["start_positions"] = start_positions
     inputs["end_positions"] = end_positions
@@ -171,7 +175,6 @@ def preprocess_training_examples_lowRes(examples, tokenizer):
     detected_answers = examples["detected_answers"]
     start_positions = []
     end_positions = []
-    example_ids = []
 
     for i, offset in enumerate(offset_mapping):
         sample_idx = sample_map[i]
@@ -179,8 +182,6 @@ def preprocess_training_examples_lowRes(examples, tokenizer):
         start_char = answer["char_spans"][0]["start"][0]
         end_char = answer["char_spans"][0]["end"][0]
         sequence_ids = inputs.sequence_ids(i)
-        
-        example_ids.append(examples["qid"][sample_idx]) # newly added for used in unlabel data predict
 
         # Find the start and end of the context
         idx = 0
@@ -231,6 +232,7 @@ def preprocess_training_features_lowRes(examples, tokenizer):
     start_positions = []
     end_positions = []
     example_ids = []
+    contexts = []
 
     for i, offset in enumerate(offset_mapping):
         sample_idx = sample_map[i]
@@ -239,7 +241,10 @@ def preprocess_training_features_lowRes(examples, tokenizer):
         end_char = answer["char_spans"][0]["end"][0]
         sequence_ids = inputs.sequence_ids(i)
         
-        example_ids.append(examples["qid"][sample_idx]) # newly added for used in unlabel data predict
+        # added for used in unlabel data predict
+        example_ids.append(examples["qid"][sample_idx])
+        # added for unique context filter
+        contexts.append(examples['context'][sample_idx])
 
         # Find the start and end of the context
         idx = 0
@@ -266,6 +271,7 @@ def preprocess_training_features_lowRes(examples, tokenizer):
                 idx -= 1
             end_positions.append(idx + 1)
 
+    inputs["context"] = contexts
     inputs["example_id"] = example_ids
     inputs["start_positions"] = start_positions
     inputs["end_positions"] = end_positions
