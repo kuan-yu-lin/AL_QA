@@ -36,7 +36,7 @@ LOW_RES = args_input.low_resource
 UNIQ_CONTEXT = args_input.unique_context
 
 model_dir = '/mount/arbeitsdaten31/studenten1/linku/models'
-CACHE_DIR = '/mount/arbeitsdaten31/studenten1/linku/.cache'
+CACHE_DIR = '/mount/arbeitsdaten31/studenten1/linku/linku/.cache'
 
 if LOW_RES:
 	## set dir
@@ -288,9 +288,13 @@ total_time = datetime.datetime.now() - begin
 print('Time spent in total:', total_time)
 acc_m = []
 if LOW_RES:
+	if UNIQ_CONTEXT:
+		file_name_res = str(args_input.quota) + '_' + STRATEGY_NAME + '_new_' + MODEL_NAME + '_UC_' + DATA_NAME + '_res.txt'
 	file_name_res = str(args_input.quota) + '_' + STRATEGY_NAME + '_new_' + MODEL_NAME + '_' + DATA_NAME + '_res.txt'
 	file_res =  open(os.path.join(os.path.abspath('') + '/results_lowRes', '%s' % file_name_res),'w')
 else:
+	if UNIQ_CONTEXT:
+		file_name_res = str(args_input.quota) + '_' + STRATEGY_NAME + '_new_' + MODEL_NAME + '_UC_' + DATA_NAME + '_res.txt'
 	file_name_res = str(NUM_INIT_LB) + '_' + str(args_input.quota) + '_' + STRATEGY_NAME + '_' + MODEL_NAME + '_' + DATA_NAME + '_normal_res.txt'
 	file_res =  open(os.path.join(os.path.abspath('') + '/results', '%s' % file_name_res),'w')
 
@@ -307,6 +311,7 @@ file_res.writelines('time of repeat experiments: {}'.format(args_input.expe_roun
 file_res.writelines('The experiment started at {}'.format(begin) + '\n')
 file_res.writelines('The experiment ended at {}'.format(end) + '\n')
 file_res.writelines('Time spent in total: {}'.format(total_time) + '\n')
+if UNIQ_CONTEXT: file_res.writelines('Unique context setting.' + '\n')
 
 # save result
 file_res.writelines('\nAUBC in each experiment round.\n')

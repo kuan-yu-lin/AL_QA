@@ -21,7 +21,7 @@ python main.py \
 python main.py \
     -a RandomSampling \
     -q 200 \
-    -b 50 \
+    -b 50 \ 
     -d TextbookQA \
     -m RoBERTa \
     -r True \
