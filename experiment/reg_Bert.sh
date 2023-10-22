@@ -59,3 +59,8 @@ python main.py \
     -a BadgeSampling \
     -m Bert \
     -g 8
+
+python main.py \
+    -a BatchBALDDropout \
+    -m Bert \
+    -g 8

@@ -47,3 +47,7 @@ python main.py \
 python main.py \
     -a BadgeSampling \
     -g 2
+
+python main.py \
+    -a BatchBALDDropout \
+    -g 4

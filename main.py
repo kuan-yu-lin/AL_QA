@@ -203,6 +203,8 @@ while (EXPE_ROUND > 0):
 			q_idxs = var_ratio_query(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, total_query)
 		elif STRATEGY_NAME == 'BALDDropout':
 			q_idxs = bald_query(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, total_query)
+		elif STRATEGY_NAME == 'BatchBALDDropout':
+			q_idxs = batch_bald_query(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, total_query)
 		elif STRATEGY_NAME == 'MeanSTD':
 			q_idxs = mean_std_query(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, total_query)
 		elif STRATEGY_NAME == 'KMeansSampling':

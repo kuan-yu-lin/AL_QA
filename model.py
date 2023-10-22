@@ -402,7 +402,6 @@ def get_prob_dropout_split(dataloader, device, features, examples, n_drop=10):
         for idx, feature in enumerate(features):
             example_to_features[feature["example_id"]].append(idx)
 
-        n = 0
         for example in tqdm(examples, desc="Computing metrics"):
             if LOW_RES:
                 example_id = example["qid"]
@@ -438,6 +437,78 @@ def get_prob_dropout_split(dataloader, device, features, examples, n_drop=10):
                     answers.extend(zero_list)
                 elif len(answers) >= 200:
                     answers = answers[:200]
+
+                probs[i][feature_index] += torch.tensor(softmax(answers))
+
+    return probs
+
+def get_batch_prob_dropout_split(dataloader, device, features, examples, n_drop=10):
+    ## use tensor to save the answers
+
+    model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir).to(device)
+    
+    model.train()
+
+    probs = torch.zeros([n_drop, len(dataloader.dataset), 10])
+    
+    for i in range(n_drop):
+        start_logits = []
+        end_logits = []
+        for batch in tqdm(dataloader, desc="Evaluating_prob_dropout"):
+            batch = {key: value.to(device) for key, value in batch.items()}
+            with torch.no_grad():
+                outputs = model(**batch)
+
+            start_logits.append(outputs.start_logits.cpu().numpy())
+            end_logits.append(outputs.end_logits.cpu().numpy())
+
+        start_logits = np.concatenate(start_logits)
+        end_logits = np.concatenate(end_logits)
+        start_logits = start_logits[: len(features)]
+        end_logits = end_logits[: len(features)]
+
+        example_to_features = defaultdict(list)
+        max_answer_length = 30
+        n_best = 20
+            
+        for idx, feature in enumerate(features):
+            example_to_features[feature["example_id"]].append(idx)
+
+        for example in tqdm(examples, desc="Computing metrics"):
+            if LOW_RES:
+                example_id = example["qid"]
+            else:
+                example_id = example["id"]
+            answers = []
+
+            # Loop through all features associated with that example
+            for feature_index in example_to_features[example_id]:
+                start_logit = start_logits[feature_index]
+                end_logit = end_logits[feature_index]
+                offsets = features[feature_index]["offset_mapping"]
+
+                start_indexes = np.argsort(start_logit)[-1 : -n_best - 1 : -1].tolist()
+                end_indexes = np.argsort(end_logit)[-1 : -n_best - 1 : -1].tolist()
+                for start_index in start_indexes:
+                    for end_index in end_indexes:
+                        # Skip answers that are not fully in the context
+                        if offsets[start_index] is None or offsets[end_index] is None:
+                            continue
+                        # Skip answers with a length that is either < 0 or > max_answer_length
+                        if (
+                            end_index < start_index
+                            or end_index - start_index + 1 > max_answer_length
+                        ):
+                            continue
+
+                        answers.append(start_logit[start_index] + end_logit[end_index])
+
+            
+                if 1 < len(answers) < 10: # pad to same numbers of possible answers
+                    zero_list = [0] * (10 - len(answers))
+                    answers.extend(zero_list)
+                elif len(answers) >= 10:
+                    answers = answers[:10]
 
                 probs[i][feature_index] += torch.tensor(softmax(answers))
 
