@@ -1,6 +1,16 @@
+from torch.utils.data import DataLoader
+from transformers import default_data_collator
+import numpy as np
+import sys
+sys.path.insert(0, './')
+from utils import get_unlabel_data
+from model import get_prob_dropout
+import arguments
 
+args_input = arguments.get_args()
+MODEL_BATCH = args_input.model_batch
 
-def margin_sampling_dropout_query(n_pool, labeled_idxs, train_dataset, train_features, examples, device, n):
+def margin_dropout(n_pool, labeled_idxs, train_dataset, train_features, examples, device, n):
     unlabeled_idxs, unlabeled_data = get_unlabel_data(n_pool, labeled_idxs, train_dataset)
     unlabeled_features = train_features.select(unlabeled_idxs)
     unlabeled_dataloader = DataLoader(

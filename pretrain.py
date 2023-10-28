@@ -14,7 +14,6 @@ import numpy as np
 import warnings
 import sys
 import os
-import re
 import datetime
 
 import arguments
@@ -24,14 +23,14 @@ from utils import *
 
 args_input = arguments.get_args()
 NUM_INIT_LB = args_input.initseed
-DATA_NAME = args_input.dataset_name
+DATA_NAME = args_input.dataset
 MODEL_BATCH = args_input.model_batch
 MODEL_NAME = args_input.model
 LEARNING_RATE = args_input.learning_rate
 NUM_TRAIN_EPOCH = args_input.train_epochs
 
-pretrain_model_dir = '/mount/arbeitsdaten31/studenten1/linku/pretrain_models' + '/' + MODEL_NAME + '_SQuAD_full_dataset_lr_3e-5'
-CACHE_DIR = '/mount/arbeitsdaten31/studenten1/linku/.cache'
+pretrain_model_dir =  os.path.abspath('') + '/pretrain_models' + '/' + MODEL_NAME + '_SQuAD_full_dataset_lr_3e-5'
+CACHE_DIR =  os.path.abspath('') + '/.cache'
 
 ## load data
 squad = load_dataset(DATA_NAME.lower(), cache_dir=CACHE_DIR)

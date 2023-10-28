@@ -1,6 +1,18 @@
+from torch.utils.data import DataLoader
+from transformers import default_data_collator
+from tqdm.auto import tqdm
+from sklearn.cluster import KMeans
+from sklearn.decomposition import PCA
+import sys
+sys.path.insert(0, './')
 
+from model import get_embeddings
+import arguments
 
-def kcenter_greedy_query(n_pool, labeled_idxs, train_dataset, device, n):
+args_input = arguments.get_args()
+MODEL_BATCH = args_input.model_batch
+
+def kcenter(n_pool, labeled_idxs, train_dataset, device, n):
     labeled_idxs_in_query = labeled_idxs.copy()
     # train_data = train_dataset
     train_dataloader = DataLoader(train_dataset,
@@ -33,7 +45,7 @@ def kcenter_greedy_query(n_pool, labeled_idxs, train_dataset, device, n):
         
     return np.arange(n_pool)[(labeled_idxs ^ labeled_idxs_in_query)]
 
-def kcenter_greedy_PCA_query(n_pool, labeled_idxs, train_dataset, device, n):
+def kcenter_greedy_PCA(n_pool, labeled_idxs, train_dataset, device, n):
     labeled_idxs_in_query = labeled_idxs.copy()
     # train_data = train_dataset
     train_dataloader = DataLoader(train_dataset,

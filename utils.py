@@ -10,6 +10,7 @@ import sys
 from collections import Counter
 import string
 import re
+import os
 from tqdm.auto import tqdm
 from itertools import combinations_with_replacement
 import torch
@@ -17,7 +18,7 @@ import torch
 import arguments
 from preprocess import preprocess_training_examples, preprocess_training_features, preprocess_validation_examples, preprocess_training_examples_lowRes, preprocess_training_features_lowRes, preprocess_validation_examples_lowRes
 
-CACHE_DIR = '/mount/arbeitsdaten31/studenten1/linku/.cache'
+CACHE_DIR =  os.path.abspath('') + '/.cache'
 args_input = arguments.get_args()
 LOW_RES = args_input.low_resource
 NUM_QUERY = args_input.batch
@@ -84,6 +85,7 @@ def get_context_id(data):
     context_id = {}
     for i, c in enumerate(set(data['context'])):
         context_id[c] = i+1
+	# print('len(context_dict):', len(context_dict)) # len(context_dict): 18891
     return context_id
 
 
@@ -157,7 +159,8 @@ def init_centers(X, K):
     indsAll = [ind]
     centInds = [0.] * len(X)
     cent = 0
-    print('#Samps\tTotal Distance')
+    # print('#Samps\tTotal Distance')
+    print('init_centers() starts.')
     while len(mu) < K:
         if len(mu) == 1:
             D2 = pairwise_distances(X, mu).ravel().astype(float)
@@ -167,7 +170,7 @@ def init_centers(X, K):
                 if D2[i] >  newD[i]:
                     centInds[i] = cent
                     D2[i] = newD[i]
-        print(str(len(mu)) + '\t' + str(sum(D2)), flush=True)
+        # print(str(len(mu)) + '\t' + str(sum(D2)), flush=True)
         if sum(D2) == 0.0: pdb.set_trace()
         D2 = D2.ravel().astype(float)
         Ddist = (D2 ** 2)/ sum(D2 ** 2)
@@ -177,6 +180,7 @@ def init_centers(X, K):
         mu.append(X[ind])
         indsAll.append(ind)
         cent += 1
+    print('init_centers() done.')
     return indsAll
 
 
@@ -333,7 +337,7 @@ def get_unique_context(q_idxs, features, context_dict, exist_c_id=None):
 		if c_id not in c_id_lst:
 			new_q_idxs.append(q_i)
 			c_id_lst.append(c_id)
-	print('len(new_q_idxs):', len(new_q_idxs))
+	# print('len(new_q_idxs):', len(new_q_idxs))
 	return new_q_idxs
 
 def get_final_c_id(iter_labeled_idxs, features, context_dict):
@@ -346,10 +350,10 @@ def get_final_c_id(iter_labeled_idxs, features, context_dict):
 def get_unique_sample(labeled_idxs, q_idxs, n_pool, train_features, iteration=0):
 	if LOW_RES:
 		num_query_i = NUM_QUERY * iteration
-		print('num_query_i in get_unique_sample in LOW_RES:', num_query_i)
+		# print('num_query_i in get_unique_sample in LOW_RES:', num_query_i)
 	else:
 		num_query_i = NUM_QUERY * iteration + NUM_INIT_LB
-		print('num_query_i in get_unique_sample:', num_query_i)
+		# print('num_query_i in get_unique_sample:', num_query_i)
 
 	difference_i = 0
 	num_set_ex_id_i = 0
@@ -359,17 +363,17 @@ def get_unique_sample(labeled_idxs, q_idxs, n_pool, train_features, iteration=0)
 	while num_set_ex_id_i < num_query_i:
 		labeled_idxs[q_idxs[:NUM_QUERY + difference_i]] = True	# get first num_query, e.g. 50
 		iter_i_labeled_idxs = np.arange(n_pool)[labeled_idxs]
-		print('len(iter_i_labeled_idxs):', len(iter_i_labeled_idxs))
+		# print('len(iter_i_labeled_idxs):', len(iter_i_labeled_idxs))
 
 		iter_i_samples = train_features.select(indices=iter_i_labeled_idxs)
 		num_set_ex_id_i = len(set(iter_i_samples['example_id']))
-		print('number of unique example id:', num_set_ex_id_i)
+		# print('number of unique example id:', num_set_ex_id_i)
 
 		assert num_set_ex_id_i <= num_query_i, 'Select too many examples!'
 		assert num_set_ex_id_i > 0, "Did not select examples!"
 
 		difference_i = num_query_i - num_set_ex_id_i
-		print('difference_i', difference_i)
+		# print('difference_i', difference_i)
 
 		n += 1
 		if n == 3: break

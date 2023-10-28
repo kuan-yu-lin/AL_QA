@@ -8,7 +8,7 @@ from torch.cuda import amp
 from torch.autograd import Variable
 import torch.nn.functional as F
 from copy import deepcopy
-
+import os
 
 from utils import softmax, evaluation
 import arguments
@@ -19,17 +19,17 @@ args_input = arguments.get_args()
 NUM_QUERY = args_input.batch
 NUM_INIT_LB = args_input.initseed
 NUM_ROUND = int(args_input.quota / args_input.batch)
-DATA_NAME = args_input.dataset_name
+DATA_NAME = args_input.dataset
 STRATEGY_NAME = args_input.ALstrategy
 MODEL_NAME = args_input.model
 LOW_RES = args_input.low_resource
 
-model_dir = '/mount/arbeitsdaten31/studenten1/linku/models'
+model_dir =  os.path.abspath('') + '/models'
 if LOW_RES:
     strategy_model_dir = model_dir + '/lowRes_' + str(args_input.quota) + '_' + STRATEGY_NAME + '_' + MODEL_NAME +  '_' + DATA_NAME
 else:
     strategy_model_dir = model_dir + '/' + str(NUM_INIT_LB) + '_' + str(args_input.quota) + '_' + STRATEGY_NAME + '_' + MODEL_NAME +  '_' + DATA_NAME
-pretrain_model_dir = '/mount/arbeitsdaten31/studenten1/linku/pretrain_models' + '/' + MODEL_NAME + '_SQuAD_full_dataset_lr_3e-5'
+pretrain_model_dir =  os.path.abspath('') + '/pretrain_models' + '/' + MODEL_NAME + '_SQuAD_full_dataset_lr_3e-5'
 
 def to_train(num_train_epochs, train_dataloader, device, model, optimizer, lr_scheduler, record_loss=False):
 	if LOW_RES:
@@ -445,11 +445,13 @@ def get_prob_dropout_split(dataloader, device, features, examples, n_drop=10):
 def get_batch_prob_dropout_split(dataloader, device, features, examples, n_drop=10):
     ## use tensor to save the answers
 
+    c = 10
+
     model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir).to(device)
     
     model.train()
 
-    probs = torch.zeros([n_drop, len(dataloader.dataset), 10])
+    probs = torch.zeros([n_drop, len(dataloader.dataset), c])
     
     for i in range(n_drop):
         start_logits = []
@@ -504,11 +506,11 @@ def get_batch_prob_dropout_split(dataloader, device, features, examples, n_drop=
                         answers.append(start_logit[start_index] + end_logit[end_index])
 
             
-                if 1 < len(answers) < 10: # pad to same numbers of possible answers
-                    zero_list = [0] * (10 - len(answers))
+                if 1 < len(answers) < c: # pad to same numbers of possible answers
+                    zero_list = [0] * (c - len(answers))
                     answers.extend(zero_list)
-                elif len(answers) >= 10:
-                    answers = answers[:10]
+                elif len(answers) >= c:
+                    answers = answers[:c]
 
                 probs[i][feature_index] += torch.tensor(softmax(answers))
 

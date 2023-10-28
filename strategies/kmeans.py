@@ -1,6 +1,18 @@
+from torch.utils.data import DataLoader
+from transformers import default_data_collator
+from sklearn.cluster import KMeans
+import numpy as np
+import sys
+sys.path.insert(0, './')
 
+from utils import get_unlabel_data
+from model import get_embeddings
+import arguments
 
-def kmeans_query(n_pool, labeled_idxs, train_dataset, device, n):
+args_input = arguments.get_args()
+MODEL_BATCH = args_input.model_batch
+
+def kmeans(n_pool, labeled_idxs, train_dataset, device, n):
     unlabeled_idxs, unlabeled_data = get_unlabel_data(n_pool, labeled_idxs, train_dataset)
     # unlabeled_features = train_features.select(unlabeled_idxs)
     unlabeled_dataloader = DataLoader(unlabeled_data,
@@ -9,7 +21,6 @@ def kmeans_query(n_pool, labeled_idxs, train_dataset, device, n):
                                     )
     print('KMean querying starts.')
     print('Query {} data.'.format(n))
-    
     embeddings = get_embeddings(unlabeled_dataloader, device)
     print('Got embeddings.')
     embeddings = embeddings.numpy()

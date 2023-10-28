@@ -1,6 +1,17 @@
+from torch.utils.data import DataLoader
+from transformers import default_data_collator
+import torch
+import sys
+sys.path.insert(0, './')
 
+from utils import get_unlabel_data
+from model import get_prob_dropout_split
+import arguments
 
-def mean_std_query(n_pool, labeled_idxs, train_dataset, train_features, examples, device, n):
+args_input = arguments.get_args()
+MODEL_BATCH = args_input.model_batch
+
+def mean_std(n_pool, labeled_idxs, train_dataset, train_features, examples, device, n):
     unlabeled_idxs, unlabeled_data = get_unlabel_data(n_pool, labeled_idxs, train_dataset)
     unlabeled_features = train_features.select(unlabeled_idxs)
     unlabeled_dataloader = DataLoader(

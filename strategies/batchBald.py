@@ -1,23 +1,19 @@
 from torch.utils.data import DataLoader
 from transformers import default_data_collator
-
 import torch
-from tqdm.auto import tqdm
-from sklearn.cluster import KMeans
-from sklearn.decomposition import PCA
-
-import arguments
 import sys
 sys.path.insert(0, './')
-from utils import get_unlabel_data, init_centers, H, class_combinations
-from model import get_prob, get_prob_dropout, get_prob_dropout_split, get_embeddings, get_grad_embeddings, get_batch_prob_dropout_split
+
+from utils import get_unlabel_data, H, class_combinations
+from model import get_batch_prob_dropout_split
+import arguments
 
 args_input = arguments.get_args()
 MODEL_BATCH = args_input.model_batch
 NUM_QUERY = args_input.batch
 LOW_RES = args_input.low_resource
 
-def batch_bald_query(n_pool, labeled_idxs, train_dataset, train_features, examples, device, n):
+def batch_bald(n_pool, labeled_idxs, train_dataset, train_features, examples, device, n):
     unlabeled_idxs, unlabeled_data = get_unlabel_data(n_pool, labeled_idxs, train_dataset)
     # unlabeled_features = train_features.select(unlabeled_idxs)
     print('BatchBALD querying starts.')
