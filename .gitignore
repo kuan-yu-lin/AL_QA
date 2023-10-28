@@ -167,6 +167,9 @@ results_lowRes/
 results_Bert/
 results_RoBERTa/
 archived/
+models/
+pretrain_models/
+dev_models/
 
 # sidenote
 sideNote.md
