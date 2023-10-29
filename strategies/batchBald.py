@@ -1,11 +1,12 @@
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, random_split
 from transformers import default_data_collator
 import torch
+import numpy as np
 import sys
 sys.path.insert(0, './')
 
-from utils import get_unlabel_data, H, class_combinations
-from model import get_batch_prob_dropout_split
+from strategies.sub_utils import get_unlabel_data, H, class_combinations, get_us, get_us_uc
+from strategies.sub_model import get_batch_prob_dropout_split
 import arguments
 
 args_input = arguments.get_args()
@@ -31,16 +32,16 @@ def batch_bald(n_pool, labeled_idxs, train_dataset, train_features, examples, de
     num_extra = len(unlabeled_data) - num_sub_pool
 
     if num_extra > 0:
-        sub_pool_data, _ = torch.utils.data.random_split(unlabeled_data, [num_sub_pool, num_extra])
+        sub_pool_data, _ = random_split(unlabeled_data, [num_sub_pool, num_extra])
         sub_pool_idxs = np.array(sub_pool_data.indices)
     else:
         # even if we don't have enough data left to split, we still need to
         # call random_splot to avoid messing up the indexing later on
-        sub_pool_data, _ = torch.utils.data.random_split(unlabeled_data, [len(unlabeled_data), 0])
+        sub_pool_data, _ = random_split(unlabeled_data, [len(unlabeled_data), 0])
         sub_pool_idxs = np.array(sub_pool_data.indices)
 
     # forward pass on the pool once to get class probabilities for each x
-    pool_loader = torch.utils.data.DataLoader(sub_pool_data,
+    pool_loader = DataLoader(sub_pool_data,
         batch_size=MODEL_BATCH, pin_memory=True, shuffle=False, collate_fn=default_data_collator)
     pool_features = train_features.select(sub_pool_idxs)
 

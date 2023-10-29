@@ -5,7 +5,7 @@ import sys
 sys.path.insert(0, './')
 
 from utils import get_unlabel_data
-from model import get_prob
+from strategies.sub_model import get_prob
 import arguments
 
 args_input = arguments.get_args()

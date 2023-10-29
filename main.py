@@ -13,20 +13,8 @@ import datetime
 
 import arguments
 from model import to_train, get_pred
+from strategies.sub_utils import get_us, get_us_uc
 from utils import *
-from strategies.randomSampling import random_sampling
-from strategies.margin import margin
-from strategies.lc import least_confidence
-from strategies.entropy import entropy
-from strategies.marginDropout import margin_dropout
-from strategies.lcDropout import least_confidence_dropout
-from strategies.entropyDropout import entropy_dropout
-from strategies.kcenter import kcenter
-from strategies.kmeans import kmeans
-from strategies.meanSTD import mean_std
-from strategies.bald import bald
-from strategies.badge import badge
-from strategies.batchBald import batch_bald
 
 args_input = arguments.get_args()
 NUM_QUERY = args_input.batch
@@ -36,7 +24,7 @@ DATA_NAME = args_input.dataset
 STRATEGY_NAME = args_input.ALstrategy
 MODEL_NAME = args_input.model
 LEARNING_RATE = args_input.learning_rate
-EXPE_ROUND = args_input.expe_round
+EXP_ROUND = args_input.exp_round
 MODEL_BATCH = args_input.model_batch
 NUM_TRAIN_EPOCH = args_input.train_epochs
 ## exp setting
@@ -82,10 +70,6 @@ disable_caching()
 
 ## preprocess data
 train_dataset, train_features, val_dataset, val_features = preprocess_data(train_data, val_data)
-context_dict = get_context_id(train_data)
-
-# get the number of extra data after preprocessing
-extra = len(train_dataset) - len(train_data)
 
 ## seed
 SEED = 1127
@@ -122,24 +106,23 @@ res = {'exp': EXP_ID,
 	   'initLabeledPool': init_pool,
 	   'queryQuota': args_input.quota,
 	   'queryBatchSize': NUM_QUERY,
-	   'expRound': EXPE_ROUND,
+	   'expRound': EXP_ROUND,
 	   'learningRate': LEARNING_RATE,
 	   'trainingBatchSize': MODEL_BATCH,
 	   'trainingEpoch': NUM_TRAIN_EPOCH,
 	   'devMode': args_input.dev_mode,
 	   'uniqueContex': UNIQ_CONTEXT,
-	   'time': {
+		'time': {
 		   'start': str(begin),
-	   }
+		}
 	}
 
 print('\nThe detail of this experiment:', json.dumps(res, indent=4))
-print('\n')
 
 ## repeate experiment trials
-while (EXPE_ROUND > 0): 
-	EXPE_ROUND = EXPE_ROUND - 1
-	print('Exp_round_{} start.'.format(args_input.expe_round - EXPE_ROUND))
+while (EXP_ROUND > 0): 
+	EXP_ROUND = EXP_ROUND - 1
+	print('\nExpRound_{} start.'.format(args_input.exp_round - EXP_ROUND))
 	
 	start = datetime.datetime.now()
 
@@ -158,12 +141,9 @@ while (EXPE_ROUND > 0):
 		np.random.shuffle(tmp_idxs)
 		
 		if UNIQ_CONTEXT:
-			tmp_idxs = tmp_idxs[:NUM_INIT_LB+extra]
-			uc_tmp_idxs = get_unique_context(tmp_idxs, train_features, context_dict) # len() = almost num_query + extra
-			iter_0_labeled_idxs = get_unique_sample(labeled_idxs, uc_tmp_idxs, n_pool, train_features)
-			c_id = get_final_c_id(iter_0_labeled_idxs, train_features, context_dict) # len() = num_query
+			iter_0_labeled_idxs = get_us_uc(labeled_idxs, tmp_idxs, n_pool, train_features)
 		else:
-			iter_0_labeled_idxs = get_unique_sample(labeled_idxs, tmp_idxs, n_pool, train_features)
+			iter_0_labeled_idxs = get_us(labeled_idxs, tmp_idxs, n_pool, train_features)
 
 		## load the selected train data to DataLoader
 		train_dataloader = DataLoader(
@@ -210,64 +190,13 @@ while (EXPE_ROUND > 0):
 	
 	## iteration 1 to i
 	for i in range(1, ITERATION+1):
-		print('Iteraion {} in exp_round_{} start.'.format(i, args_input.expe_round - EXPE_ROUND))
-
-		## use total_query (NUM_QUERY + extra) to query instead of just NUM_QUERY
-		total_query = NUM_QUERY + extra
+		print('Iteraion {} in exp_round_{} start.'.format(i, args_input.exp_round - EXP_ROUND))
 		
 		## query
-		if STRATEGY_NAME == 'RandomSampling':
-			q_idxs = random_sampling(labeled_idxs, total_query)
-		elif STRATEGY_NAME == 'MarginSampling':
-			q_idxs = margin(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, total_query)
-		elif STRATEGY_NAME == 'LeastConfidence':
-			q_idxs = least_confidence(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, total_query)
-		elif STRATEGY_NAME == 'EntropySampling':
-			q_idxs = entropy(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, total_query)
-		elif STRATEGY_NAME == 'MarginSamplingDropout':
-			q_idxs = margin_dropout(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, total_query)
-		elif STRATEGY_NAME == 'LeastConfidenceDropout':
-			q_idxs = least_confidence_dropout(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, total_query)
-		elif STRATEGY_NAME == 'EntropySamplingDropout':
-			q_idxs = entropy_dropout(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, total_query)
-		elif STRATEGY_NAME == 'VarRatio':
-			q_idxs = var_ratio(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, total_query)
-		elif STRATEGY_NAME == 'BALDDropout':
-			q_idxs = bald(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, total_query)
-		elif STRATEGY_NAME == 'BatchBALDDropout':
-			q_idxs = batch_bald(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, total_query)
-		elif STRATEGY_NAME == 'MeanSTD':
-			q_idxs = mean_std(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, total_query)
-		elif STRATEGY_NAME == 'KMeansSampling':
-			q_idxs = kmeans(n_pool, labeled_idxs, train_dataset, device, total_query)
-		elif STRATEGY_NAME == 'KCenterGreedy':
-			q_idxs = kcenter(n_pool, labeled_idxs, train_dataset, device, total_query)
-		elif STRATEGY_NAME == 'BadgeSampling':
-			q_idxs = badge(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, total_query)
-		else:
-			raise NotImplementedError
-
+		iter_i_labeled_idxs = query(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, i)
+		
 		print('Time spent for querying: {}\n'.format(datetime.datetime.now() - time))
 		time = datetime.datetime.now()
-
-		if UNIQ_CONTEXT:
-			# print('in uc setting')
-			if LOW_RES:
-				# print('in lr setting')
-				# print('num of idxs:', len(q_idxs))
-				uc_q_idxs = get_unique_context(q_idxs, train_features, context_dict)
-				# print('num of uc idxs:', len(uc_q_idxs))
-			else:
-				# print('not in lr setting')
-				# print('num of idxs:', len(q_idxs))
-				uc_q_idxs = get_unique_context(q_idxs, train_features, context_dict, c_id)
-				# print('num of ucidxs:', len(uc_q_idxs))
-			
-			iter_i_labeled_idxs = get_unique_sample(labeled_idxs, uc_q_idxs, n_pool, train_features, i)
-			c_id = get_final_c_id(iter_i_labeled_idxs, train_features, context_dict)
-		else:
-			# print('not in uc setting')
-			iter_i_labeled_idxs = get_unique_sample(labeled_idxs, q_idxs, n_pool, train_features, i)
 		 
 		train_dataloader_i = DataLoader(
 			train_dataset.select(indices=iter_i_labeled_idxs),
@@ -293,7 +222,7 @@ while (EXPE_ROUND > 0):
 		to_train(NUM_TRAIN_EPOCH, train_dataloader_i, device, model_i, optimizer_i, lr_scheduler_i)
 
 		## iteration i accuracy
-		print('\nIter_{} get_pred.'.format(i))
+		print('\nIter_{} start to get pred.'.format(i))
 		acc_scores_i = get_pred(eval_dataloader, device, val_features, val_data)
 		acc[i] = round(acc_scores_i['f1'], 4)
 		acc_em[i] = round(acc_scores_i['exact_match'], 4)
@@ -307,12 +236,12 @@ while (EXPE_ROUND > 0):
 	## print results
 	# print('SEED {}'.format(SEED))
 	# print(STRATEGY_NAME)
-	print('Exp_Round_{} done.'.format(args_input.expe_round - EXPE_ROUND))
-	print('ExpRound_{} testing accuracy: {}'.format(args_input.expe_round - EXPE_ROUND, acc))
-	print('ExpRound_{} testing accuracy em: {}\n'.format(args_input.expe_round - EXPE_ROUND, acc_em))
+	print('ExpRound_{} done.'.format(args_input.exp_round - EXP_ROUND))
+	print('ExpRound_{} testing accuracy: {}'.format(args_input.exp_round - EXP_ROUND, acc))
+	print('ExpRound_{} testing accuracy em: {}\n'.format(args_input.exp_round - EXP_ROUND, acc_em))
 	all_acc.append(acc)
-	all_acc_dict['ExpRound_' + str(args_input.expe_round - EXPE_ROUND)] = acc.tolist()
-	all_acc_em_dict['ExpRound_' + str(args_input.expe_round - EXPE_ROUND)] = acc_em.tolist()
+	all_acc_dict['ExpRound_' + str(args_input.exp_round - EXP_ROUND)] = acc.tolist()
+	all_acc_em_dict['ExpRound_' + str(args_input.exp_round - EXP_ROUND)] = acc_em.tolist()
 	
 	## record acq time
 	timestamp = re.sub('\.[0-9]*', '_', str(datetime.datetime.now())).replace(" ", "_").replace("-", "").replace(":","")
@@ -321,7 +250,7 @@ while (EXPE_ROUND > 0):
 
 # cal mean & standard deviation
 total_time = datetime.datetime.now() - begin
-print('Time spent in total:', total_time)
+print('Time spent in total: {}.\n'.format(total_time))
 res['time']['end'] = str(end)
 res['time']['total'] = str(total_time)
 res['em'] = all_acc_em_dict
@@ -345,6 +274,7 @@ for i in range(len(avg_acc)):
 		std_acc_dict['labelTotal_' + str(NUM_INIT_LB + i * NUM_QUERY)] = round(stddev_i_acc[i], 4)
 		tmp = 'When the size of training set is ' + str(NUM_INIT_LB + i * NUM_QUERY) + ', ' + 'average accuracy is ' + str(round(avg_acc[i], 4)) + ', ' + 'std dev is ' + str(round(stddev_i_acc[i], 4)) + '.'
 	print(tmp)
+print('\n')
 res['f1MeanByBatch'] = mean_acc_dict
 res['stdMeanByBatch'] = std_acc_dict
 

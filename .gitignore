@@ -164,12 +164,8 @@ logfile/
 results/
 logfile_lowRes/
 results_lowRes/
-results_Bert/
-results_RoBERTa/
-archived/
-models/
-pretrain_models/
-dev_models/
-
-# sidenote
-sideNote.md
+archive
+models
+pretrain_models
+dev_models
+test_exp.sh

@@ -1,26 +1,29 @@
 from torch.utils.data import DataLoader
 from transformers import default_data_collator
 from tqdm.auto import tqdm
-from sklearn.cluster import KMeans
+import numpy as np
 from sklearn.decomposition import PCA
 import sys
 sys.path.insert(0, './')
 
-from model import get_embeddings
+from strategies.sub_utils import get_us, get_us_uc
+from strategies.sub_model import get_embeddings
 import arguments
 
 args_input = arguments.get_args()
+NUM_QUERY = args_input.batch
 MODEL_BATCH = args_input.model_batch
+UNIQ_CONTEXT = args_input.unique_context
 
-def kcenter(n_pool, labeled_idxs, train_dataset, device, n):
+def kcenter(n_pool, labeled_idxs, dataset, features, device, i):
     labeled_idxs_in_query = labeled_idxs.copy()
     # train_data = train_dataset
-    train_dataloader = DataLoader(train_dataset,
+    train_dataloader = DataLoader(dataset,
                                   collate_fn=default_data_collator,
                                   batch_size=MODEL_BATCH,
                                 )
     print('KCenter greedy querying starts.')
-    print('Query {} data.'.format(n))
+    print('Query {} data.'.format(NUM_QUERY))
     
     embeddings = get_embeddings(train_dataloader, device)
     print('Got embeddings.')
@@ -35,15 +38,22 @@ def kcenter(n_pool, labeled_idxs, train_dataset, device, n):
 
     mat = dist_mat[~labeled_idxs_in_query, :][:, labeled_idxs_in_query]
 
-    for i in tqdm(range(n), ncols=100):
+    for i in tqdm(range(NUM_QUERY*2), ncols=100):
         mat_min = mat.min(axis=1)
         q_idx_ = mat_min.argmax()
         q_idx = np.arange(n_pool)[~labeled_idxs_in_query][q_idx_]
         labeled_idxs_in_query[q_idx] = True
         mat = np.delete(mat, q_idx_, 0)
         mat = np.append(mat, dist_mat[~labeled_idxs_in_query, q_idx][:, None], axis=1)
-        
-    return np.arange(n_pool)[(labeled_idxs ^ labeled_idxs_in_query)]
+    
+    score_ordered_idxs = np.arange(n_pool)[(labeled_idxs ^ labeled_idxs_in_query)]
+    
+    if UNIQ_CONTEXT:
+        iter_i_labeled_idxs = get_us_uc(labeled_idxs, score_ordered_idxs, n_pool, features, i)
+    else:
+        iter_i_labeled_idxs = get_us(labeled_idxs, score_ordered_idxs, n_pool, features, i)
+
+    return iter_i_labeled_idxs
 
 def kcenter_greedy_PCA(n_pool, labeled_idxs, train_dataset, device, n):
     labeled_idxs_in_query = labeled_idxs.copy()

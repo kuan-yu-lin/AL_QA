@@ -4,16 +4,18 @@ import numpy as np
 import sys
 sys.path.insert(0, './')
 
-from utils import get_unlabel_data
-from model import get_prob_dropout
+from strategies.sub_utils import get_unlabel_data, get_us, get_us_uc
+from strategies.sub_model import get_prob_dropout
 import arguments
 
 args_input = arguments.get_args()
-MODEL_BATCH = args_input.model_batch 
+NUM_QUERY = args_input.batch
+MODEL_BATCH = args_input.model_batch
+UNIQ_CONTEXT = args_input.unique_context
 
-def entropy_dropout(n_pool, labeled_idxs, train_dataset, train_features, examples, device, n):
-    unlabeled_idxs, unlabeled_data = get_unlabel_data(n_pool, labeled_idxs, train_dataset)
-    unlabeled_features = train_features.select(unlabeled_idxs)
+def entropy_dropout(n_pool, labeled_idxs, dataset, features, examples, device, i):
+    unlabeled_idxs, unlabeled_data = get_unlabel_data(n_pool, labeled_idxs, dataset)
+    unlabeled_features = features.select(unlabeled_idxs)
     unlabeled_dataloader = DataLoader(
 		unlabeled_data,
 		collate_fn=default_data_collator,
@@ -21,7 +23,7 @@ def entropy_dropout(n_pool, labeled_idxs, train_dataset, train_features, example
 	)
     
     print('Entropy dropout querying starts.')
-    print('Query {} data from {} unlabeled training data.\n'.format(n, len(unlabeled_data)))
+    print('Query {} data from {} unlabeled training data.\n'.format(NUM_QUERY, len(unlabeled_data)))
     
     prob_dict = get_prob_dropout(unlabeled_dataloader, device, unlabeled_features, examples, n_drop=10)
     print('Got probability.')
@@ -33,4 +35,11 @@ def entropy_dropout(n_pool, labeled_idxs, train_dataset, train_features, example
         elif idx:
             entropy_dict[idx] = np.array([0])
     sorted_entropy_list = sorted(entropy_dict.items(), key=lambda x: x[1])
-    return unlabeled_idxs[[idx for (idx, entropy) in sorted_entropy_list[:n]]]
+    score_ordered_idxs = unlabeled_idxs[[idx for (idx, _) in sorted_entropy_list[:NUM_QUERY*2]]]
+    
+    if UNIQ_CONTEXT:
+        iter_i_labeled_idxs = get_us_uc(labeled_idxs, score_ordered_idxs, n_pool, features, i)
+    else:
+        iter_i_labeled_idxs = get_us(labeled_idxs, score_ordered_idxs, n_pool, features, i)
+
+    return iter_i_labeled_idxs
