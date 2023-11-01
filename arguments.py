@@ -18,7 +18,7 @@ def get_args():
 	parser.add_argument('--learning_rate', '-l', default=3e-5, type=float, help='learning rate for training')
 	parser.add_argument('--train_epochs', '-o', type=int, default=3, help='number of training epochs')
 	# experiment setting
-	parser.add_argument('--exp_id', required=True, type=int, help='experiment ID')
+	parser.add_argument('--exp_id', required=True, type=str, help='experiment ID')
 	parser.add_argument('--dev_mode', '-x', default=False, type=bool, help='True if it runs for development.')
 	parser.add_argument('--low_resource', '-r', default=False, type=bool, help='True if it is the low resource experiment.')
 	parser.add_argument('--unique_context', '-u', default=False, type=bool, help='True if it is the experiment with unique context data.')
