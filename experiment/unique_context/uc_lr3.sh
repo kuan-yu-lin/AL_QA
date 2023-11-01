@@ -1,7 +1,7 @@
 #!/bin/bash
 
 python main.py \
-    --exp_id 9 \
+    --exp_id 122i \
     -a KCenterGreedy \
     -q 200 \
     -b 50 \

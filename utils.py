@@ -214,7 +214,10 @@ def query(n_pool, labeled_idxs, train_dataset, train_features, train_data, devic
 	elif STRATEGY_NAME == 'KMeansSampling':
 		iter_i_labeled_idxs = kmeans(n_pool, labeled_idxs, train_dataset, train_features, device, i)
 	elif STRATEGY_NAME == 'KCenterGreedy':
-		iter_i_labeled_idxs = kcenter(n_pool, labeled_idxs, train_dataset, train_features, device, i)
+		if args_input.low_resource and i == 1:
+			iter_i_labeled_idxs = random_sampling(n_pool, labeled_idxs, train_features, i)
+		else:
+			iter_i_labeled_idxs = kcenter(n_pool, labeled_idxs, train_dataset, train_features, device, i)
 	elif STRATEGY_NAME == 'BadgeSampling':
 		iter_i_labeled_idxs = badge(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, i)
 	else:

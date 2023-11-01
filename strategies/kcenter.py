@@ -38,7 +38,7 @@ def kcenter(n_pool, labeled_idxs, dataset, features, device, i):
 
     mat = dist_mat[~labeled_idxs_in_query, :][:, labeled_idxs_in_query]
 
-    for i in tqdm(range(NUM_QUERY*2), ncols=100):
+    for ii in tqdm(range(NUM_QUERY*2), ncols=100):
         mat_min = mat.min(axis=1)
         q_idx_ = mat_min.argmax()
         q_idx = np.arange(n_pool)[~labeled_idxs_in_query][q_idx_]
