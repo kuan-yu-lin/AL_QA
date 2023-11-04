@@ -38,7 +38,7 @@ if args_input.dev_mode:
 else:
 	MODEL_DIR = os.path.abspath('') + '/models'
 CACHE_DIR = os.path.abspath('') + '/.cache'
-file_name_res = 'exp' + EXP_ID + '.json'
+file_name_res = EXP_ID + '.json'
 OUTPUT_DIR = os.path.join(os.path.abspath('') + '/results', '%s' % file_name_res)
 
 if LOW_RES:
