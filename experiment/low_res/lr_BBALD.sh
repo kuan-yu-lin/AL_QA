@@ -1,6 +1,7 @@
 #!/bin/bash
 
 python main.py \
+    --exp_id 122m \
     -a BatchBALDDropout \
     -q 200 \
     -b 50 \
@@ -9,6 +10,7 @@ python main.py \
     -g 5
 
 python main.py \
+    --exp_id 123m \
     -a BatchBALDDropout \
     -q 200 \
     -b 50 \
@@ -17,6 +19,7 @@ python main.py \
     -g 5
 
 python main.py \
+    --exp_id 124m \
     -a BatchBALDDropout \
     -q 200 \
     -b 50 \
@@ -25,6 +28,7 @@ python main.py \
     -g 5
 
 python main.py \
+    --exp_id 125m \
     -a BatchBALDDropout \
     -q 200 \
     -b 50 \
@@ -33,9 +37,10 @@ python main.py \
     -g 5
 
 python main.py \
+    --exp_id 126m \
     -a BatchBALDDropout \
     -q 200 \
     -b 50 \
     -d SearchQA \
     -r True \
-    -g 5
+    -g 6
