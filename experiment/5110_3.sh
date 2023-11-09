@@ -19,7 +19,7 @@ python main.py \
     -g 5
 
 python main.py \
-    --exp_id 16 \
+    --exp_id 511l \
     -a BadgeSampling \
     -u True \
     -g 5

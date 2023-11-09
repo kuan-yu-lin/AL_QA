@@ -10,7 +10,7 @@ python main.py \
     -g 4
 
 python main.py \
-    --exp_id \
+    --exp_id 122b \
     -a MarginSampling \
     -q 200 \
     -b 50 \

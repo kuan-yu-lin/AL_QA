@@ -1,41 +1,41 @@
 #!/bin/bash
 
 python main.py \
-    --exp_id 5 \
+    --exp_id 523ht \
     -a KMeansSampling \
-    -q 200 \
+    -q 100 \
     -b 50 \
-    -d BioASQ \
+    -d DROP \
     -u True \
     -r True \
-    -g 3
+    -g 8
 
 python main.py \
-    --exp_id 6 \
+    --exp_id 523ct \
     -a LeastConfidence \
-    -q 200 \
+    -q 100 \
     -b 50 \
-    -d BioASQ \
+    -d DROP \
     -u True \
     -r True \
-    -g 3
+    -g 8
 
 python main.py \
-    --exp_id 7 \
-    -a LeastConfidenceDropout \
-    -q 200 \
+    --exp_id 524ht \
+    -a KMeansSampling \
+    -q 100 \
     -b 50 \
-    -d BioASQ \
+    -d TextbookQA \
     -u True \
     -r True \
-    -g 3
+    -g 8
 
 python main.py \
-    --exp_id 8 \
-    -a BALDDropout \
-    -q 200 \
+    --exp_id 524ct \
+    -a LeastConfidence \
+    -q 100 \
     -b 50 \
-    -d BioASQ \
+    -d TextbookQA \
     -u True \
     -r True \
-    -g 3
+    -g 8
