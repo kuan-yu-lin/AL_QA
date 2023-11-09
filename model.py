@@ -20,16 +20,14 @@ DATA_NAME = args_input.dataset
 STRATEGY_NAME = args_input.ALstrategy
 MODEL_NAME = args_input.model
 LOW_RES = args_input.low_resource
+EXP_ID = str(args_input.exp_id)
 
 if args_input.dev_mode:
 	MODEL_DIR = os.path.abspath('') + '/dev_models'
 else:
 	MODEL_DIR = os.path.abspath('') + '/models'
 
-if LOW_RES:
-    strategy_model_dir = MODEL_DIR + '/lowRes_' + str(args_input.quota) + '_' + STRATEGY_NAME + '_' + MODEL_NAME +  '_' + DATA_NAME
-else:
-    strategy_model_dir = MODEL_DIR + '/' + str(NUM_INIT_LB) + '_' + str(args_input.quota) + '_' + STRATEGY_NAME + '_' + MODEL_NAME +  '_' + DATA_NAME
+strategy_model_dir = MODEL_DIR + '/' + EXP_ID
 pretrain_model_dir =  os.path.abspath('') + '/pretrain_models' + '/' + MODEL_NAME + '_SQuAD_full_dataset_lr_3e-5'
 
 def to_train(num_train_epochs, train_dataloader, device, model, optimizer, lr_scheduler, record_loss=False):

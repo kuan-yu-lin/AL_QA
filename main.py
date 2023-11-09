@@ -46,14 +46,14 @@ if LOW_RES:
 	setting = 'low resource'
 	## set dir
 	pretrain_model_dir = os.path.abspath('') + '/pretrain_models' + '/' + MODEL_NAME + '_SQuAD_full_dataset_lr_3e-5'
-	strategy_model_dir = MODEL_DIR + '/lowRes_' + str(args_input.quota) + '_' + STRATEGY_NAME + '_' + MODEL_NAME +  '_' + DATA_NAME
+	strategy_model_dir = MODEL_DIR + '/' + EXP_ID
 	## load data
 	train_data, val_data = load_dataset_mrqa(DATA_NAME.lower())
 else:
 	init_pool = NUM_INIT_LB
 	setting = 'regular'
 	## set dir
-	strategy_model_dir = MODEL_DIR + '/' + str(NUM_INIT_LB) + '_' + str(args_input.quota) + '_' + STRATEGY_NAME + '_' + MODEL_NAME +  '_' + DATA_NAME
+	strategy_model_dir = MODEL_DIR + '/' + EXP_ID
 	## load data
 	squad = load_dataset(DATA_NAME.lower(), cache_dir=CACHE_DIR)
 	if args_input.dev_mode:
@@ -82,10 +82,7 @@ torch.manual_seed(SEED)
 ## device
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-if LOW_RES:
-	sys.stdout = Logger(os.path.abspath('') + '/logfile_lowRes/' + str(args_input.quota) + '_' + STRATEGY_NAME + '_' + MODEL_NAME + '_' + DATA_NAME + '_normal_log.txt')
-else:
-	sys.stdout = Logger(os.path.abspath('') + '/logfile/' + str(NUM_INIT_LB) + '_' + str(args_input.quota) + '_' + STRATEGY_NAME + '_' + MODEL_NAME + '_' + DATA_NAME + '_normal_log.txt')
+sys.stdout = Logger(os.path.abspath('') + '/logfile/' + EXP_ID + '.txt')
 warnings.filterwarnings('ignore')
 
 ## start experiment
@@ -122,7 +119,7 @@ print('\nThe detail of this experiment:', json.dumps(res, indent=4))
 ## repeate experiment trials
 while (EXP_ROUND > 0): 
 	EXP_ROUND = EXP_ROUND - 1
-	print('\nExpRound_{} start.'.format(args_input.exp_round - EXP_ROUND))
+	print('\n{}: ExpRound_{} start.'.format(EXP_ID, args_input.exp_round - EXP_ROUND))
 	
 	start = datetime.datetime.now()
 
@@ -190,7 +187,7 @@ while (EXP_ROUND > 0):
 	
 	## iteration 1 to i
 	for i in range(1, ITERATION+1):
-		print('Iteraion {} in exp_round_{} start.'.format(i, args_input.exp_round - EXP_ROUND))
+		print('{}: Iteraion {} in exp_round_{} start.'.format(EXP_ID, i, args_input.exp_round - EXP_ROUND))
 		
 		## query
 		iter_i_labeled_idxs = query(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, i)
@@ -234,8 +231,6 @@ while (EXP_ROUND > 0):
 		torch.cuda.empty_cache()
 	
 	## print results
-	# print('SEED {}'.format(SEED))
-	# print(STRATEGY_NAME)
 	print('ExpRound_{} done.'.format(args_input.exp_round - EXP_ROUND))
 	print('ExpRound_{} testing accuracy: {}'.format(args_input.exp_round - EXP_ROUND, acc))
 	print('ExpRound_{} testing accuracy em: {}\n'.format(args_input.exp_round - EXP_ROUND, acc_em))

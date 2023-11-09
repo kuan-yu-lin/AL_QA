@@ -51,7 +51,7 @@ def batch_bald(n_pool, labeled_idxs, dataset, features, examples, device, i):
     H2 = (H(pool_p_y).sum(axis=(1,2))/k)
 
     # get all class combinations
-    c_1_to_n = class_combinations(c, NUM_QUERY*2, m) # tensor of size [m * n]
+    c_1_to_n = class_combinations(c, NUM_QUERY*5, m) # tensor of size [m * n]
 
     # tensor of size [m * k]
     p_y_1_to_n_minus_1 = None
@@ -62,7 +62,7 @@ def batch_bald(n_pool, labeled_idxs, dataset, features, examples, device, i):
     # create a mask to keep track of which indices we've chosen
     remaining_indices = torch.ones(len(sub_pool_data), dtype=bool)
 
-    for batch_n in range(NUM_QUERY*2):
+    for batch_n in range(NUM_QUERY*5):
         # tensor of size [N * m * l] # [500, 10000, 3]
         p_y_n = pool_p_y[:, c_1_to_n[:, batch_n], :] # k should be >= c 
 
@@ -93,6 +93,7 @@ def batch_bald(n_pool, labeled_idxs, dataset, features, examples, device, i):
     # subset indices twice to recover the global indices of the chosen data
     best_local_indices = np.array(sub_pool_idxs)[best_sub_local_indices]
     best_global_indices = np.array(unlabeled_idxs)[best_local_indices]
+    print('We got {} best global indices.'.format(len(best_global_indices)))
 
     if UNIQ_CONTEXT:
         iter_i_labeled_idxs = get_us_uc(labeled_idxs, best_global_indices, n_pool, features, i)

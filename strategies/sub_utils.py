@@ -26,49 +26,27 @@ def get_us_uc(labeled_idxs, score_ordered_idxs, n_pool, features, iteration=0):
 		total = NUM_QUERY * iteration + NUM_INIT_LB
 		print('Total num of label pool in regular:', total)  
 
-	# create select_sample_id(ssi) set and unique context (uc)
-	labeled_idxs[score_ordered_idxs[:NUM_QUERY]] = True
-	samples = features.select(indices=np.arange(n_pool)[labeled_idxs])
-	ssi = set(samples['example_id'])
-	print('\nWe have {} unique ssi.'.format(len(ssi)))
-	uc = set(samples['context'])
-	print('We have {} unique context.'.format(len(uc)))
+	ssi = set()
+	uc = set()
+	filtered_score_ordered_idx = []
+	for soi in score_ordered_idxs:
+		pool_idxs = np.zeros(len(features), dtype=bool) # TODO: newly added
+		pool_idxs[soi] = True
+		sample = features.select(indices=np.arange(n_pool)[pool_idxs])
 
-	print('\nTest loop for achieve total by ssi.')
-	sliced_till_ = NUM_QUERY
-	total_ = total
-	ssi_ = ssi.copy()
-	uc_ = uc.copy()
-	while len(ssi_) < total_:
-		difference_ = total_ - len(ssi_)
-		print('Not enough ssi, still need {} uc.'.format(difference_))
-		labeled_idxs[score_ordered_idxs[sliced_till_:sliced_till_ + difference_]] = True	# get extra
-		sliced_till_ += difference_
-		samples_ = features.select(indices=np.arange(n_pool)[labeled_idxs])
-		for sample_ in samples_:
-			if sample_['example_id'] not in ssi_:
-				if sample_['context'] not in uc_:
-					ssi_.add(sample_['example_id'])
-					uc_.add(sample_['context'])
-		print('End of add extra sample, now we have {} unique ssi and {} unique context.'.format(len(ssi_), len(uc_)))
-    
-	print('\nOrigin loop for achieve total by uc.')
-	sliced_till = NUM_QUERY
-	while len(uc) < total:
-		difference = total - len(uc)
-		print('Not enough ssi, still need {} uc.'.format(difference))
-		labeled_idxs[score_ordered_idxs[sliced_till:sliced_till + difference]] = True	# get extra
-		sliced_till += difference
-		samples = features.select(indices=np.arange(n_pool)[labeled_idxs])
-		for sample in samples:
-			if sample['example_id'] not in ssi:
-				if sample['context'] not in uc:
-					ssi.add(sample['example_id'])
-					uc.add(sample['context'])
-		print('End of add extra sample, now we have {} unique ssi and {} unique context.'.format(len(ssi), len(uc)))
+		if sample[0]['example_id'] not in ssi:
+			if sample[0]['context'] not in uc:
+				ssi.add(sample[0]['example_id'])
+				uc.add(sample[0]['context'])
+				filtered_score_ordered_idx.append(soi)
 
-	print('\nFinally, we have {} unique ssi and {} unique context.'.format(len(ssi), len(uc)))
-	labeled_idxs[score_ordered_idxs[:sliced_till]] = True
+		if len(filtered_score_ordered_idx) == total:
+			print('Break the loop, we have {} unique ssi having unique context.'.format(len(ssi)))
+			break
+	
+	assert len(filtered_score_ordered_idx) == total, "We didn't socre enough instances."
+	print('\nFinally, we have {} instances.'.format(len(filtered_score_ordered_idx)))
+	labeled_idxs[filtered_score_ordered_idx] = True
 	return np.arange(n_pool)[labeled_idxs]
 
 def get_us(labeled_idxs, score_ordered_idxs, n_pool, features, iteration=0):
@@ -78,6 +56,13 @@ def get_us(labeled_idxs, score_ordered_idxs, n_pool, features, iteration=0):
 	else:
 		total = NUM_QUERY * iteration + NUM_INIT_LB
 		print('Total num of label pool in regular:', total)  
+
+	# count if we have enough unique sample to select
+	labeled_idxs_ = labeled_idxs.copy()
+	labeled_idxs_[score_ordered_idxs] = True
+	samples_ = features.select(indices=np.arange(n_pool)[labeled_idxs_])
+	ssi_ = set(samples_['example_id']) 
+	print('\nWe have {} unique ssi in scored pool.\n'.format(len(ssi_)))
 
 	# create select_sample_id(ssi) set
 	labeled_idxs[score_ordered_idxs[:NUM_QUERY]] = True
