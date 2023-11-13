@@ -31,7 +31,7 @@ def bald(n_pool, labeled_idxs, dataset, features, examples, device, i):
     entropy2 = (-probs*torch.log(probs)).sum(2).mean(0)
     uncertainties = entropy2 - entropy1
     # I(y;W | x) = H1 - H2 = H(y|x) - E_w[H(y|x,W)]
-    score_ordered_idxs = unlabeled_idxs[uncertainties.sort()[1][:NUM_QUERY*2]]
+    score_ordered_idxs = unlabeled_idxs[uncertainties.sort()[1]]
 
     if UNIQ_CONTEXT:
         iter_i_labeled_idxs = get_us_uc(labeled_idxs, score_ordered_idxs, n_pool, features, i)

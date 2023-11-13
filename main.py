@@ -39,7 +39,7 @@ else:
 	MODEL_DIR = os.path.abspath('') + '/models'
 CACHE_DIR = os.path.abspath('') + '/.cache'
 file_name_res = EXP_ID + '.json'
-OUTPUT_DIR = os.path.join(os.path.abspath('') + '/results', '%s' % file_name_res)
+OUTPUT_DIR = os.path.abspath('') + '/results/' + file_name_res
 
 if LOW_RES:
 	init_pool = 0

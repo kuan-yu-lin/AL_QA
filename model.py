@@ -32,9 +32,9 @@ pretrain_model_dir =  os.path.abspath('') + '/pretrain_models' + '/' + MODEL_NAM
 
 def to_train(num_train_epochs, train_dataloader, device, model, optimizer, lr_scheduler, record_loss=False):
 	if LOW_RES:
-		print('Training was performed using {} query data, i.e. {} data.'.format(NUM_QUERY, len(train_dataloader.dataset)))
+		print('Training was performed using {} data in total.'.format(len(train_dataloader.dataset)))
 	else:
-		print('Training was performed using the sum of {} initial data and {} query data, i.e. {} data.'.format(NUM_INIT_LB, NUM_QUERY, len(train_dataloader.dataset)))
+		print('Training was performed using the sum of initial data and query data, which are {} data in total.'.format(len(train_dataloader.dataset)))
 	
 	for epoch in range(num_train_epochs):
 		model.train()

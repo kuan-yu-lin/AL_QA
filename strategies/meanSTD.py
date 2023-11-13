@@ -30,7 +30,7 @@ def mean_std(n_pool, labeled_idxs, train_dataset, features, examples, device, i)
     sigma_c = np.std(probs, axis=0)
     uncertainties = torch.from_numpy(np.mean(sigma_c, axis=-1)) # use tensor.sort() will sort the data and produce sorted indexes
 
-    score_ordered_idxs = unlabeled_idxs[uncertainties.sort(descending=True)[1][:NUM_QUERY*2]]
+    score_ordered_idxs = unlabeled_idxs[uncertainties.sort(descending=True)[1]]
     
     if UNIQ_CONTEXT:
         iter_i_labeled_idxs = get_us_uc(labeled_idxs, score_ordered_idxs, n_pool, features, i)

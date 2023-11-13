@@ -19,18 +19,22 @@ def get_unlabel_data(n_pool, labeled_idxs, train_dataset):
     return unlabeled_idxs, unlabeled_data
 
 def get_us_uc(labeled_idxs, score_ordered_idxs, n_pool, features, iteration=0):
-	if LOW_RES:
-		total = NUM_QUERY * iteration
-		print('Total num of label pool in LowRes:', total)
-	else:
-		total = NUM_QUERY * iteration + NUM_INIT_LB
-		print('Total num of label pool in regular:', total)  
-
 	ssi = set()
 	uc = set()
+	
+	samples = features.select(indices=np.arange(n_pool)[labeled_idxs])
+	if len(samples):
+		print("\nIt's not the first query.")
+		for sample in samples:
+			ssi.add(sample['example_id'])
+			uc.add(sample['context'])
+	assert len(ssi) == len(samples), "\nThe amount of ssi from previous query is wrong. There are only {} ssi.".format(len(ssi))
+	assert len(uc) == len(samples), "The amount of uc from previous query is wrong. There are only {} uc.".format(len(uc))
+	print('Before filter, we already have {} instances.'.format(len(samples)))
+
 	filtered_score_ordered_idx = []
 	for soi in score_ordered_idxs:
-		pool_idxs = np.zeros(len(features), dtype=bool) # TODO: newly added
+		pool_idxs = np.zeros(len(features), dtype=bool)
 		pool_idxs[soi] = True
 		sample = features.select(indices=np.arange(n_pool)[pool_idxs])
 
@@ -40,12 +44,19 @@ def get_us_uc(labeled_idxs, score_ordered_idxs, n_pool, features, iteration=0):
 				uc.add(sample[0]['context'])
 				filtered_score_ordered_idx.append(soi)
 
-		if len(filtered_score_ordered_idx) == total:
-			print('Break the loop, we have {} unique ssi having unique context.'.format(len(ssi)))
-			break
+		if not iteration:
+			if len(filtered_score_ordered_idx) == NUM_INIT_LB:
+				break
+		else:	
+			if len(filtered_score_ordered_idx) == NUM_QUERY:
+				break
 	
-	assert len(filtered_score_ordered_idx) == total, "We didn't socre enough instances."
-	print('\nFinally, we have {} instances.'.format(len(filtered_score_ordered_idx)))
+	print('We have {} unique ssi having unique context.\n'.format(len(ssi)))
+	if not iteration:
+		assert len(filtered_score_ordered_idx) == NUM_INIT_LB, "Not enough :("
+	else:	
+		assert len(filtered_score_ordered_idx) == NUM_QUERY, "Not enough :("
+
 	labeled_idxs[filtered_score_ordered_idx] = True
 	return np.arange(n_pool)[labeled_idxs]
 

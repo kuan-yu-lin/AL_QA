@@ -36,7 +36,7 @@ def least_confidence(n_pool, labeled_idxs, dataset, features, examples, device, 
             confidence_dict[idx] = np.array([0])
 
     sorted_confidence_list = sorted(confidence_dict.items(), key=lambda x: x[1])
-    score_ordered_idxs = unlabeled_idxs[[idx for (idx, _) in sorted_confidence_list[:NUM_QUERY*2]]]
+    score_ordered_idxs = unlabeled_idxs[[idx for (idx, _) in sorted_confidence_list]]
     
     if UNIQ_CONTEXT:
         iter_i_labeled_idxs = get_us_uc(labeled_idxs, score_ordered_idxs, n_pool, features, i)

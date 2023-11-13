@@ -14,6 +14,8 @@ MODEL_BATCH = args_input.model_batch
 NUM_QUERY = args_input.batch
 LOW_RES = args_input.low_resource
 UNIQ_CONTEXT = args_input.unique_context
+if UNIQ_CONTEXT: n = NUM_QUERY*10
+else: n = NUM_QUERY*2
 
 def batch_bald(n_pool, labeled_idxs, dataset, features, examples, device, i):
     unlabeled_idxs, unlabeled_data = get_unlabel_data(n_pool, labeled_idxs, dataset)
@@ -51,7 +53,7 @@ def batch_bald(n_pool, labeled_idxs, dataset, features, examples, device, i):
     H2 = (H(pool_p_y).sum(axis=(1,2))/k)
 
     # get all class combinations
-    c_1_to_n = class_combinations(c, NUM_QUERY*5, m) # tensor of size [m * n]
+    c_1_to_n = class_combinations(c, n, m) # tensor of size [m * n]
 
     # tensor of size [m * k]
     p_y_1_to_n_minus_1 = None
@@ -62,7 +64,7 @@ def batch_bald(n_pool, labeled_idxs, dataset, features, examples, device, i):
     # create a mask to keep track of which indices we've chosen
     remaining_indices = torch.ones(len(sub_pool_data), dtype=bool)
 
-    for batch_n in range(NUM_QUERY*5):
+    for batch_n in range(n):
         # tensor of size [N * m * l] # [500, 10000, 3]
         p_y_n = pool_p_y[:, c_1_to_n[:, batch_n], :] # k should be >= c 
 

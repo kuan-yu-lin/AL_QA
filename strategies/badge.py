@@ -11,6 +11,9 @@ args_input = arguments.get_args()
 NUM_QUERY = args_input.batch
 MODEL_BATCH = args_input.model_batch
 UNIQ_CONTEXT = args_input.unique_context
+UNIQ_CONTEXT = args_input.unique_context
+if UNIQ_CONTEXT: n = NUM_QUERY*10
+else: n = NUM_QUERY*2
 
 def badge(n_pool, labeled_idxs, dataset, features, examples, device, i):
     unlabeled_idxs, unlabeled_data = get_unlabel_data(n_pool, labeled_idxs, dataset)
@@ -24,7 +27,7 @@ def badge(n_pool, labeled_idxs, dataset, features, examples, device, i):
 
     gradEmbedding = get_grad_embeddings(unlabeled_dataloader, device, unlabeled_features, examples)
     print('Got embeddings.')
-    chosen = init_centers(gradEmbedding, NUM_QUERY*2)
+    chosen = init_centers(gradEmbedding, n)
     score_ordered_idxs = unlabeled_idxs[chosen]
     
     if UNIQ_CONTEXT:

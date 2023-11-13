@@ -35,7 +35,7 @@ def margin(n_pool, labeled_idxs, train_dataset, features, examples, device, i):
             uncertainties_dict[idx] = np.array([0])
 
     sorted_uncertainties_list = sorted(uncertainties_dict.items(), key=lambda x: x[1], reverse=True)
-    score_ordered_idxs = unlabeled_idxs[[idx for (idx, _) in sorted_uncertainties_list[:NUM_QUERY*2]]]
+    score_ordered_idxs = unlabeled_idxs[[idx for (idx, _) in sorted_uncertainties_list]]
     
     if UNIQ_CONTEXT:
         iter_i_labeled_idxs = get_us_uc(labeled_idxs, score_ordered_idxs, n_pool, features, i)

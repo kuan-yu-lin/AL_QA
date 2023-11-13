@@ -395,7 +395,7 @@ def logits_to_prob(start_logits, end_logits, features, batch_idx, examples, num_
     for idx, feature in enumerate(features):
         example_to_features[feature["example_id"]].append((idx, batch_idx[idx]))
     
-    for example in tqdm(examples, desc="Computing metrics"):
+    for example in examples:
         if LOW_RES:
             example_id = example["qid"]
         else:
