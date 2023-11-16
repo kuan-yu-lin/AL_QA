@@ -8,7 +8,7 @@ python main.py \
     -d NewsQA \
     -u True \
     -r True \
-    -g 5
+    -g 6
 
 python main.py \
     --exp_id 525b \
@@ -18,7 +18,7 @@ python main.py \
     -d NewsQA \
     -u True \
     -r True \
-    -g 5
+    -g 6
 
 python main.py \
     --exp_id 525e \
@@ -28,7 +28,7 @@ python main.py \
     -d NewsQA \
     -u True \
     -r True \
-    -g 5
+    -g 6
 
 python main.py \
     --exp_id 525j \
@@ -38,7 +38,7 @@ python main.py \
     -d NewsQA \
     -u True \
     -r True \
-    -g 5
+    -g 6
 
 python main.py \
     --exp_id 525h \
@@ -48,7 +48,7 @@ python main.py \
     -d NewsQA \
     -u True \
     -r True \
-    -g 5
+    -g 6
 
 python main.py \
     --exp_id 525c \
@@ -58,7 +58,7 @@ python main.py \
     -d NewsQA \
     -u True \
     -r True \
-    -g 5
+    -g 6
 
 python main.py \
     --exp_id 525f \
@@ -68,7 +68,7 @@ python main.py \
     -d NewsQA \
     -u True \
     -r True \
-    -g 5
+    -g 6
 
 python main.py \
     --exp_id 525k \
@@ -78,7 +78,7 @@ python main.py \
     -d NewsQA \
     -u True \
     -r True \
-    -g 5
+    -g 6
 
 python main.py \
     --exp_id 525i \
@@ -88,7 +88,7 @@ python main.py \
     -d NewsQA \
     -u True \
     -r True \
-    -g 5
+    -g 6
 
 python main.py \
     --exp_id 525d \
@@ -98,7 +98,7 @@ python main.py \
     -d NewsQA \
     -u True \
     -r True \
-    -g 5
+    -g 6
 
 python main.py \
     --exp_id 525g \
@@ -108,7 +108,7 @@ python main.py \
     -d NewsQA \
     -u True \
     -r True \
-    -g 5
+    -g 6
 
 python main.py \
     --exp_id 525l \
@@ -118,4 +118,4 @@ python main.py \
     -d NewsQA \
     -u True \
     -r True \
-    -g 5
+    -g 6

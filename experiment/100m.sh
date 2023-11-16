@@ -5,7 +5,7 @@ python main.py \
     -a BatchBALDDropout \
     -q 200 \
     -b 50 \
-    -d DROP \
+    -d BioASQ \
     -r True \
     -g 5
 
@@ -14,7 +14,7 @@ python main.py \
     -a BatchBALDDropout \
     -q 200 \
     -b 50 \
-    -d BioASQ \
+    -d DROP \
     -r True \
     -g 5
 
@@ -43,4 +43,19 @@ python main.py \
     -b 50 \
     -d SearchQA \
     -r True \
-    -g 6
+    -g 5
+
+python main.py \
+    --exp_id 127m \
+    -a BatchBALDDropout \
+    -q 200 \
+    -b 50 \
+    -d NaturalQuestions \
+    -r True \
+    -g 5
+
+# python main.py \
+#     --exp_id 111m \
+#     -a BadgeSampling \
+#     -u True \
+#     -g 5

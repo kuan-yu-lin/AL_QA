@@ -8,7 +8,7 @@ python main.py \
     -d DROP \
     -u True \
     -r True \
-    -g 7
+    -g 5
 
 python main.py \
     --exp_id 523b \
@@ -18,7 +18,7 @@ python main.py \
     -d DROP \
     -u True \
     -r True \
-    -g 7
+    -g 5
 
 python main.py \
     --exp_id 523e \
@@ -28,7 +28,7 @@ python main.py \
     -d DROP \
     -u True \
     -r True \
-    -g 7
+    -g 5
 
 python main.py \
     --exp_id 523j \
@@ -38,7 +38,7 @@ python main.py \
     -d DROP \
     -u True \
     -r True \
-    -g 7
+    -g 5
 
 python main.py \
     --exp_id 523h \
@@ -48,7 +48,7 @@ python main.py \
     -d DROP \
     -u True \
     -r True \
-    -g 7
+    -g 5
 
 python main.py \
     --exp_id 523c \
@@ -58,7 +58,7 @@ python main.py \
     -d DROP \
     -u True \
     -r True \
-    -g 7
+    -g 5
 
 python main.py \
     --exp_id 523f \
@@ -68,7 +68,7 @@ python main.py \
     -d DROP \
     -u True \
     -r True \
-    -g 7
+    -g 5
 
 python main.py \
     --exp_id 523k \
@@ -78,7 +78,7 @@ python main.py \
     -d DROP \
     -u True \
     -r True \
-    -g 7
+    -g 5
 
 python main.py \
     --exp_id 523i \
@@ -88,7 +88,7 @@ python main.py \
     -d DROP \
     -u True \
     -r True \
-    -g 7
+    -g 5
 
 python main.py \
     --exp_id 523d \
@@ -98,7 +98,7 @@ python main.py \
     -d DROP \
     -u True \
     -r True \
-    -g 7
+    -g 5
 
 python main.py \
     --exp_id 523g \
@@ -108,7 +108,7 @@ python main.py \
     -d DROP \
     -u True \
     -r True \
-    -g 7
+    -g 5
 
 python main.py \
     --exp_id 523l \
@@ -118,4 +118,4 @@ python main.py \
     -d DROP \
     -u True \
     -r True \
-    -g 7
+    -g 5
