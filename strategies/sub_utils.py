@@ -61,38 +61,41 @@ def get_us_uc(labeled_idxs, score_ordered_idxs, n_pool, features, iteration=0):
 	return np.arange(n_pool)[labeled_idxs]
 
 def get_us(labeled_idxs, score_ordered_idxs, n_pool, features, iteration=0):
-	if LOW_RES:
-		total = NUM_QUERY * iteration
-		print('Total num of label pool in LowRes:', total)
-	else:
-		total = NUM_QUERY * iteration + NUM_INIT_LB
-		print('Total num of label pool in regular:', total)  
-
-	# count if we have enough unique sample to select
-	labeled_idxs_ = labeled_idxs.copy()
-	labeled_idxs_[score_ordered_idxs] = True
-	samples_ = features.select(indices=np.arange(n_pool)[labeled_idxs_])
-	ssi_ = set(samples_['example_id']) 
-	print('\nWe have {} unique ssi in scored pool.\n'.format(len(ssi_)))
-
-	# create select_sample_id(ssi) set
-	labeled_idxs[score_ordered_idxs[:NUM_QUERY]] = True
+	ssi = set()
+	current_ssi = set()
+	
 	samples = features.select(indices=np.arange(n_pool)[labeled_idxs])
-	ssi = set(samples['example_id']) 
-	print('We have {} unique ssi.'.format(len(ssi)))
-
-	sliced_till = NUM_QUERY
-	while len(ssi) < total:
-		difference = total - len(ssi)
-		print('Not enough ssi, still need {} ssi.'.format(difference))
-		labeled_idxs[score_ordered_idxs[sliced_till:sliced_till + difference]] = True	# get extra
-		sliced_till += difference
-		samples = features.select(indices=np.arange(n_pool)[labeled_idxs])
+	if len(samples):
 		for sample in samples:
 			ssi.add(sample['example_id'])
-		print('End of add extra ssi, now we have {} unique ssi.'.format(len(ssi)))
-    
-	labeled_idxs[score_ordered_idxs[:sliced_till]] = True
+	print('Before filter, we already have {} instances.'.format(len(samples)))
+
+	for i, soi in enumerate(score_ordered_idxs):
+		pool_idxs = np.zeros(len(features), dtype=bool)
+		pool_idxs[soi] = True
+		sample = features.select(indices=np.arange(n_pool)[pool_idxs])
+
+		if sample[0]['example_id'] not in ssi:
+			ssi.add(sample[0]['example_id'])
+			current_ssi.add(sample[0]['example_id'])
+
+		if not iteration:
+			if len(current_ssi) == NUM_INIT_LB:
+				sliced = i + 1
+				break
+		else:	
+			if len(current_ssi) == NUM_QUERY:
+				sliced = i + 1
+				break
+	
+	print('We added {} unique ssi in this query to get {} unique ssi.\n'.format(len(current_ssi), len(ssi)))
+	if LOW_RES:
+		total = NUM_QUERY * iteration
+	else:
+		total = NUM_QUERY * iteration + NUM_INIT_LB
+	assert len(ssi) == total, "Not enough :(" 
+
+	labeled_idxs[score_ordered_idxs[:sliced]] = True
 	return np.arange(n_pool)[labeled_idxs]
 
 # kmeans ++ initialization

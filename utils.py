@@ -162,6 +162,15 @@ def load_dataset_mrqa(d):
 		for t in searchqa_train: assert t['subset'] == 'SearchQA', 'Please select corrrect train data for SearchQA.'
 		for v in searchqa_val: assert v['subset'] == 'SearchQA', 'Please select corrrect validation data for SearchQA.'
 		return searchqa_train, searchqa_val
+	elif d == 'naturalquestions':
+		# the 412,749th to 516,819th in train set
+		# the 45,389th to 58,224th in val set
+		data_set = data['train'].select(range(412748, 516819))
+		naturalquestions_train = data_set.shuffle(1127).select(range(10000))
+		naturalquestions_val = data['validation'].select(range(45385, 58221))
+		for t in naturalquestions_train: assert t['subset'] == 'NaturalQuestionsShort', 'Please select corrrect train data for NaturalQuestions.'
+		for v in naturalquestions_val: assert v['subset'] == 'NaturalQuestionsShort', 'Please select corrrect validation data for NaturalQuestions.'
+		return naturalquestions_train, naturalquestions_val
 	elif d == 'bioasq':
 		# the first to the 1504th in the test set
 		sub = data['test'].select(range(1504))
