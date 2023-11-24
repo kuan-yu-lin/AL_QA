@@ -1,73 +1,73 @@
 #!/bin/bash
 
 python main.py \
-    --exp_id 525a \
+    --exp_id 124a \
     -q 200 \
     -b 50 \
     -g 2
 
 python main.py \
-    --exp_id 525b \
+    --exp_id 124b \
     -q 200 \
     -b 50 \
     -g 2
 
 python main.py \
-    --exp_id 525c \
+    --exp_id 124c \
     -q 200 \
     -b 50 \
     -g 2
 
 python main.py \
-    --exp_id 525d \
+    --exp_id 124d \
     -q 200 \
     -b 50 \
     -g 2
 
 python main.py \
-    --exp_id 525e \
+    --exp_id 124e \
     -q 200 \
     -b 50 \
     -g 2
 
 python main.py \
-    --exp_id 525f \
+    --exp_id 124f \
     -q 200 \
     -b 50 \
     -g 2
 
 python main.py \
-    --exp_id 525g \
+    --exp_id 124g \
     -q 200 \
     -b 50 \
     -g 2
 
 python main.py \
-    --exp_id 525h \
+    --exp_id 124h \
     -q 200 \
     -b 50 \
     -g 2
 
 python main.py \
-    --exp_id 525i \
+    --exp_id 124i \
     -q 200 \
     -b 50 \
     -g 2
 
 python main.py \
-    --exp_id 525j \
+    --exp_id 124j \
     -q 200 \
     -b 50 \
     -g 2
 
 python main.py \
-    --exp_id 525k \
+    --exp_id 124k \
     -q 200 \
     -b 50 \
     -g 2
 
 python main.py \
-    --exp_id 525l \
+    --exp_id 124l \
     -q 200 \
     -b 50 \
     -g 2
