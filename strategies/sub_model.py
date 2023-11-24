@@ -8,19 +8,21 @@ from torch.autograd import Variable
 import torch.nn.functional as F
 from copy import deepcopy
 import os
-
 import sys
 sys.path.insert(0, './')
+
 import arguments
+from strategies.sub_utils import sub_decode_id
 
 args_input = arguments.get_args()
 NUM_QUERY = args_input.batch
 NUM_INIT_LB = args_input.initseed
-DATA_NAME = args_input.dataset
-STRATEGY_NAME = args_input.ALstrategy
-MODEL_NAME = args_input.model
-LOW_RES = args_input.low_resource
+# DATA_NAME = args_input.dataset
+# STRATEGY_NAME = args_input.ALstrategy
+# MODEL_NAME = args_input.model
+# LOW_RES = args_input.low_resource
 EXP_ID = str(args_input.exp_id)
+LOW_RES, DATA_NAME, STRATEGY_NAME, MODEL_NAME, _ = sub_decode_id()
 
 metric = evaluate.load("squad")
 

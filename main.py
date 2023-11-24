@@ -20,17 +20,13 @@ args_input = arguments.get_args()
 NUM_QUERY = args_input.batch
 NUM_INIT_LB = args_input.initseed
 ITERATION = int(args_input.quota / args_input.batch)
-DATA_NAME = args_input.dataset
-STRATEGY_NAME = args_input.ALstrategy
-MODEL_NAME = args_input.model
 LEARNING_RATE = args_input.learning_rate
 EXP_ROUND = args_input.exp_round
 MODEL_BATCH = args_input.model_batch
 NUM_TRAIN_EPOCH = args_input.train_epochs
 ## exp setting
 EXP_ID = str(args_input.exp_id)
-LOW_RES = args_input.low_resource
-UNIQ_CONTEXT = args_input.unique_context
+LOW_RES, DATA_NAME, STRATEGY_NAME, MODEL_NAME, UNIQ_CONTEXT = decode_id()
 
 ## set dir
 if args_input.dev_mode:

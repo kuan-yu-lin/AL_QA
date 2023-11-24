@@ -4,14 +4,15 @@ import numpy as np
 import sys
 sys.path.insert(0, './')
 
-from strategies.sub_utils import get_unlabel_data, get_us, get_us_uc
+from strategies.sub_utils import get_unlabel_data, get_us, get_us_uc, sub_decode_id
 from strategies.sub_model import get_prob
 import arguments
 
 args_input = arguments.get_args()
 NUM_QUERY = args_input.batch
 MODEL_BATCH = args_input.model_batch
-UNIQ_CONTEXT = args_input.unique_context
+# UNIQ_CONTEXT = args_input.unique_context
+_, _, _, _, UNIQ_CONTEXT = sub_decode_id()
 
 def entropy(n_pool, labeled_idxs, dataset, features, examples, device, i):
     unlabeled_idxs, unlabeled_data = get_unlabel_data(n_pool, labeled_idxs, dataset)

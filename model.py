@@ -10,17 +10,19 @@ from collections import Counter
 import string
 import re
 import arguments
+from utils import decode_id
 
 metric = evaluate.load("squad")
 
 args_input = arguments.get_args()
 NUM_QUERY = args_input.batch
 NUM_INIT_LB = args_input.initseed
-DATA_NAME = args_input.dataset
-STRATEGY_NAME = args_input.ALstrategy
-MODEL_NAME = args_input.model
-LOW_RES = args_input.low_resource
+# DATA_NAME = args_input.dataset
+# STRATEGY_NAME = args_input.ALstrategy
+# MODEL_NAME = args_input.model
+# LOW_RES = args_input.low_resource
 EXP_ID = str(args_input.exp_id)
+LOW_RES, DATA_NAME, STRATEGY_NAME, MODEL_NAME, UNIQ_CONTEXT = decode_id()
 
 if args_input.dev_mode:
 	MODEL_DIR = os.path.abspath('') + '/dev_models'

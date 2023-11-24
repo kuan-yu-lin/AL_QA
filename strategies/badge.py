@@ -3,15 +3,15 @@ from transformers import default_data_collator
 
 import sys
 sys.path.insert(0, './')
-from strategies.sub_utils import get_unlabel_data, init_centers, get_us, get_us_uc
+from strategies.sub_utils import get_unlabel_data, init_centers, get_us, get_us_uc, sub_decode_id
 from strategies.sub_model import get_grad_embeddings
 import arguments
 
 args_input = arguments.get_args()
 NUM_QUERY = args_input.batch
 MODEL_BATCH = args_input.model_batch
-UNIQ_CONTEXT = args_input.unique_context
-UNIQ_CONTEXT = args_input.unique_context
+# UNIQ_CONTEXT = args_input.unique_context
+_, _, _, _, UNIQ_CONTEXT = sub_decode_id()
 if UNIQ_CONTEXT: n = NUM_QUERY*10
 else: n = NUM_QUERY*2
 

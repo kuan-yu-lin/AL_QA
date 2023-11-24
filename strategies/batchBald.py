@@ -5,17 +5,18 @@ import numpy as np
 import sys
 sys.path.insert(0, './')
 
-from strategies.sub_utils import get_unlabel_data, H, class_combinations, get_us, get_us_uc
+from strategies.sub_utils import get_unlabel_data, H, class_combinations, get_us, get_us_uc, sub_decode_id
 from strategies.sub_model import get_batch_prob_dropout_split
 import arguments
 
 args_input = arguments.get_args()
 MODEL_BATCH = args_input.model_batch
 NUM_QUERY = args_input.batch
-LOW_RES = args_input.low_resource
-UNIQ_CONTEXT = args_input.unique_context
+# LOW_RES = args_input.low_resource
+# UNIQ_CONTEXT = args_input.unique_context
+LOW_RES, _, _, _, UNIQ_CONTEXT = sub_decode_id()
 if UNIQ_CONTEXT: n = NUM_QUERY*10
-else: n = NUM_QUERY*2
+else: n = NUM_QUERY*5
 
 def batch_bald(n_pool, labeled_idxs, dataset, features, examples, device, i):
     unlabeled_idxs, unlabeled_data = get_unlabel_data(n_pool, labeled_idxs, dataset)
