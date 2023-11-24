@@ -2,9 +2,11 @@ import argparse
 
 def decode_id(exp_id):
 	[p1, p2, p3, p4] = list(exp_id)[:4]
-	UNIQ_CONTEXT = False
-	LOW_RES = False
 	MODEL_NAME = 'RoBERTa'
+	UNIQ_CONTEXT = False
+	DIST_EMBED = False
+	LOW_RES = False
+	
 
 	if p1 == '2':
 		MODEL_NAME = 'BERT'
@@ -14,6 +16,8 @@ def decode_id(exp_id):
 		MODEL_NAME = 'BERTLarge'
 	elif p1 == '5':
 		UNIQ_CONTEXT = True
+	elif p1 == '6':
+		DIST_EMBED = True
 
 	if p2 == '2': LOW_RES = True
 	
@@ -59,7 +63,7 @@ def decode_id(exp_id):
 	elif p4 == 'm':
 		STRATEGY_NAME = 'BatchBALD'
 	
-	return LOW_RES, DATA_NAME, STRATEGY_NAME, MODEL_NAME, UNIQ_CONTEXT
+	return MODEL_NAME, UNIQ_CONTEXT, DIST_EMBED, LOW_RES, DATA_NAME, STRATEGY_NAME
 
 
 def get_args():
@@ -87,11 +91,13 @@ def get_args():
 	# parser.add_argument('--unique_context', '-u', default=False, type=bool, help='True if it is the experiment with unique context data.')
 	args = parser.parse_args()
 
-	MODEL_NAME, UNIQ_CONTEXT, DIST_EMBED, LOW_RES, DATA_NAME, STRATEGY_NAME,  = decode_id(args.exp_id)
+	MODEL_NAME, UNIQ_CONTEXT, DIST_EMBED, LOW_RES, DATA_NAME, STRATEGY_NAME = decode_id(args.exp_id)
 	parser.add_argument('--model', default=MODEL_NAME)
 	parser.add_argument('--uni_con', default=UNIQ_CONTEXT)
 	parser.add_argument('--dist_embed', default=DIST_EMBED)
 	parser.add_argument('--low_res', default=LOW_RES)
 	parser.add_argument('--dataset', default=DATA_NAME)
 	parser.add_argument('--ALstrategy', default=STRATEGY_NAME)
-	return args
+	args_ = parser.parse_args()
+	
+	return args_

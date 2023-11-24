@@ -60,8 +60,8 @@ else:
 	train_data, val_data = load_dataset_mrqa(DATA_NAME.lower())
 	# squad = load_dataset(DATA_NAME.lower(), cache_dir=CACHE_DIR)
 	if args_input.dev_mode:
-		print('Use 4000 training data and 1500 testing data.')
-		train_data = train_data.select(range(4000))
+		print('Use 10000 training data and 1500 testing data.')
+		train_data = train_data.select(range(10000))
 		# val_data = squad["validation"]
 	# else:
 	# 	train_data = train_data

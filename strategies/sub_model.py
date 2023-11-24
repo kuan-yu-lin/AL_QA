@@ -11,8 +11,6 @@ import sys
 sys.path.insert(0, './')
 
 import arguments
-from strategies.sub_utils import sub_decode_id
-
 args_input = arguments.get_args()
 EXP_ID = str(args_input.exp_id)
 MODEL_NAME = args_input.model

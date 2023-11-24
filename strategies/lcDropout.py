@@ -4,7 +4,7 @@ import numpy as np
 import sys
 sys.path.insert(0, './')
 
-from strategies.sub_utils import get_unlabel_data, get_us, get_us_uc, sub_decode_id
+from strategies.sub_utils import get_unlabel_data, get_us, get_us_uc
 from strategies.sub_model import get_prob_dropout
 import arguments
 

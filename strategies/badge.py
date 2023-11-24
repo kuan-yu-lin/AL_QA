@@ -3,7 +3,7 @@ from transformers import default_data_collator
 
 import sys
 sys.path.insert(0, './')
-from strategies.sub_utils import get_unlabel_data, init_centers, get_us, get_us_uc, sub_decode_id
+from strategies.sub_utils import get_unlabel_data, init_centers, get_us, get_us_uc
 from strategies.sub_model import get_grad_embeddings
 import arguments
 

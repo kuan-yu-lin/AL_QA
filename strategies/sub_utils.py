@@ -21,6 +21,7 @@ def get_unlabel_data(n_pool, labeled_idxs, train_dataset):
 def get_us_uc(labeled_idxs, score_ordered_idxs, n_pool, features, iteration=0):
 	ssi = set()
 	uc = set()
+	current_ssi = 0
 	
 	samples = features.select(indices=np.arange(n_pool)[labeled_idxs])
 	if len(samples):
@@ -32,7 +33,6 @@ def get_us_uc(labeled_idxs, score_ordered_idxs, n_pool, features, iteration=0):
 	assert len(uc) == len(samples), "The amount of uc from previous query is wrong. There are only {} uc.".format(len(uc))
 	print('Before filter, we already have {} instances.'.format(len(samples)))
 
-	filtered_score_ordered_idx = []
 	for soi in score_ordered_idxs:
 		pool_idxs = np.zeros(len(features), dtype=bool)
 		pool_idxs[soi] = True
@@ -42,27 +42,38 @@ def get_us_uc(labeled_idxs, score_ordered_idxs, n_pool, features, iteration=0):
 			if sample[0]['context'] not in uc:
 				ssi.add(sample[0]['example_id'])
 				uc.add(sample[0]['context'])
-				filtered_score_ordered_idx.append(soi)
+				current_ssi += 1
 
+		# check if we got enough ssi during current query
 		if not iteration:
-			if len(filtered_score_ordered_idx) == NUM_INIT_LB:
+			if current_ssi == NUM_INIT_LB:
 				break
 		else:	
-			if len(filtered_score_ordered_idx) == NUM_QUERY:
+			if current_ssi == NUM_QUERY:
 				break
 	
+	if LOW_RES:
+		total = NUM_QUERY * iteration
+	else:
+		total = NUM_QUERY * iteration + NUM_INIT_LB
 	print('We have {} unique ssi having unique context.\n'.format(len(ssi)))
-	if not iteration:
-		assert len(filtered_score_ordered_idx) == NUM_INIT_LB, "Not enough :("
-	else:	
-		assert len(filtered_score_ordered_idx) == NUM_QUERY, "Not enough :("
+	assert len(ssi) == total, "Not enough :(" 
+
+	# select all instances belonging to unique samples
+	filtered_score_ordered_idx = []
+	for idxs in score_ordered_idxs:
+		pool_idxs = np.zeros(len(features), dtype=bool)
+		pool_idxs[idxs] = True
+		sample = features.select(indices=np.arange(n_pool)[pool_idxs])
+		if sample[0]['example_id'] in ssi:
+			filtered_score_ordered_idx.append(idxs)
 
 	labeled_idxs[filtered_score_ordered_idx] = True
 	return np.arange(n_pool)[labeled_idxs]
 
 def get_us(labeled_idxs, score_ordered_idxs, n_pool, features, iteration=0):
 	ssi = set()
-	current_ssi = set()
+	current_ssi = 0
 	
 	samples = features.select(indices=np.arange(n_pool)[labeled_idxs])
 	if len(samples):
@@ -70,25 +81,22 @@ def get_us(labeled_idxs, score_ordered_idxs, n_pool, features, iteration=0):
 			ssi.add(sample['example_id'])
 	print('Before filter, we already have {} instances.'.format(len(samples)))
 
-	filtered_score_ordered_idx = []
-	for i, soi in enumerate(score_ordered_idxs):
+	# filter out all unique samples
+	for soi in score_ordered_idxs:
 		pool_idxs = np.zeros(len(features), dtype=bool)
 		pool_idxs[soi] = True
 		sample = features.select(indices=np.arange(n_pool)[pool_idxs])
 
 		if sample[0]['example_id'] not in ssi:
 			ssi.add(sample[0]['example_id'])
-			current_ssi.add(sample[0]['example_id'])
-			filtered_score_ordered_idx.append(soi)
+			current_ssi += 1
 
 		# check if we got enough ssi during current query
 		if not iteration:
-			if len(current_ssi) == NUM_INIT_LB:
-				sliced = i + 1
+			if current_ssi == NUM_INIT_LB:
 				break
 		else:	
-			if len(current_ssi) == NUM_QUERY:
-				sliced = i + 1
+			if current_ssi == NUM_QUERY:
 				break
 	
 	if LOW_RES:
@@ -96,20 +104,21 @@ def get_us(labeled_idxs, score_ordered_idxs, n_pool, features, iteration=0):
 	else:
 		total = NUM_QUERY * iteration + NUM_INIT_LB
 	assert len(ssi) == total, "Not enough :(" 
-
-	for idxs in score_ordered_idxs[sliced:]:
+	
+	# select all instances belonging to unique samples
+	filtered_score_ordered_idx = []
+	for idxs in score_ordered_idxs:
 		pool_idxs = np.zeros(len(features), dtype=bool)
 		pool_idxs[idxs] = True
 		sample = features.select(indices=np.arange(n_pool)[pool_idxs])
 		if sample[0]['example_id'] in ssi:
 			filtered_score_ordered_idx.append(idxs)
 	
-	# labeled_idxs[score_ordered_idxs[:sliced]] = True
 	labeled_idxs[filtered_score_ordered_idx] = True
 
 	# dataset = dataset.filter(lambda instance: instance['sample_id'] in set_of_selected_sample_ids)
 	# num_proc=
-	print('We added {} unique ssi in this query to get {} unique ssi and {} instances in total.\n'.format(len(current_ssi), len(ssi), len(filtered_score_ordered_idx)))
+	print('We added {} unique ssi in this query to get {} unique ssi and {} instances in total.\n'.format(current_ssi, len(ssi), len(filtered_score_ordered_idx)))
 	return np.arange(n_pool)[labeled_idxs]
 
 # kmeans ++ initialization
