@@ -9,9 +9,72 @@ sys.path.insert(0, './')
 
 import arguments
 args_input = arguments.get_args()
-LOW_RES = args_input.low_resource
 NUM_QUERY = args_input.batch
 NUM_INIT_LB = args_input.initseed
+
+def sub_decode_id():
+	args_input = arguments.get_args()
+	[p1, p2, p3, p4] = list(str(args_input.exp_id))[:4]
+	UNIQ_CONTEXT = False
+	LOW_RES = False
+	MODEL_NAME = 'RoBERTa'
+
+	if p1 == '2':
+		MODEL_NAME = 'BERT'
+	elif p1 == '3':
+		MODEL_NAME = 'RoBERTaLarge'
+	elif p1 == '4':
+		MODEL_NAME = 'BERTLarge'
+	elif p1 == '5':
+		UNIQ_CONTEXT = True
+
+	if p2 == '2': LOW_RES = True
+	
+	if p3 == '1':
+		DATA_NAME = 'SQuAD'
+	elif p3 == '2':
+		DATA_NAME = 'BioASQ'
+	elif p3 == '3':
+		DATA_NAME = 'DROP'
+	elif p3 == '4':
+		DATA_NAME = 'TextbookQA'
+	elif p3 == '5':
+		DATA_NAME = 'NewsQA'
+	elif p3 == '6':
+		DATA_NAME = 'SearchQA'
+	elif p3 == '7':
+		DATA_NAME = 'NaturalQuestions'
+	
+	if p4 == 'a':
+		STRATEGY_NAME = 'RandomSampling'
+	elif p4 == 'b':
+		STRATEGY_NAME = 'MarginSampling'
+	elif p4 == 'c':
+		STRATEGY_NAME = 'LeastConfidence'
+	elif p4 == 'd':
+		STRATEGY_NAME = 'EntropySampling'
+	elif p4 == 'e':
+		STRATEGY_NAME = 'MarginSamplingDropout'
+	elif p4 == 'f':
+		STRATEGY_NAME = 'LeastConfidenceDropout'
+	elif p4 == 'g':
+		STRATEGY_NAME = 'EntropySamplingDropout'
+	elif p4 == 'h':
+		STRATEGY_NAME = 'KMeansSampling'
+	elif p4 == 'i':
+		STRATEGY_NAME = 'KCenterGreedy'
+	elif p4 == 'j':
+		STRATEGY_NAME = 'MeanSTD'
+	elif p4 == 'k':
+		STRATEGY_NAME = 'BALDDropout'
+	elif p4 == 'l':
+		STRATEGY_NAME = 'BadgeSampling'
+	elif p4 == 'm':
+		STRATEGY_NAME = 'BatchBALD'
+	
+	return LOW_RES, DATA_NAME, STRATEGY_NAME, MODEL_NAME, UNIQ_CONTEXT
+
+LOW_RES, _, _, _, _ = sub_decode_id()
 
 def get_unlabel_data(n_pool, labeled_idxs, train_dataset):
     unlabeled_idxs = np.arange(n_pool)[~labeled_idxs]
@@ -70,6 +133,7 @@ def get_us(labeled_idxs, score_ordered_idxs, n_pool, features, iteration=0):
 			ssi.add(sample['example_id'])
 	print('Before filter, we already have {} instances.'.format(len(samples)))
 
+	filtered_score_ordered_idx = []
 	for i, soi in enumerate(score_ordered_idxs):
 		pool_idxs = np.zeros(len(features), dtype=bool)
 		pool_idxs[soi] = True
@@ -78,7 +142,9 @@ def get_us(labeled_idxs, score_ordered_idxs, n_pool, features, iteration=0):
 		if sample[0]['example_id'] not in ssi:
 			ssi.add(sample[0]['example_id'])
 			current_ssi.add(sample[0]['example_id'])
+			filtered_score_ordered_idx.append(soi)
 
+		# check if we got enough ssi during current query
 		if not iteration:
 			if len(current_ssi) == NUM_INIT_LB:
 				sliced = i + 1
@@ -88,14 +154,25 @@ def get_us(labeled_idxs, score_ordered_idxs, n_pool, features, iteration=0):
 				sliced = i + 1
 				break
 	
-	print('We added {} unique ssi in this query to get {} unique ssi.\n'.format(len(current_ssi), len(ssi)))
 	if LOW_RES:
 		total = NUM_QUERY * iteration
 	else:
 		total = NUM_QUERY * iteration + NUM_INIT_LB
 	assert len(ssi) == total, "Not enough :(" 
 
-	labeled_idxs[score_ordered_idxs[:sliced]] = True
+	for idxs in score_ordered_idxs[sliced:]:
+		pool_idxs = np.zeros(len(features), dtype=bool)
+		pool_idxs[idxs] = True
+		sample = features.select(indices=np.arange(n_pool)[pool_idxs])
+		if sample[0]['example_id'] in ssi:
+			filtered_score_ordered_idx.append(idxs)
+	
+	# labeled_idxs[score_ordered_idxs[:sliced]] = True
+	labeled_idxs[filtered_score_ordered_idx] = True
+
+	# dataset = dataset.filter(lambda instance: instance['sample_id'] in set_of_selected_sample_ids)
+	# num_proc=
+	print('We added {} unique ssi in this query to get {} unique ssi and {} instances in total.\n'.format(len(current_ssi), len(ssi), len(filtered_score_ordered_idx)))
 	return np.arange(n_pool)[labeled_idxs]
 
 # kmeans ++ initialization
@@ -165,3 +242,5 @@ def H(x):
         torch.Tensor -- H(x)
     """
     return -(x)*torch.log(x)
+
+
