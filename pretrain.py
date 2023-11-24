@@ -22,13 +22,12 @@ from model import *
 from utils import *
 
 args_input = arguments.get_args()
+MODEL_NAME = args_input.model
+DATA_NAME = args_input.dataset
 NUM_INIT_LB = args_input.initseed
-# DATA_NAME = args_input.dataset
 MODEL_BATCH = args_input.model_batch
-# MODEL_NAME = args_input.model
 LEARNING_RATE = args_input.learning_rate
 NUM_TRAIN_EPOCH = args_input.train_epochs
-_, DATA_NAME, _, MODEL_NAME, _ = decode_id()
 
 pretrain_model_dir =  os.path.abspath('') + '/pretrain_models' + '/' + MODEL_NAME + '_SQuAD_full_dataset_lr_3e-5'
 CACHE_DIR =  os.path.abspath('') + '/.cache'

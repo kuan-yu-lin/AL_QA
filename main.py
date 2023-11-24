@@ -13,10 +13,19 @@ import datetime
 
 import arguments
 from model import to_train, get_pred
-from strategies.sub_utils import get_us, get_us_uc
+from strategies import get_us, get_us_uc
 from utils import *
 
 args_input = arguments.get_args()
+## exp info
+EXP_ID = str(args_input.exp_id)
+MODEL_NAME = args_input.model
+UNIQ_CONTEXT = args_input.uni_con
+DIST_EMBED = args_input.dist_embed
+LOW_RES = args_input.low_res
+DATA_NAME = args_input.dataset
+STRATEGY_NAME = args_input.ALstrategy
+## exp setting
 NUM_QUERY = args_input.batch
 NUM_INIT_LB = args_input.initseed
 ITERATION = int(args_input.quota / args_input.batch)
@@ -24,9 +33,6 @@ LEARNING_RATE = args_input.learning_rate
 EXP_ROUND = args_input.exp_round
 MODEL_BATCH = args_input.model_batch
 NUM_TRAIN_EPOCH = args_input.train_epochs
-## exp setting
-EXP_ID = str(args_input.exp_id)
-LOW_RES, DATA_NAME, STRATEGY_NAME, MODEL_NAME, UNIQ_CONTEXT = decode_id()
 
 ## set dir
 if args_input.dev_mode:
@@ -51,14 +57,15 @@ else:
 	## set dir
 	strategy_model_dir = MODEL_DIR + '/' + EXP_ID
 	## load data
-	squad = load_dataset(DATA_NAME.lower(), cache_dir=CACHE_DIR)
+	train_data, val_data = load_dataset_mrqa(DATA_NAME.lower())
+	# squad = load_dataset(DATA_NAME.lower(), cache_dir=CACHE_DIR)
 	if args_input.dev_mode:
 		print('Use 4000 training data and 1500 testing data.')
-		train_data = squad["train"].select(range(4000))
-		val_data = squad["validation"]
-	else:
-		train_data = squad["train"]
-		val_data = squad["validation"]
+		train_data = train_data.select(range(4000))
+		# val_data = squad["validation"]
+	# else:
+	# 	train_data = train_data
+		# val_data = squad["validation"]
 		# print('Use full training data and full testing data.')
 
 ## disable_caching

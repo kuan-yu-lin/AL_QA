@@ -1,4 +1,4 @@
-import evaluate
+# import evaluate
 from collections import defaultdict
 from tqdm.auto import tqdm
 import numpy as np
@@ -10,19 +10,22 @@ from collections import Counter
 import string
 import re
 import arguments
-from utils import decode_id
 
-metric = evaluate.load("squad")
+# metric = evaluate.load("squad")
 
 args_input = arguments.get_args()
+## exp info
+EXP_ID = str(args_input.exp_id)
+MODEL_NAME = args_input.model
+# UNIQ_CONTEXT = args_input.uni_con
+# DIST_EMBED = args_input.dist_embed
+# LOW_RES = args_input.low_res
+DATA_NAME = args_input.dataset
+STRATEGY_NAME = args_input.ALstrategy
+## exp setting
 NUM_QUERY = args_input.batch
 NUM_INIT_LB = args_input.initseed
-# DATA_NAME = args_input.dataset
-# STRATEGY_NAME = args_input.ALstrategy
-# MODEL_NAME = args_input.model
-# LOW_RES = args_input.low_resource
-EXP_ID = str(args_input.exp_id)
-LOW_RES, DATA_NAME, STRATEGY_NAME, MODEL_NAME, UNIQ_CONTEXT = decode_id()
+
 
 if args_input.dev_mode:
 	MODEL_DIR = os.path.abspath('') + '/dev_models'
@@ -33,10 +36,7 @@ strategy_model_dir = MODEL_DIR + '/' + EXP_ID
 pretrain_model_dir =  os.path.abspath('') + '/pretrain_models' + '/' + MODEL_NAME + '_SQuAD_full_dataset_lr_3e-5'
 
 def to_train(num_train_epochs, train_dataloader, device, model, optimizer, lr_scheduler, record_loss=False):
-	if LOW_RES:
-		print('Training was performed using {} data in total.'.format(len(train_dataloader.dataset)))
-	else:
-		print('Training was performed using the sum of initial data and query data, which are {} data in total.'.format(len(train_dataloader.dataset)))
+	print('Training was performed using {} data in total.'.format(len(train_dataloader.dataset)))
 	
 	for epoch in range(num_train_epochs):
 		model.train()
@@ -80,58 +80,59 @@ def to_pretrain(num_train_epochs, train_dataloader, device, model, optimizer, lr
 	model_to_save.save_pretrained(pretrain_model_dir)
 	print('TRAIN done!')
 
+# def compute_metrics(start_logits, end_logits, features, examples):
+#     example_to_features = defaultdict(list)
+#     max_answer_length = 30
+#     n_best = 20
+#     for idx, feature in enumerate(features):
+#         example_to_features[feature["example_id"]].append(idx)
+
+#     predicted_answers = []
+#     for example in tqdm(examples, desc="Computing metrics"):
+#         example_id = example["id"]
+#         context = example["context"]
+#         answers = []
+
+#         # Loop through all features associated with that example
+#         for feature_index in example_to_features[example_id]:
+#             start_logit = start_logits[feature_index]
+#             end_logit = end_logits[feature_index]
+#             offsets = features[feature_index]["offset_mapping"]
+
+#             start_indexes = np.argsort(start_logit)[-1 : -n_best - 1 : -1].tolist()
+#             end_indexes = np.argsort(end_logit)[-1 : -n_best - 1 : -1].tolist()
+#             for start_index in start_indexes:
+#                 for end_index in end_indexes:
+#                     # Skip answers that are not fully in the context
+#                     if offsets[start_index] is None or offsets[end_index] is None:
+#                         continue
+#                     # Skip answers with a length that is either < 0 or > max_answer_length
+#                     if (
+#                         end_index < start_index
+#                         or end_index - start_index + 1 > max_answer_length
+#                     ):
+#                         continue
+
+#                     answer = {
+#                         "text": context[offsets[start_index][0] : offsets[end_index][1]],
+#                         "logit_score": start_logit[start_index] + end_logit[end_index],
+#                     }
+#                     answers.append(answer)
+
+#         # Select the answer with the best score
+#         if len(answers) > 0:
+#             best_answer = max(answers, key=lambda x: x["logit_score"])
+#             predicted_answers.append(
+#                 {"id": example_id, "prediction_text": best_answer["text"]}
+#             )
+#         else:
+#             predicted_answers.append({"id": example_id, "prediction_text": ""})
+
+#     theoretical_answers = [{"id": ex["id"], "answers": ex["answers"]} for ex in examples]
+#     return metric.compute(predictions=predicted_answers, references=theoretical_answers)
+
+# TODO: use squad in mrqa
 def compute_metrics(start_logits, end_logits, features, examples):
-    example_to_features = defaultdict(list)
-    max_answer_length = 30
-    n_best = 20
-    for idx, feature in enumerate(features):
-        example_to_features[feature["example_id"]].append(idx)
-
-    predicted_answers = []
-    for example in tqdm(examples, desc="Computing metrics"):
-        example_id = example["id"]
-        context = example["context"]
-        answers = []
-
-        # Loop through all features associated with that example
-        for feature_index in example_to_features[example_id]:
-            start_logit = start_logits[feature_index]
-            end_logit = end_logits[feature_index]
-            offsets = features[feature_index]["offset_mapping"]
-
-            start_indexes = np.argsort(start_logit)[-1 : -n_best - 1 : -1].tolist()
-            end_indexes = np.argsort(end_logit)[-1 : -n_best - 1 : -1].tolist()
-            for start_index in start_indexes:
-                for end_index in end_indexes:
-                    # Skip answers that are not fully in the context
-                    if offsets[start_index] is None or offsets[end_index] is None:
-                        continue
-                    # Skip answers with a length that is either < 0 or > max_answer_length
-                    if (
-                        end_index < start_index
-                        or end_index - start_index + 1 > max_answer_length
-                    ):
-                        continue
-
-                    answer = {
-                        "text": context[offsets[start_index][0] : offsets[end_index][1]],
-                        "logit_score": start_logit[start_index] + end_logit[end_index],
-                    }
-                    answers.append(answer)
-
-        # Select the answer with the best score
-        if len(answers) > 0:
-            best_answer = max(answers, key=lambda x: x["logit_score"])
-            predicted_answers.append(
-                {"id": example_id, "prediction_text": best_answer["text"]}
-            )
-        else:
-            predicted_answers.append({"id": example_id, "prediction_text": ""})
-
-    theoretical_answers = [{"id": ex["id"], "answers": ex["answers"]} for ex in examples]
-    return metric.compute(predictions=predicted_answers, references=theoretical_answers)
-
-def compute_metrics_lowRes(start_logits, end_logits, features, examples):
     example_to_features = defaultdict(list)
     max_answer_length = 30
     n_best = 20
@@ -200,11 +201,8 @@ def get_pred(dataloader, device, features, examples):
     end_logits = np.concatenate(end_logits)
     start_logits = start_logits[: len(features)]
     end_logits = end_logits[: len(features)]
-
-    if LOW_RES:
-        return compute_metrics_lowRes(start_logits, end_logits, features, examples)
-    else:
-        return compute_metrics(start_logits, end_logits, features, examples)
+	# TODO: use squad in mrqa
+    return compute_metrics(start_logits, end_logits, features, examples)
 
 def get_pretrain_pred(dataloader, device, features, examples):
     model = AutoModelForQuestionAnswering.from_pretrained(pretrain_model_dir).to(device)
@@ -225,7 +223,6 @@ def get_pretrain_pred(dataloader, device, features, examples):
     end_logits = np.concatenate(end_logits)
     start_logits = start_logits[: len(features)]
     end_logits = end_logits[: len(features)]
-
     return compute_metrics(start_logits, end_logits, features, examples)
 
 def normalize_answer(s):

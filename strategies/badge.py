@@ -10,10 +10,9 @@ import arguments
 args_input = arguments.get_args()
 NUM_QUERY = args_input.batch
 MODEL_BATCH = args_input.model_batch
-# UNIQ_CONTEXT = args_input.unique_context
-_, _, _, _, UNIQ_CONTEXT = sub_decode_id()
+UNIQ_CONTEXT = args_input.uni_con
 if UNIQ_CONTEXT: n = NUM_QUERY*10
-else: n = NUM_QUERY*2
+else: n = NUM_QUERY*5
 
 def badge(n_pool, labeled_idxs, dataset, features, examples, device, i):
     unlabeled_idxs, unlabeled_data = get_unlabel_data(n_pool, labeled_idxs, dataset)

@@ -12,9 +12,8 @@ import arguments
 args_input = arguments.get_args()
 MODEL_BATCH = args_input.model_batch
 NUM_QUERY = args_input.batch
-# LOW_RES = args_input.low_resource
-# UNIQ_CONTEXT = args_input.unique_context
-LOW_RES, _, _, _, UNIQ_CONTEXT = sub_decode_id()
+LOW_RES = args_input.low_res
+UNIQ_CONTEXT = args_input.uni_con
 if UNIQ_CONTEXT: n = NUM_QUERY*10
 else: n = NUM_QUERY*5
 

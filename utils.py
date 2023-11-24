@@ -5,86 +5,26 @@ import sys
 import os
 
 import arguments
-from preprocess import preprocess_training_examples, preprocess_training_features, preprocess_validation_examples, preprocess_training_examples_lowRes, preprocess_training_features_lowRes, preprocess_validation_examples_lowRes
-from strategies.randomSampling import random_sampling
-from strategies.margin import margin
-from strategies.lc import least_confidence
-from strategies.entropy import entropy
-from strategies.marginDropout import margin_dropout
-from strategies.lcDropout import least_confidence_dropout
-from strategies.entropyDropout import entropy_dropout
-from strategies.kcenter import kcenter
-from strategies.kmeans import kmeans
-from strategies.meanSTD import mean_std
-from strategies.bald import bald
-from strategies.badge import badge
-from strategies.batchBald import batch_bald
+from preprocess import preprocess_training_examples, preprocess_training_features, preprocess_validation_examples #,  preprocess_training_examples_lowRes, preprocess_training_features_lowRes, preprocess_validation_examples_lowRes
+# from strategies.randomSampling import random_sampling
+# from strategies.margin import margin
+# from strategies.lc import least_confidence
+# from strategies.entropy import entropy
+# from strategies.marginDropout import margin_dropout
+# from strategies.lcDropout import least_confidence_dropout
+# from strategies.entropyDropout import entropy_dropout
+# from strategies.kcenter import kcenter
+# from strategies.kmeans import kmeans
+# from strategies.meanSTD import mean_std
+# from strategies.bald import bald
+# from strategies.badge import badge
+# from strategies.batchBald import batch_bald
+from strategies import random_sampling, margin, least_confidence, entropy, margin_dropout, least_confidence_dropout, entropy_dropout, kcenter, kmeans, mean_std, bald, badge, batch_bald
 
 CACHE_DIR =  os.path.abspath('') + '/.cache'
-
-def decode_id():
-	args_input = arguments.get_args()
-	[p1, p2, p3, p4] = list(str(args_input.exp_id))[:4]
-	UNIQ_CONTEXT = False
-	LOW_RES = False
-	MODEL_NAME = 'RoBERTa'
-
-	if p1 == '2':
-		MODEL_NAME = 'BERT'
-	elif p1 == '3':
-		MODEL_NAME = 'RoBERTaLarge'
-	elif p1 == '4':
-		MODEL_NAME = 'BERTLarge'
-	elif p1 == '5':
-		UNIQ_CONTEXT = True
-
-	if p2 == '2': LOW_RES = True
-	
-	if p3 == '1':
-		DATA_NAME = 'SQuAD'
-	elif p3 == '2':
-		DATA_NAME = 'BioASQ'
-	elif p3 == '3':
-		DATA_NAME = 'DROP'
-	elif p3 == '4':
-		DATA_NAME = 'TextbookQA'
-	elif p3 == '5':
-		DATA_NAME = 'NewsQA'
-	elif p3 == '6':
-		DATA_NAME = 'SearchQA'
-	elif p3 == '7':
-		DATA_NAME = 'NaturalQuestions'
-	
-	if p4 == 'a':
-		STRATEGY_NAME = 'RandomSampling'
-	elif p4 == 'b':
-		STRATEGY_NAME = 'MarginSampling'
-	elif p4 == 'c':
-		STRATEGY_NAME = 'LeastConfidence'
-	elif p4 == 'd':
-		STRATEGY_NAME = 'EntropySampling'
-	elif p4 == 'e':
-		STRATEGY_NAME = 'MarginSamplingDropout'
-	elif p4 == 'f':
-		STRATEGY_NAME = 'LeastConfidenceDropout'
-	elif p4 == 'g':
-		STRATEGY_NAME = 'EntropySamplingDropout'
-	elif p4 == 'h':
-		STRATEGY_NAME = 'KMeansSampling'
-	elif p4 == 'i':
-		STRATEGY_NAME = 'KCenterGreedy'
-	elif p4 == 'j':
-		STRATEGY_NAME = 'MeanSTD'
-	elif p4 == 'k':
-		STRATEGY_NAME = 'BALDDropout'
-	elif p4 == 'l':
-		STRATEGY_NAME = 'BadgeSampling'
-	elif p4 == 'm':
-		STRATEGY_NAME = 'BatchBALD'
-	
-	return LOW_RES, DATA_NAME, STRATEGY_NAME, MODEL_NAME, UNIQ_CONTEXT
-
-LOW_RES, DATA_NAME, STRATEGY_NAME, MODEL_NAME, UNIQ_CONTEXT = decode_id()
+args_input = arguments.get_args()
+LOW_RES = args_input.low_res
+STRATEGY_NAME = args_input.ALstrategy
 
 class Logger(object):
 	def __init__(self, filename="Default.log"):
@@ -128,58 +68,32 @@ def get_model(m):
 		return 'roberta-large'
 
 def preprocess_data(train_data, val_data):
-	tokenizer = AutoTokenizer.from_pretrained(get_model(MODEL_NAME))
+	tokenizer = AutoTokenizer.from_pretrained(get_model(args_input.model))
 
-	if LOW_RES:
-		train_dataset = train_data.map(
-			preprocess_training_examples_lowRes,
-			batched=True,
-			remove_columns=train_data.column_names,
-			fn_kwargs=dict(tokenizer=tokenizer)
-		)
-		train_features = train_data.map(
-			preprocess_training_features_lowRes,
-			batched=True,
-			remove_columns=train_data.column_names,
-			fn_kwargs=dict(tokenizer=tokenizer)
-		)
-		val_dataset = val_data.map(
-			preprocess_validation_examples_lowRes,
-			batched=True,
-			remove_columns=val_data.column_names,
-			fn_kwargs=dict(tokenizer=tokenizer)
-		)
-		val_features = val_data.map(
-			preprocess_validation_examples_lowRes,
-			batched=True,
-			remove_columns=val_data.column_names,
-			fn_kwargs=dict(tokenizer=tokenizer)
-		)
-	else:
-		train_dataset = train_data.map(
-			preprocess_training_examples,
-			batched=True,
-			remove_columns=train_data.column_names,
-			fn_kwargs=dict(tokenizer=tokenizer)
-		)
-		train_features = train_data.map(
-			preprocess_training_features,
-			batched=True,
-			remove_columns=train_data.column_names,
-			fn_kwargs=dict(tokenizer=tokenizer)
-		)
-		val_dataset = val_data.map(
-			preprocess_validation_examples,
-			batched=True,
-			remove_columns=val_data.column_names,
-			fn_kwargs=dict(tokenizer=tokenizer)
-		)
-		val_features = val_data.map(
-			preprocess_validation_examples,
-			batched=True,
-			remove_columns=val_data.column_names,
-			fn_kwargs=dict(tokenizer=tokenizer)
-		)
+	train_dataset = train_data.map(
+		preprocess_training_examples,
+		batched=True,
+		remove_columns=train_data.column_names,
+		fn_kwargs=dict(tokenizer=tokenizer)
+	)
+	train_features = train_data.map(
+		preprocess_training_features,
+		batched=True,
+		remove_columns=train_data.column_names,
+		fn_kwargs=dict(tokenizer=tokenizer)
+	)
+	val_dataset = val_data.map(
+		preprocess_validation_examples,
+		batched=True,
+		remove_columns=val_data.column_names,
+		fn_kwargs=dict(tokenizer=tokenizer)
+	)
+	val_features = val_data.map(
+		preprocess_validation_examples,
+		batched=True,
+		remove_columns=val_data.column_names,
+		fn_kwargs=dict(tokenizer=tokenizer)
+	)
 
 	train_dataset.set_format("torch")
 	train_features.set_format("torch")
