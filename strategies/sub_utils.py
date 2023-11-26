@@ -88,7 +88,7 @@ def get_us_ue(labeled_idxs, score_ordered_idxs, n_pool, dataset, features, devic
 			filtered_score_ordered_idx.append(idxs)
 
 	labeled_idxs[filtered_score_ordered_idx] = True
-	print('We added {} uniq ssi to get {} unique ssi/uniq context and {} instances in total.\n'.format(current_ssi, len(ssi), len(filtered_score_ordered_idx)))
+	print('We added {} uniq ssi to get {} unique ssi/uniq embedding cluster and {} instances in total.\n'.format(current_ssi, len(ssi), len(filtered_score_ordered_idx)))
 	return np.arange(n_pool)[labeled_idxs]
 
 def get_us_uc(labeled_idxs, score_ordered_idxs, n_pool, features, iteration=0):

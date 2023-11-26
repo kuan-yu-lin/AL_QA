@@ -162,7 +162,7 @@ def load_dataset_mrqa(d):
 
 def query(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, i):
 	if STRATEGY_NAME == 'RandomSampling':
-		iter_i_labeled_idxs = random_sampling(n_pool, labeled_idxs, train_dataset, train_features, i)
+		iter_i_labeled_idxs = random_sampling(n_pool, labeled_idxs, train_dataset, train_features, device, i)
 	elif STRATEGY_NAME == 'MarginSampling':
 		iter_i_labeled_idxs = margin(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, i)
 	elif STRATEGY_NAME == 'LeastConfidence':
@@ -185,7 +185,7 @@ def query(n_pool, labeled_idxs, train_dataset, train_features, train_data, devic
 		iter_i_labeled_idxs = kmeans(n_pool, labeled_idxs, train_dataset, train_features, device, i)
 	elif STRATEGY_NAME == 'KCenterGreedy':
 		if LOW_RES and i == 1:
-			iter_i_labeled_idxs = random_sampling(n_pool, labeled_idxs, train_features, i)
+			iter_i_labeled_idxs = random_sampling(n_pool, labeled_idxs, train_dataset, train_features, device, i)
 		else:
 			iter_i_labeled_idxs = kcenter(n_pool, labeled_idxs, train_dataset, train_features, device, i)
 	elif STRATEGY_NAME == 'BadgeSampling':
