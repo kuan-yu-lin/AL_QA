@@ -1,97 +1,85 @@
 #!/bin/bash
 
-# python main.py \
-# 	--exp_id 111at \
-# 	--exp_round 1 \
-# 	--dev_mode True \
-#     -g 2
-
-# python main.py \
-# 	--exp_id 111it \
-# 	--exp_round 1 \
-# 	--dev_mode True \
-#     -g 3
-
 python main_adapter.py \
-    --exp_id 122at \
+    --exp_id 622at \
     --exp_round 1 \
     -q 200 \
     -b 50 \
-    -g 3
+    -g 2
 
 python main_adapter.py \
-    --exp_id 122bt \
+    --exp_id 622bt \
     --exp_round 1 \
     -q 200 \
     -b 50 \
-    -g 3
+    -g 2
 
 python main_adapter.py \
-    --exp_id 122ct \
+    --exp_id 622ct \
     --exp_round 1 \
     -q 200 \
     -b 50 \
-    -g 3
+    -g 2
 
 python main_adapter.py \
-    --exp_id 122dt \
+    --exp_id 622dt \
     --exp_round 1 \
     -q 200 \
     -b 50 \
-    -g 3
+    -g 2
 
 python main_adapter.py \
-    --exp_id 122et \
+    --exp_id 622et \
     --exp_round 1 \
     -q 200 \
     -b 50 \
-    -g 3
+    -g 2
 
 python main_adapter.py \
-    --exp_id 122ft \
+    --exp_id 622ft \
     --exp_round 1 \
     -q 200 \
     -b 50 \
-    -g 3
+    -g 2
 
 python main_adapter.py \
-    --exp_id 122gt \
+    --exp_id 622gt \
     --exp_round 1 \
     -q 200 \
     -b 50 \
-    -g 3
+    -g 2
 
 python main_adapter.py \
-    --exp_id 122ht \
+    --exp_id 622ht \
     --exp_round 1 \
     -q 200 \
     -b 50 \
-    -g 3
+    -g 2
 
 python main_adapter.py \
-    --exp_id 122it \
+    --exp_id 622it \
     --exp_round 1 \
     -q 200 \
     -b 50 \
-    -g 3
+    -g 2
 
 python main_adapter.py \
-    --exp_id 122jt \
+    --exp_id 622jt \
     --exp_round 1 \
     -q 200 \
     -b 50 \
-    -g 3
+    -g 2
 
 python main_adapter.py \
-    --exp_id 122kt \
+    --exp_id 622kt \
     --exp_round 1 \
     -q 200 \
     -b 50 \
-    -g 3
+    -g 2
 
 python main_adapter.py \
-    --exp_id 122lt \
+    --exp_id 622lt \
     --exp_round 1 \
     -q 200 \
     -b 50 \
-    -g 3
+    -g 2

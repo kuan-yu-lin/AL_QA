@@ -1,8 +1,8 @@
 #!/bin/bash
 
-python main.py \
-    --exp_id 111a \
-    -g 7
+# python main.py \
+#     --exp_id 111a \
+#     -g 7
 
 python main.py \
     --exp_id 111d \

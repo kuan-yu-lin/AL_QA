@@ -2,7 +2,7 @@
 
 python main.py \
     --exp_id 511h \
-    -g 8
+    -g 3
 
 python main.py \
     --exp_id 511b \
