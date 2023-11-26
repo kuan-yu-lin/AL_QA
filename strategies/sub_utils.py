@@ -1,3 +1,6 @@
+from sklearn.cluster import KMeans
+from torch.utils.data import DataLoader
+from transformers import default_data_collator
 import numpy as np
 from itertools import combinations_with_replacement
 import torch
@@ -7,17 +10,86 @@ from sklearn.metrics import pairwise_distances
 import pdb
 import sys
 sys.path.insert(0, './')
-
+from strategies.sub_model import get_embeddings
 import arguments
 args_input = arguments.get_args()
 LOW_RES = args_input.low_res
 NUM_QUERY = args_input.batch
+MODEL_BATCH = args_input.model_batch
 NUM_INIT_LB = args_input.initseed
 
 def get_unlabel_data(n_pool, labeled_idxs, train_dataset):
     unlabeled_idxs = np.arange(n_pool)[~labeled_idxs]
     unlabeled_data = train_dataset.select(indices=unlabeled_idxs)
     return unlabeled_idxs, unlabeled_data
+
+def get_us_ue(labeled_idxs, score_ordered_idxs, n_pool, dataset, features, device, iteration=0):
+	ssi = set()
+	current_ssi = 0
+
+	samples = features.select(indices=np.arange(n_pool)[labeled_idxs])
+	if len(samples):
+		for sample in samples:
+			ssi.add(sample['example_id'])
+	print('Before filter, we already have {} instances.'.format(len(samples)))
+
+	# get embedding for each 
+	scored_data = dataset.select(indices=np.array(score_ordered_idxs))
+	scored_dataloader = DataLoader(scored_data,
+									collate_fn=default_data_collator,
+									batch_size=MODEL_BATCH,
+									)
+	embeddings = get_embeddings(scored_dataloader, device)
+	embeddings = embeddings.numpy()
+	cluster_learner = KMeans(n_clusters=NUM_QUERY).fit(embeddings)
+	
+	score_ordered_list = []
+	for so, soi in enumerate(tqdm(score_ordered_idxs, desc="Build score_ordered_list")):
+		dataset_dict = {}
+		dataset_dict['score_order'] = so + 1
+		dataset_dict['score_order_idxs'] = soi
+		# dataset_dict['embeddings'] = embeddings[so]
+		dataset_dict['cluster_label'] = cluster_learner.labels_[so]
+		score_ordered_list.append(dataset_dict)
+	
+	label_lst = []
+	for data in score_ordered_list:
+		label = data['cluster_label']
+		if label not in label_lst:
+			label_lst.append(label)
+			cluster_lst = list(filter(lambda d: d['cluster_label'] == label, score_ordered_list))
+			for clustered_data in cluster_lst:
+				sample = features.select(indices=np.array([clustered_data['score_order_idxs']]))
+				if sample[0]['example_id'] not in ssi:
+					ssi.add(sample[0]['example_id'])
+					current_ssi += 1
+					break
+		# check if we got enough ssi during current query
+		if not iteration:
+			if current_ssi == NUM_INIT_LB:
+				break
+		else:	
+			if current_ssi == NUM_QUERY:
+				break
+	
+	if LOW_RES:
+		total = NUM_QUERY * iteration
+	else:
+		total = NUM_QUERY * iteration + NUM_INIT_LB
+	assert len(ssi) == total, "Not enough :(" 
+
+	# select all instances belonging to unique samples
+	filtered_score_ordered_idx = []
+	for idxs in tqdm(score_ordered_idxs, desc="Get instances"):
+		pool_idxs = np.zeros(len(features), dtype=bool)
+		pool_idxs[idxs] = True
+		sample = features.select(indices=np.arange(n_pool)[pool_idxs])
+		if sample[0]['example_id'] in ssi:
+			filtered_score_ordered_idx.append(idxs)
+
+	labeled_idxs[filtered_score_ordered_idx] = True
+	print('We added {} uniq ssi to get {} unique ssi/uniq context and {} instances in total.\n'.format(current_ssi, len(ssi), len(filtered_score_ordered_idx)))
+	return np.arange(n_pool)[labeled_idxs]
 
 def get_us_uc(labeled_idxs, score_ordered_idxs, n_pool, features, iteration=0):
 	ssi = set()
