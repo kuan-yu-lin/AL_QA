@@ -1,24 +1,13 @@
 from datasets import load_dataset
 from transformers import AutoModelForQuestionAnswering, AutoTokenizer
+from adapters import UniPELTConfig, AutoAdapterModel
+import adapters
 import numpy as np
 import sys
 import os
 
 import arguments
-from preprocess import preprocess_training_examples, preprocess_training_features, preprocess_validation_examples #,  preprocess_training_examples_lowRes, preprocess_training_features_lowRes, preprocess_validation_examples_lowRes
-# from strategies.randomSampling import random_sampling
-# from strategies.margin import margin
-# from strategies.lc import least_confidence
-# from strategies.entropy import entropy
-# from strategies.marginDropout import margin_dropout
-# from strategies.lcDropout import least_confidence_dropout
-# from strategies.entropyDropout import entropy_dropout
-# from strategies.kcenter import kcenter
-# from strategies.kmeans import kmeans
-# from strategies.meanSTD import mean_std
-# from strategies.bald import bald
-# from strategies.badge import badge
-# from strategies.batchBald import batch_bald
+from preprocess import preprocess_training_examples, preprocess_training_features, preprocess_validation_examples
 from strategies import random_sampling, margin, least_confidence, entropy, margin_dropout, least_confidence_dropout, entropy_dropout, kcenter, kmeans, mean_std, bald, badge, batch_bald
 
 CACHE_DIR =  os.path.abspath('') + '/.cache'
@@ -173,7 +162,7 @@ def load_dataset_mrqa(d):
 
 def query(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, i):
 	if STRATEGY_NAME == 'RandomSampling':
-		iter_i_labeled_idxs = random_sampling(n_pool, labeled_idxs, train_features, i)
+		iter_i_labeled_idxs = random_sampling(n_pool, labeled_idxs, train_dataset, train_features, i)
 	elif STRATEGY_NAME == 'MarginSampling':
 		iter_i_labeled_idxs = margin(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, i)
 	elif STRATEGY_NAME == 'LeastConfidence':
@@ -206,13 +195,22 @@ def query(n_pool, labeled_idxs, train_dataset, train_features, train_data, devic
 	return iter_i_labeled_idxs
 
 def save_model(device, pretrain_dir, strategy_dir):
-    '''
-    Copy and save model from pretrain_models to current trained models.
-    '''
-    pretrain_model = AutoModelForQuestionAnswering.from_pretrained(pretrain_dir).to(device)
-    model_to_save = pretrain_model.module if hasattr(pretrain_model, 'module') else pretrain_model 
-    model_to_save.save_pretrained(strategy_dir)
+	'''
+	Copy and save model from pretrain_models to current trained models.
+	'''
+	pretrain_model = AutoAdapterModel.from_pretrained(pretrain_dir).to(device)
+	# pretrain_model = AutoModelForQuestionAnswering.from_pretrained(pretrain_dir).to(device)
+	adapters.init(pretrain_model)
+	config = UniPELTConfig()
+	pretrain_model.add_adapter("unipelt", config=config)
+	model_to_save = pretrain_model.module if hasattr(pretrain_model, 'module') else pretrain_model
+	model_to_save.save_pretrained(strategy_dir)
 
-
-
+# def save_model(device, pretrain_dir, strategy_dir):
+#     '''
+#     Copy and save model from pretrain_models to current trained models.
+#     '''
+#     pretrain_model = AutoModelForQuestionAnswering.from_pretrained(pretrain_dir).to(device)
+#     model_to_save = pretrain_model.module if hasattr(pretrain_model, 'module') else pretrain_model 
+#     model_to_save.save_pretrained(strategy_dir)
 	

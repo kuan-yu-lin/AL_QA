@@ -1,5 +1,11 @@
-from datasets import load_dataset, disable_caching
-from transformers import default_data_collator, get_scheduler, AutoModelForQuestionAnswering
+import arguments
+args_input = arguments.get_args()
+import os
+os.environ["CUDA_VISIBLE_DEVICES"] = str(args_input.gpu)
+
+from datasets import disable_caching
+from transformers import default_data_collator, get_scheduler
+from adapters import AutoAdapterModel
 from torch.utils.data import DataLoader
 from torch.optim import AdamW
 import torch
@@ -7,13 +13,12 @@ import numpy as np
 import json
 import warnings
 import sys
-import os
+
 import re
 import datetime
 
-import arguments
-from model import to_train, get_pred
-from strategies import get_us, get_us_uc
+
+from model import to_train_adapter, get_pred, get_pred_adapter
 from utils import *
 
 args_input = arguments.get_args()
@@ -76,7 +81,8 @@ train_dataset, train_features, val_dataset, val_features = preprocess_data(train
 
 ## seed
 SEED = 1127
-os.environ["CUDA_VISIBLE_DEVICES"] = str(args_input.gpu)
+# os.environ["CUDA_VISIBLE_DEVICES"] = str(args_input.gpu)
+# cuda = "cuda:" + str(args_input.gpu)
 
 # fix random seed
 np.random.seed(SEED)
@@ -84,7 +90,6 @@ torch.manual_seed(SEED)
 
 ## device
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print(device)
 
 sys.stdout = Logger(os.path.abspath('') + '/logfile/' + EXP_ID + '.txt')
 warnings.filterwarnings('ignore')
@@ -134,43 +139,9 @@ while (EXP_ROUND > 0):
 	## generate initial labeled pool
 	n_pool = len(train_dataset)
 	labeled_idxs = np.zeros(n_pool, dtype=bool)
-
-	if LOW_RES:
-		save_model(device, pretrain_model_dir, strategy_model_dir)
-	else:
-		tmp_idxs = np.arange(n_pool)
-		np.random.shuffle(tmp_idxs)
-		
-		if UNIQ_CONTEXT:
-			iter_0_labeled_idxs = get_us_uc(labeled_idxs, tmp_idxs, n_pool, train_features)
-		else:
-			iter_0_labeled_idxs = get_us(labeled_idxs, tmp_idxs, n_pool, train_features)
-
-		## load the selected train data to DataLoader
-		train_dataloader = DataLoader(
-			train_dataset.select(indices=iter_0_labeled_idxs),
-			shuffle=True,
-			collate_fn=default_data_collator,
-			batch_size=MODEL_BATCH,
-		)
-
-		num_update_steps_per_epoch = len(train_dataloader)
-		num_training_steps = NUM_TRAIN_EPOCH * num_update_steps_per_epoch
-
-		## network
-		model = AutoModelForQuestionAnswering.from_pretrained(get_model(MODEL_NAME)).to(device)
-		optimizer = AdamW(model.parameters(), lr=LEARNING_RATE)
-		
-		lr_scheduler = get_scheduler(
-			"linear",
-			optimizer=optimizer,
-			num_warmup_steps=0,
-			num_training_steps=num_training_steps,
-		)
-
-		## iteration 0 accuracy
-		to_train(NUM_TRAIN_EPOCH, train_dataloader, device, model, optimizer, lr_scheduler)
-
+	
+	save_model(device, pretrain_model_dir, strategy_model_dir)
+	
 	## load the selected validation data to DataLoader
 	eval_dataloader = DataLoader(
 		val_dataset, 
@@ -178,7 +149,7 @@ while (EXP_ROUND > 0):
 		batch_size=MODEL_BATCH
 	)
 
-	acc_scores_0 = get_pred(eval_dataloader, device, val_features, val_data) # add i=1 to use model from models_dir
+	acc_scores_0 = get_pred_adapter(eval_dataloader, device, val_features, val_data) # add i=1 to use model from models_dir
 	acc[0] = round(acc_scores_0['f1'], 4)
 	acc_em[0] = round(acc_scores_0['exact_match'], 4)
 
@@ -208,8 +179,8 @@ while (EXP_ROUND > 0):
 
 		num_update_steps_per_epoch_i = len(train_dataloader_i)
 		num_training_steps_i = NUM_TRAIN_EPOCH * num_update_steps_per_epoch_i
-		
-		model_i = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir).to(device)
+
+		model_i = AutoAdapterModel.from_pretrained(strategy_model_dir).to(device)
 		optimizer_i = AdamW(model_i.parameters(), lr=LEARNING_RATE)
 		
 		lr_scheduler_i = get_scheduler(
@@ -220,11 +191,11 @@ while (EXP_ROUND > 0):
 		)
 		
 		## train
-		to_train(NUM_TRAIN_EPOCH, train_dataloader_i, device, model_i, optimizer_i, lr_scheduler_i)
-
+		to_train_adapter(NUM_TRAIN_EPOCH, train_dataloader_i, device, model_i, optimizer_i, lr_scheduler_i)
+		
 		## iteration i accuracy
 		print('\nIter_{} start to get pred.'.format(i))
-		acc_scores_i = get_pred(eval_dataloader, device, val_features, val_data)
+		acc_scores_i = get_pred_adapter(eval_dataloader, device, val_features, val_data)
 		acc[i] = round(acc_scores_i['f1'], 4)
 		acc_em[i] = round(acc_scores_i['exact_match'], 4)
 		print('Iterantion {} done.'.format(i))

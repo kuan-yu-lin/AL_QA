@@ -3,6 +3,7 @@ from tqdm.auto import tqdm
 import numpy as np
 import torch
 from transformers import AutoModelForQuestionAnswering
+from adapters import AutoAdapterModel
 from torch.autograd import Variable
 import torch.nn.functional as F
 from copy import deepcopy
@@ -14,6 +15,7 @@ import arguments
 args_input = arguments.get_args()
 EXP_ID = str(args_input.exp_id)
 MODEL_NAME = args_input.model
+LOW_RES = args_input.low_res
 DATA_NAME = args_input.dataset
 STRATEGY_NAME = args_input.ALstrategy
 NUM_QUERY = args_input.batch
@@ -27,7 +29,11 @@ else:
 strategy_model_dir = MODEL_DIR + '/' + EXP_ID
 
 def get_prob(dataloader, device, features, examples):
-	model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir).to(device)
+	if LOW_RES:
+		model = AutoAdapterModel.from_pretrained(strategy_model_dir).to(device)
+		model.train_adapter("unipelt") # activate adapter
+	else:
+		model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir).to(device)
 
 	model.eval()
 	start_logits = []
@@ -89,7 +95,11 @@ def get_prob(dataloader, device, features, examples):
 	return prob_dict
 
 def get_prob_dropout(dataloader, device, features, examples, n_drop=10):
-	model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir).to(device)
+	if LOW_RES:
+		model = AutoAdapterModel.from_pretrained(strategy_model_dir).to(device)
+		model.train_adapter("unipelt") # activate adapter
+	else:
+		model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir).to(device)
 	
 	model.train()
 	prob_dict = {}
@@ -168,7 +178,11 @@ def get_prob_dropout(dataloader, device, features, examples, n_drop=10):
 def get_prob_dropout_split(dataloader, device, features, examples, n_drop=10):
 	## use tensor to save the answers
 
-	model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir).to(device)
+	if LOW_RES:
+		model = AutoAdapterModel.from_pretrained(strategy_model_dir).to(device)
+		model.train_adapter("unipelt") # activate adapter
+	else:
+		model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir).to(device)
 	
 	model.train()
 
@@ -240,7 +254,11 @@ def get_batch_prob_dropout_split(dataloader, device, features, examples, n_drop=
 
 	c = 10
 
-	model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir).to(device)
+	if LOW_RES:
+		model = AutoAdapterModel.from_pretrained(strategy_model_dir).to(device)
+		model.train_adapter("unipelt") # activate adapter
+	else:
+		model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir).to(device)
 	
 	model.train()
 
@@ -308,7 +326,11 @@ def get_batch_prob_dropout_split(dataloader, device, features, examples, n_drop=
 	return probs
 
 def get_embeddings(dataloader, device):
-	model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir, output_hidden_states=True).to(device)
+	if LOW_RES:
+		model = AutoAdapterModel.from_pretrained(strategy_model_dir, output_hidden_states=True).to(device)
+		model.train_adapter("unipelt") # activate adapter
+	else:
+		model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir, output_hidden_states=True).to(device)
 	
 	model.eval()
 	embeddings = torch.zeros([len(dataloader.dataset), model.config.to_dict()['hidden_size']])
@@ -330,7 +352,11 @@ def get_embeddings(dataloader, device):
 	return embeddings
 
 def get_grad_embeddings(dataloader, device, features, examples):
-	model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir, output_hidden_states=True).to(device)
+	if LOW_RES:
+		model = AutoAdapterModel.from_pretrained(strategy_model_dir, output_hidden_states=True).to(device)
+		model.train_adapter("unipelt") # activate adapter
+	else:
+		model = AutoModelForQuestionAnswering.from_pretrained(strategy_model_dir, output_hidden_states=True).to(device)
 	
 	model.eval()
 

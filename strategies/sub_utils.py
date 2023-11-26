@@ -1,6 +1,7 @@
 import numpy as np
 from itertools import combinations_with_replacement
 import torch
+from tqdm.auto import tqdm
 from scipy import stats
 from sklearn.metrics import pairwise_distances
 import pdb
@@ -25,15 +26,12 @@ def get_us_uc(labeled_idxs, score_ordered_idxs, n_pool, features, iteration=0):
 	
 	samples = features.select(indices=np.arange(n_pool)[labeled_idxs])
 	if len(samples):
-		print("\nIt's not the first query.")
 		for sample in samples:
 			ssi.add(sample['example_id'])
 			uc.add(sample['context'])
-	assert len(ssi) == len(samples), "\nThe amount of ssi from previous query is wrong. There are only {} ssi.".format(len(ssi))
-	assert len(uc) == len(samples), "The amount of uc from previous query is wrong. There are only {} uc.".format(len(uc))
 	print('Before filter, we already have {} instances.'.format(len(samples)))
 
-	for soi in score_ordered_idxs:
+	for soi in tqdm(score_ordered_idxs, desc="Get ssi & uc"):
 		pool_idxs = np.zeros(len(features), dtype=bool)
 		pool_idxs[soi] = True
 		sample = features.select(indices=np.arange(n_pool)[pool_idxs])
@@ -56,12 +54,11 @@ def get_us_uc(labeled_idxs, score_ordered_idxs, n_pool, features, iteration=0):
 		total = NUM_QUERY * iteration
 	else:
 		total = NUM_QUERY * iteration + NUM_INIT_LB
-	print('We have {} unique ssi having unique context.\n'.format(len(ssi)))
 	assert len(ssi) == total, "Not enough :(" 
 
 	# select all instances belonging to unique samples
 	filtered_score_ordered_idx = []
-	for idxs in score_ordered_idxs:
+	for idxs in tqdm(score_ordered_idxs, desc="Get instances"):
 		pool_idxs = np.zeros(len(features), dtype=bool)
 		pool_idxs[idxs] = True
 		sample = features.select(indices=np.arange(n_pool)[pool_idxs])
@@ -69,6 +66,7 @@ def get_us_uc(labeled_idxs, score_ordered_idxs, n_pool, features, iteration=0):
 			filtered_score_ordered_idx.append(idxs)
 
 	labeled_idxs[filtered_score_ordered_idx] = True
+	print('We added {} uniq ssi to get {} unique ssi/uniq context and {} instances in total.\n'.format(current_ssi, len(ssi), len(filtered_score_ordered_idx)))
 	return np.arange(n_pool)[labeled_idxs]
 
 def get_us(labeled_idxs, score_ordered_idxs, n_pool, features, iteration=0):
@@ -82,7 +80,7 @@ def get_us(labeled_idxs, score_ordered_idxs, n_pool, features, iteration=0):
 	print('Before filter, we already have {} instances.'.format(len(samples)))
 
 	# filter out all unique samples
-	for soi in score_ordered_idxs:
+	for soi in tqdm(score_ordered_idxs, desc="Get ssi"):
 		pool_idxs = np.zeros(len(features), dtype=bool)
 		pool_idxs[soi] = True
 		sample = features.select(indices=np.arange(n_pool)[pool_idxs])
@@ -107,7 +105,7 @@ def get_us(labeled_idxs, score_ordered_idxs, n_pool, features, iteration=0):
 	
 	# select all instances belonging to unique samples
 	filtered_score_ordered_idx = []
-	for idxs in score_ordered_idxs:
+	for idxs in tqdm(score_ordered_idxs, desc="Get instances"):
 		pool_idxs = np.zeros(len(features), dtype=bool)
 		pool_idxs[idxs] = True
 		sample = features.select(indices=np.arange(n_pool)[pool_idxs])
