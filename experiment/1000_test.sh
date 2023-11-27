@@ -6,11 +6,11 @@
 # 	--dev_mode True \
 #     -g 2
 
-# python main.py \
-# 	--exp_id 111it \
-# 	--exp_round 1 \
-# 	--dev_mode True \
-#     -g 3
+python main.py \
+	--exp_id 111ct \
+	--exp_round 1 \
+	--dev_mode True \
+	-g 5
 
 python main_adapter.py \
     --exp_id 122at \
