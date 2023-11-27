@@ -1,4 +1,9 @@
-from datasets import load_dataset, disable_caching
+import arguments
+args_input = arguments.get_args()
+import os
+os.environ["CUDA_VISIBLE_DEVICES"] = str(args_input.gpu)
+
+from datasets import load_dataset
 from transformers import default_data_collator, get_scheduler, AutoModelForQuestionAnswering
 from torch.utils.data import DataLoader
 from torch.optim import AdamW
@@ -7,16 +12,13 @@ import numpy as np
 import json
 import warnings
 import sys
-import os
 import re
 import datetime
 
-import arguments
 from model import to_train, get_pred
 from strategies import get_us, get_us_uc
 from utils import *
 
-args_input = arguments.get_args()
 ## exp info
 EXP_ID = str(args_input.exp_id)
 MODEL_NAME = args_input.model
@@ -43,48 +45,27 @@ CACHE_DIR = os.path.abspath('') + '/.cache'
 file_name_res = EXP_ID + '.json'
 OUTPUT_DIR = os.path.abspath('') + '/results/' + file_name_res
 
-if LOW_RES:
-	init_pool = 0
-	setting = 'low resource'
-	## set dir
-	pretrain_model_dir = os.path.abspath('') + '/pretrain_models' + '/' + MODEL_NAME + '_SQuAD_full_dataset_lr_3e-5'
-	strategy_model_dir = MODEL_DIR + '/' + EXP_ID
-	## load data
-	train_data, val_data = load_dataset_mrqa(DATA_NAME.lower())
-else:
-	init_pool = NUM_INIT_LB
-	setting = 'regular'
-	## set dir
-	strategy_model_dir = MODEL_DIR + '/' + EXP_ID
-	## load data
-	train_data, val_data = load_dataset_mrqa(DATA_NAME.lower())
-	# squad = load_dataset(DATA_NAME.lower(), cache_dir=CACHE_DIR)
-	if args_input.dev_mode:
-		print('Use 4000 training data and 1500 testing data.')
-		train_data = train_data.select(range(4000))
-		# val_data = squad["validation"]
-	# else:
-	# 	train_data = train_data
-		# val_data = squad["validation"]
-		# print('Use full training data and full testing data.')
 
-## disable_caching
-# disable_caching()
+init_pool = NUM_INIT_LB
+setting = 'regular'
+## set dir
+strategy_model_dir = MODEL_DIR + '/' + EXP_ID
+## load data
+train_data, val_data = load_dataset_mrqa(DATA_NAME.lower())
+if args_input.dev_mode:
+	print('Use 4000 training data and 1500 testing data.')
+	train_data = train_data.select(range(4000))
 
 ## preprocess data
 train_dataset, train_features, val_dataset, val_features = preprocess_data(train_data, val_data)
 
-## seed
+## fix random seed
 SEED = 1127
-os.environ["CUDA_VISIBLE_DEVICES"] = str(args_input.gpu)
-
-# fix random seed
 np.random.seed(SEED)
 torch.manual_seed(SEED)
 
 ## device
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print(device)
 
 sys.stdout = Logger(os.path.abspath('') + '/logfile/' + EXP_ID + '.txt')
 warnings.filterwarnings('ignore')
@@ -135,41 +116,38 @@ while (EXP_ROUND > 0):
 	n_pool = len(train_dataset)
 	labeled_idxs = np.zeros(n_pool, dtype=bool)
 
-	if LOW_RES:
-		save_model(device, pretrain_model_dir, strategy_model_dir)
+	tmp_idxs = np.arange(n_pool)
+	np.random.shuffle(tmp_idxs)
+	
+	if UNIQ_CONTEXT:
+		iter_0_labeled_idxs = get_us_uc(labeled_idxs, tmp_idxs, n_pool, train_features)
 	else:
-		tmp_idxs = np.arange(n_pool)
-		np.random.shuffle(tmp_idxs)
-		
-		if UNIQ_CONTEXT:
-			iter_0_labeled_idxs = get_us_uc(labeled_idxs, tmp_idxs, n_pool, train_features)
-		else:
-			iter_0_labeled_idxs = get_us(labeled_idxs, tmp_idxs, n_pool, train_features)
+		iter_0_labeled_idxs = get_us(labeled_idxs, tmp_idxs, n_pool, train_features)
 
-		## load the selected train data to DataLoader
-		train_dataloader = DataLoader(
-			train_dataset.select(indices=iter_0_labeled_idxs),
-			shuffle=True,
-			collate_fn=default_data_collator,
-			batch_size=MODEL_BATCH,
-		)
+	## load the selected train data to DataLoader
+	train_dataloader = DataLoader(
+		train_dataset.select(indices=iter_0_labeled_idxs),
+		shuffle=True,
+		collate_fn=default_data_collator,
+		batch_size=MODEL_BATCH,
+	)
 
-		num_update_steps_per_epoch = len(train_dataloader)
-		num_training_steps = NUM_TRAIN_EPOCH * num_update_steps_per_epoch
+	num_update_steps_per_epoch = len(train_dataloader)
+	num_training_steps = NUM_TRAIN_EPOCH * num_update_steps_per_epoch
 
-		## network
-		model = AutoModelForQuestionAnswering.from_pretrained(get_model(MODEL_NAME)).to(device)
-		optimizer = AdamW(model.parameters(), lr=LEARNING_RATE)
-		
-		lr_scheduler = get_scheduler(
-			"linear",
-			optimizer=optimizer,
-			num_warmup_steps=0,
-			num_training_steps=num_training_steps,
-		)
+	## network
+	model = AutoModelForQuestionAnswering.from_pretrained(get_model(MODEL_NAME)).to(device)
+	optimizer = AdamW(model.parameters(), lr=LEARNING_RATE)
+	
+	lr_scheduler = get_scheduler(
+		"linear",
+		optimizer=optimizer,
+		num_warmup_steps=0,
+		num_training_steps=num_training_steps,
+	)
 
-		## iteration 0 accuracy
-		to_train(NUM_TRAIN_EPOCH, train_dataloader, device, model, optimizer, lr_scheduler)
+	## iteration 0 accuracy
+	to_train(NUM_TRAIN_EPOCH, train_dataloader, device, model, optimizer, lr_scheduler)
 
 	## load the selected validation data to DataLoader
 	eval_dataloader = DataLoader(
