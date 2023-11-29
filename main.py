@@ -3,7 +3,6 @@ args_input = arguments.get_args()
 import os
 os.environ["CUDA_VISIBLE_DEVICES"] = str(args_input.gpu)
 
-from datasets import load_dataset
 from transformers import default_data_collator, get_scheduler, AutoModelForQuestionAnswering
 from torch.utils.data import DataLoader
 from torch.optim import AdamW

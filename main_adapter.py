@@ -3,7 +3,6 @@ args_input = arguments.get_args()
 import os
 os.environ["CUDA_VISIBLE_DEVICES"] = str(args_input.gpu)
 
-from datasets import disable_caching
 from transformers import default_data_collator, get_scheduler
 from adapters import AutoAdapterModel
 from torch.utils.data import DataLoader
@@ -18,7 +17,7 @@ import re
 import datetime
 
 
-from model import to_train_adapter, get_pred, get_pred_adapter
+from model import to_train_adapter, get_pred_adapter
 from utils import *
 
 args_input = arguments.get_args()
@@ -48,41 +47,19 @@ CACHE_DIR = os.path.abspath('') + '/.cache'
 file_name_res = EXP_ID + '.json'
 OUTPUT_DIR = os.path.abspath('') + '/results/' + file_name_res
 
-if LOW_RES:
-	init_pool = 0
-	setting = 'low resource'
-	## set dir
-	pretrain_model_dir = os.path.abspath('') + '/pretrain_models' + '/' + MODEL_NAME + '_SQuAD_full_dataset_lr_3e-5'
-	strategy_model_dir = MODEL_DIR + '/' + EXP_ID
-	## load data
-	train_data, val_data = load_dataset_mrqa(DATA_NAME.lower())
-else:
-	init_pool = NUM_INIT_LB
-	setting = 'regular'
-	## set dir
-	strategy_model_dir = MODEL_DIR + '/' + EXP_ID
-	## load data
-	train_data, val_data = load_dataset_mrqa(DATA_NAME.lower())
-	# squad = load_dataset(DATA_NAME.lower(), cache_dir=CACHE_DIR)
-	if args_input.dev_mode:
-		print('Use 4000 training data and 1500 testing data.')
-		train_data = train_data.select(range(4000))
-		# val_data = squad["validation"]
-	# else:
-	# 	train_data = train_data
-		# val_data = squad["validation"]
-		# print('Use full training data and full testing data.')
-
-## disable_caching
-# disable_caching()
+init_pool = 0
+setting = 'low resource'
+## set dir
+pretrain_model_dir = os.path.abspath('') + '/pretrain_models' + '/' + MODEL_NAME + '_SQuAD_full_dataset_lr_3e-5'
+strategy_model_dir = MODEL_DIR + '/' + EXP_ID
+## load data
+train_data, val_data = load_dataset_mrqa(DATA_NAME.lower())
 
 ## preprocess data
 train_dataset, train_features, val_dataset, val_features = preprocess_data(train_data, val_data)
 
 ## seed
 SEED = 1127
-# os.environ["CUDA_VISIBLE_DEVICES"] = str(args_input.gpu)
-# cuda = "cuda:" + str(args_input.gpu)
 
 # fix random seed
 np.random.seed(SEED)
