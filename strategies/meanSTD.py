@@ -15,8 +15,8 @@ MODEL_BATCH = args_input.model_batch
 UNIQ_CONTEXT = args_input.uni_con
 DIST_EMBED = args_input.dist_embed
 
-def mean_std(n_pool, labeled_idxs, train_dataset, features, examples, device, i):
-	unlabeled_idxs, unlabeled_data = get_unlabel_data(n_pool, labeled_idxs, train_dataset)
+def mean_std(n_pool, labeled_idxs, dataset, features, examples, device, i):
+	unlabeled_idxs, unlabeled_data = get_unlabel_data(n_pool, labeled_idxs, dataset)
 	unlabeled_features = features.select(unlabeled_idxs)
 	unlabeled_dataloader = DataLoader(
   		unlabeled_data,
@@ -36,7 +36,7 @@ def mean_std(n_pool, labeled_idxs, train_dataset, features, examples, device, i)
 	if UNIQ_CONTEXT:
 		iter_i_labeled_idxs = get_us_uc(labeled_idxs, score_ordered_idxs, n_pool, features, i)
 	elif DIST_EMBED:
-		iter_i_labeled_idxs = get_us_ue(labeled_idxs, score_ordered_idxs, n_pool, train_dataset, features, device, i)
+		iter_i_labeled_idxs = get_us_ue(labeled_idxs, score_ordered_idxs, n_pool, dataset, features, device, i)
 	else:
 		iter_i_labeled_idxs = get_us(labeled_idxs, score_ordered_idxs, n_pool, features, i)
 

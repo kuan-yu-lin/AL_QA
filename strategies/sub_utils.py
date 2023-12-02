@@ -8,6 +8,7 @@ from tqdm.auto import tqdm
 from scipy import stats
 from sklearn.metrics import pairwise_distances
 import pdb
+import math
 import sys
 sys.path.insert(0, './')
 from strategies.sub_model import get_embeddings
@@ -26,6 +27,10 @@ def get_unlabel_data(n_pool, labeled_idxs, train_dataset):
 def get_us_ue(labeled_idxs, score_ordered_idxs, n_pool, dataset, features, device, iteration=0):
 	ssi = set()
 	current_ssi = 0
+	if LOW_RES:
+		total = NUM_QUERY * iteration
+	else:
+		total = NUM_QUERY * iteration + NUM_INIT_LB
 
 	samples = features.select(indices=np.arange(n_pool)[labeled_idxs])
 	if len(samples):
@@ -41,49 +46,54 @@ def get_us_ue(labeled_idxs, score_ordered_idxs, n_pool, dataset, features, devic
 									)
 	embeddings = get_embeddings(scored_dataloader, device)
 	embeddings = embeddings.numpy()
-	cluster_learner = KMeans(n_clusters=NUM_QUERY).fit(embeddings)
-	
-	score_ordered_list = []
-	for so, soi in enumerate(tqdm(score_ordered_idxs, desc="Build score_ordered_list")):
-		dataset_dict = {}
-		dataset_dict['score_order'] = so + 1
-		dataset_dict['score_order_idxs'] = soi
-		# dataset_dict['embeddings'] = embeddings[so]
-		dataset_dict['cluster_label'] = cluster_learner.labels_[so]
-		score_ordered_list.append(dataset_dict)
-	
-	label_lst = []
-	for data in score_ordered_list:
-		label = data['cluster_label']
-		if label not in label_lst:
-			label_lst.append(label)
-			cluster_lst = list(filter(lambda d: d['cluster_label'] == label, score_ordered_list))
-			for clustered_data in cluster_lst:
-				sample = features.select(indices=np.array([clustered_data['score_order_idxs']]))
-				if sample[0]['example_id'] not in ssi:
-					ssi.add(sample[0]['example_id'])
-					current_ssi += 1
+
+	nq = NUM_QUERY
+	while len(ssi) < total:
+		cluster_learner = KMeans(n_clusters=nq).fit(embeddings)
+		
+		score_ordered_list = []
+		for so, soi in enumerate(tqdm(score_ordered_idxs, desc="Build score_ordered_list")):
+			dataset_dict = {}
+			dataset_dict['score_order'] = so + 1
+			dataset_dict['score_order_idxs'] = soi
+			dataset_dict['cluster_label'] = cluster_learner.labels_[so]
+			score_ordered_list.append(dataset_dict)
+
+		label_lst = []
+		for data in score_ordered_list:
+			label = data['cluster_label']
+			if label not in label_lst:
+				label_lst.append(label)
+				cluster_lst = list(filter(lambda d: d['cluster_label'] == label, score_ordered_list))
+				print('number of cluster_lst:', len(cluster_lst))
+				for clustered_data in cluster_lst:
+					sample = features.select(indices=np.array([clustered_data['score_order_idxs']]))
+					if sample[0]['example_id'] not in ssi:
+						ssi.add(sample[0]['example_id'])
+						current_ssi += 1
+						# print('selected data idx:', clustered_data['score_order_idxs'])
+						break
+			# check if we got enough ssi during current query
+			if not iteration:
+				if current_ssi == NUM_INIT_LB:
 					break
-		# check if we got enough ssi during current query
-		if not iteration:
-			if current_ssi == NUM_INIT_LB:
-				break
-		else:	
-			if current_ssi == NUM_QUERY:
-				break
-	
-	if LOW_RES:
-		total = NUM_QUERY * iteration
-	else:
-		total = NUM_QUERY * iteration + NUM_INIT_LB
-	assert len(ssi) == total, "Not enough :(" 
+			else:	
+				if current_ssi == NUM_QUERY:
+					break
+
+		if len(ssi) != total:
+			if not iteration:
+				nq += (NUM_INIT_LB - current_ssi)
+				assert nq < math.ceil(len(dataset)/2), "Not enough data"
+			else:	
+				nq += (NUM_QUERY - current_ssi)
+				assert nq < math.ceil(len(dataset)/2), "Not enough data"
+			print("Not enough with {} :( We need {}".format(len(ssi), total))
 
 	# select all instances belonging to unique samples
 	filtered_score_ordered_idx = []
 	for idxs in tqdm(score_ordered_idxs, desc="Get instances"):
-		pool_idxs = np.zeros(len(features), dtype=bool)
-		pool_idxs[idxs] = True
-		sample = features.select(indices=np.arange(n_pool)[pool_idxs])
+		sample = features.select(indices=np.array([idxs]))
 		if sample[0]['example_id'] in ssi:
 			filtered_score_ordered_idx.append(idxs)
 
@@ -104,9 +114,7 @@ def get_us_uc(labeled_idxs, score_ordered_idxs, n_pool, features, iteration=0):
 	print('Before filter, we already have {} instances.'.format(len(samples)))
 
 	for soi in tqdm(score_ordered_idxs, desc="Get ssi & uc"):
-		pool_idxs = np.zeros(len(features), dtype=bool)
-		pool_idxs[soi] = True
-		sample = features.select(indices=np.arange(n_pool)[pool_idxs])
+		sample = features.select(indices=np.array([soi]))
 
 		if sample[0]['example_id'] not in ssi:
 			if sample[0]['context'] not in uc:
@@ -117,23 +125,24 @@ def get_us_uc(labeled_idxs, score_ordered_idxs, n_pool, features, iteration=0):
 		# check if we got enough ssi during current query
 		if not iteration:
 			if current_ssi == NUM_INIT_LB:
+				print('There are more data left. :)')
 				break
 		else:	
 			if current_ssi == NUM_QUERY:
+				print('There are more data left. :)')
 				break
 	
 	if LOW_RES:
 		total = NUM_QUERY * iteration
 	else:
 		total = NUM_QUERY * iteration + NUM_INIT_LB
-	assert len(ssi) == total, "Not enough :(" 
+	
+	assert len(ssi) == total, "Not enough with {} :( We need {}".format(len(ssi), total)
 
 	# select all instances belonging to unique samples
 	filtered_score_ordered_idx = []
 	for idxs in tqdm(score_ordered_idxs, desc="Get instances"):
-		pool_idxs = np.zeros(len(features), dtype=bool)
-		pool_idxs[idxs] = True
-		sample = features.select(indices=np.arange(n_pool)[pool_idxs])
+		sample = features.select(indices=np.array([idxs]))
 		if sample[0]['example_id'] in ssi:
 			filtered_score_ordered_idx.append(idxs)
 
@@ -153,10 +162,7 @@ def get_us(labeled_idxs, score_ordered_idxs, n_pool, features, iteration=0):
 
 	# filter out all unique samples
 	for soi in tqdm(score_ordered_idxs, desc="Get ssi"):
-		pool_idxs = np.zeros(len(features), dtype=bool)
-		pool_idxs[soi] = True
-		sample = features.select(indices=np.arange(n_pool)[pool_idxs])
-
+		sample = features.select(indices=np.array([soi]))
 		if sample[0]['example_id'] not in ssi:
 			ssi.add(sample[0]['example_id'])
 			current_ssi += 1
@@ -173,14 +179,13 @@ def get_us(labeled_idxs, score_ordered_idxs, n_pool, features, iteration=0):
 		total = NUM_QUERY * iteration
 	else:
 		total = NUM_QUERY * iteration + NUM_INIT_LB
-	assert len(ssi) == total, "Not enough :(" 
+
+	assert len(ssi) == total, "Not enough with {} :( We need {}".format(len(ssi), total)
 	
 	# select all instances belonging to unique samples
 	filtered_score_ordered_idx = []
 	for idxs in tqdm(score_ordered_idxs, desc="Get instances"):
-		pool_idxs = np.zeros(len(features), dtype=bool)
-		pool_idxs[idxs] = True
-		sample = features.select(indices=np.arange(n_pool)[pool_idxs])
+		sample = features.select(indices=np.array([idxs]))
 		if sample[0]['example_id'] in ssi:
 			filtered_score_ordered_idx.append(idxs)
 	

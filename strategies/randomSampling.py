@@ -7,7 +7,6 @@ import arguments
 
 args_input = arguments.get_args()
 NUM_QUERY = args_input.batch
-# LOW_RES = args_input.low_resource
 UNIQ_CONTEXT = args_input.uni_con
 DIST_EMBED = args_input.dist_embed
 
