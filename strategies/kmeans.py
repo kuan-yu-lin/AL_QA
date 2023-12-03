@@ -41,10 +41,10 @@ def kmeans(n_pool, labeled_idxs, dataset, features, device, i):
 	score_ordered_idxs = np.array([np.arange(embeddings.shape[0])[cluster_idxs==i][dis[cluster_idxs==i].argmin()] for i in range(n)])
 	
 	if UNIQ_CONTEXT:
-		iter_i_labeled_idxs = get_us_uc(labeled_idxs, score_ordered_idxs, n_pool, features, i)
+		iter_i_labeled_idxs, ssi_ = get_us_uc(labeled_idxs, score_ordered_idxs, n_pool, features, i)
 	elif DIST_EMBED:
-		iter_i_labeled_idxs = get_us_ue(labeled_idxs, score_ordered_idxs, n_pool, dataset, features, device, i)
+		iter_i_labeled_idxs, ssi_ = get_us_ue(labeled_idxs, score_ordered_idxs, n_pool, dataset, features, device, i)
 	else:
-		iter_i_labeled_idxs = get_us(labeled_idxs, score_ordered_idxs, n_pool, features, i)
+		iter_i_labeled_idxs, ssi_ = get_us(labeled_idxs, score_ordered_idxs, n_pool, features, i)
 
 	return iter_i_labeled_idxs

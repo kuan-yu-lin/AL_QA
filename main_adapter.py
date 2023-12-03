@@ -46,6 +46,7 @@ else:
 CACHE_DIR = os.path.abspath('') + '/.cache'
 file_name_res = EXP_ID + '.json'
 OUTPUT_DIR = os.path.abspath('') + '/results/' + file_name_res
+SSI_DIR = os.path.abspath('') + '/results/' + EXP_ID + '_ssi.json'
 
 init_pool = 0
 setting = 'low resource'
@@ -76,6 +77,7 @@ all_acc = []
 all_acc_dict = {}
 all_acc_em_dict = {}
 acq_time = []
+ssi = {'time': {}}
 
 begin = datetime.datetime.now()
 
@@ -142,8 +144,10 @@ while (EXP_ROUND > 0):
 		print('{}: Iteraion {} in exp_round_{} start.'.format(EXP_ID, i, args_input.exp_round - EXP_ROUND))
 		
 		## query
-		iter_i_labeled_idxs = query(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, i)
-		
+		iter_i_labeled_idxs, ssi_ = query(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, i)
+		key = 'ExpRound_' + str(args_input.exp_round - EXP_ROUND) + '_Iteration_' + str(i)
+		ssi[key] = list(ssi_)
+
 		print('Time spent for querying: {}\n'.format(datetime.datetime.now() - time))
 		time = datetime.datetime.now()
 		 
@@ -242,3 +246,6 @@ print('mean time: ' + res['time']['mean'] + '. std dev acc: ' + res['time']['std
 
 with open(OUTPUT_DIR, "w") as fw:
 	json.dump(res, fw, indent=4)
+
+with open(SSI_DIR, "w") as fs:
+	json.dump(ssi, fs, indent=4)

@@ -159,6 +159,7 @@ def get_us(labeled_idxs, score_ordered_idxs, n_pool, features, iteration=0):
 		for sample in samples:
 			ssi.add(sample['example_id'])
 	print('Before filter, we already have {} instances.'.format(len(samples)))
+	ssi_ = ssi.copy()
 
 	# filter out all unique samples
 	for soi in tqdm(score_ordered_idxs, desc="Get ssi"):
@@ -194,7 +195,7 @@ def get_us(labeled_idxs, score_ordered_idxs, n_pool, features, iteration=0):
 	# dataset = dataset.filter(lambda instance: instance['sample_id'] in set_of_selected_sample_ids)
 	# num_proc=
 	print('We added {} unique ssi in this query to get {} unique ssi and {} instances in total.\n'.format(current_ssi, len(ssi), len(filtered_score_ordered_idx)))
-	return np.arange(n_pool)[labeled_idxs]
+	return np.arange(n_pool)[labeled_idxs], ssi_
 
 # kmeans ++ initialization
 def init_centers(X, K):

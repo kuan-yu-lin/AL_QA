@@ -100,10 +100,10 @@ def batch_bald(n_pool, labeled_idxs, dataset, features, examples, device, i):
 	print('We got {} best global indices.'.format(len(best_global_indices)))
 
 	if UNIQ_CONTEXT:
-		iter_i_labeled_idxs = get_us_uc(labeled_idxs, best_global_indices, n_pool, features, i)
+		iter_i_labeled_idxs, ssi_ = get_us_uc(labeled_idxs, best_global_indices, n_pool, features, i)
 	elif DIST_EMBED:
-		iter_i_labeled_idxs = get_us_ue(labeled_idxs, best_global_indices, n_pool, dataset, features, device, i)
+		iter_i_labeled_idxs, ssi_ = get_us_ue(labeled_idxs, best_global_indices, n_pool, dataset, features, device, i)
 	else:
-		iter_i_labeled_idxs = get_us(labeled_idxs, best_global_indices, n_pool, features, i)
+		iter_i_labeled_idxs, ssi_ = get_us(labeled_idxs, best_global_indices, n_pool, features, i)
 	
 	return iter_i_labeled_idxs

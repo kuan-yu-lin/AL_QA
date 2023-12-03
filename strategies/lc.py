@@ -40,10 +40,10 @@ def least_confidence(n_pool, labeled_idxs, dataset, features, examples, device, 
 	score_ordered_idxs = unlabeled_idxs[[idx for (idx, _) in sorted_confidence_list]]
 	
 	if UNIQ_CONTEXT:
-		iter_i_labeled_idxs = get_us_uc(labeled_idxs, score_ordered_idxs, n_pool, features, i)
+		iter_i_labeled_idxs, ssi_ = get_us_uc(labeled_idxs, score_ordered_idxs, n_pool, features, i)
 	elif DIST_EMBED:
-		iter_i_labeled_idxs = get_us_ue(labeled_idxs, score_ordered_idxs, n_pool, dataset, features, device, i)
+		iter_i_labeled_idxs, ssi_ = get_us_ue(labeled_idxs, score_ordered_idxs, n_pool, dataset, features, device, i)
 	else:
-		iter_i_labeled_idxs = get_us(labeled_idxs, score_ordered_idxs, n_pool, features, i)
+		iter_i_labeled_idxs, ssi_ = get_us(labeled_idxs, score_ordered_idxs, n_pool, features, i)
 
 	return iter_i_labeled_idxs

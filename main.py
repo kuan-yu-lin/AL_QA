@@ -171,7 +171,7 @@ while (EXP_ROUND > 0):
 		print('{}: Iteraion {} in exp_round_{} start.'.format(EXP_ID, i, args_input.exp_round - EXP_ROUND))
 		
 		## query
-		iter_i_labeled_idxs = query(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, i)
+		iter_i_labeled_idxs, ssi_ = query(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, i)
 		
 		print('Time spent for querying: {}\n'.format(datetime.datetime.now() - time))
 		time = datetime.datetime.now()

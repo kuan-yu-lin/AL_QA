@@ -162,37 +162,37 @@ def load_dataset_mrqa(d):
 
 def query(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, i):
 	if STRATEGY_NAME == 'RandomSampling':
-		iter_i_labeled_idxs = random_sampling(n_pool, labeled_idxs, train_dataset, train_features, device, i)
+		iter_i_labeled_idxs, ssi_ = random_sampling(n_pool, labeled_idxs, train_dataset, train_features, device, i)
 	elif STRATEGY_NAME == 'MarginSampling':
-		iter_i_labeled_idxs = margin(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, i)
+		iter_i_labeled_idxs, ssi_ = margin(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, i)
 	elif STRATEGY_NAME == 'LeastConfidence':
-		iter_i_labeled_idxs = least_confidence(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, i)
+		iter_i_labeled_idxs, ssi_ = least_confidence(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, i)
 	elif STRATEGY_NAME == 'EntropySampling':
-		iter_i_labeled_idxs = entropy(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, i)
+		iter_i_labeled_idxs, ssi_ = entropy(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, i)
 	elif STRATEGY_NAME == 'MarginSamplingDropout':
-		iter_i_labeled_idxs = margin_dropout(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, i)
+		iter_i_labeled_idxs, ssi_ = margin_dropout(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, i)
 	elif STRATEGY_NAME == 'LeastConfidenceDropout':
-		iter_i_labeled_idxs = least_confidence_dropout(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, i)
+		iter_i_labeled_idxs, ssi_ = least_confidence_dropout(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, i)
 	elif STRATEGY_NAME == 'EntropySamplingDropout':
-		iter_i_labeled_idxs = entropy_dropout(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, i)
+		iter_i_labeled_idxs, ssi_ = entropy_dropout(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, i)
 	elif STRATEGY_NAME == 'BALDDropout':
-		iter_i_labeled_idxs = bald(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, i)
+		iter_i_labeled_idxs, ssi_ = bald(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, i)
 	elif STRATEGY_NAME == 'BatchBALDDropout':
-		iter_i_labeled_idxs = batch_bald(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, i)
+		iter_i_labeled_idxs, ssi_ = batch_bald(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, i)
 	elif STRATEGY_NAME == 'MeanSTD':
-		iter_i_labeled_idxs = mean_std(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, i)
+		iter_i_labeled_idxs, ssi_ = mean_std(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, i)
 	elif STRATEGY_NAME == 'KMeansSampling':
-		iter_i_labeled_idxs = kmeans(n_pool, labeled_idxs, train_dataset, train_features, device, i)
+		iter_i_labeled_idxs, ssi_ = kmeans(n_pool, labeled_idxs, train_dataset, train_features, device, i)
 	elif STRATEGY_NAME == 'KCenterGreedy':
 		if LOW_RES and i == 1:
-			iter_i_labeled_idxs = random_sampling(n_pool, labeled_idxs, train_dataset, train_features, device, i)
+			iter_i_labeled_idxs, ssi_ = random_sampling(n_pool, labeled_idxs, train_dataset, train_features, device, i)
 		else:
-			iter_i_labeled_idxs = kcenter(n_pool, labeled_idxs, train_dataset, train_features, device, i)
+			iter_i_labeled_idxs, ssi_ = kcenter(n_pool, labeled_idxs, train_dataset, train_features, device, i)
 	elif STRATEGY_NAME == 'BadgeSampling':
-		iter_i_labeled_idxs = badge(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, i)
+		iter_i_labeled_idxs, ssi_ = badge(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, i)
 	else:
 		raise NotImplementedError
-	return iter_i_labeled_idxs
+	return iter_i_labeled_idxs, ssi_
 
 def save_model(device, pretrain_dir, strategy_dir):
 	'''
