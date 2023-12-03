@@ -37,6 +37,7 @@ def get_us_ue(labeled_idxs, score_ordered_idxs, n_pool, dataset, features, devic
 		for sample in samples:
 			ssi.add(sample['example_id'])
 	print('Before filter, we already have {} instances.'.format(len(samples)))
+	ssi_before = ssi.copy()
 
 	# get embedding for each 
 	scored_data = dataset.select(indices=np.array(score_ordered_idxs))
@@ -90,16 +91,16 @@ def get_us_ue(labeled_idxs, score_ordered_idxs, n_pool, dataset, features, devic
 				assert nq < math.ceil(len(dataset)/2), "Not enough data"
 			print("Not enough with {} :( We need {}".format(len(ssi), total))
 
-	# select all instances belonging to unique samples
-	filtered_score_ordered_idx = []
-	for idxs in tqdm(score_ordered_idxs, desc="Get instances"):
-		sample = features.select(indices=np.array([idxs]))
-		if sample[0]['example_id'] in ssi:
-			filtered_score_ordered_idx.append(idxs)
+	ssi_after = ssi.copy()
+	ssi_ = ssi_after - ssi_before
 
-	labeled_idxs[filtered_score_ordered_idx] = True
-	print('We added {} uniq ssi to get {} unique ssi/uniq embedding cluster and {} instances in total.\n'.format(current_ssi, len(ssi), len(filtered_score_ordered_idx)))
-	return np.arange(n_pool)[labeled_idxs]
+	# select all instances belonging to unique samples
+	samples = features.select(indices=np.array(score_ordered_idxs))
+	selected_samples = samples.filter(lambda example: example['example_id'] in ssi)
+	filtered_score_ordered_idx = selected_samples._indices['indices'].to_pylist()
+
+	print('We added {} unique ssi in this query to get {} unique ssi and {} instances in total.\n'.format(current_ssi, len(ssi), len(filtered_score_ordered_idx)))
+	return np.array(filtered_score_ordered_idx), ssi_
 
 def get_us_uc(labeled_idxs, score_ordered_idxs, n_pool, features, iteration=0):
 	ssi = set()
@@ -112,6 +113,7 @@ def get_us_uc(labeled_idxs, score_ordered_idxs, n_pool, features, iteration=0):
 			ssi.add(sample['example_id'])
 			uc.add(sample['context'])
 	print('Before filter, we already have {} instances.'.format(len(samples)))
+	ssi_before = ssi.copy()
 
 	for soi in tqdm(score_ordered_idxs, desc="Get ssi & uc"):
 		sample = features.select(indices=np.array([soi]))
@@ -139,16 +141,16 @@ def get_us_uc(labeled_idxs, score_ordered_idxs, n_pool, features, iteration=0):
 	
 	assert len(ssi) == total, "Not enough with {} :( We need {}".format(len(ssi), total)
 
-	# select all instances belonging to unique samples
-	filtered_score_ordered_idx = []
-	for idxs in tqdm(score_ordered_idxs, desc="Get instances"):
-		sample = features.select(indices=np.array([idxs]))
-		if sample[0]['example_id'] in ssi:
-			filtered_score_ordered_idx.append(idxs)
+	ssi_after = ssi.copy()
+	ssi_ = ssi_after - ssi_before
 
-	labeled_idxs[filtered_score_ordered_idx] = True
-	print('We added {} uniq ssi to get {} unique ssi/uniq context and {} instances in total.\n'.format(current_ssi, len(ssi), len(filtered_score_ordered_idx)))
-	return np.arange(n_pool)[labeled_idxs]
+	# select all instances belonging to unique samples
+	samples = features.select(indices=np.array(score_ordered_idxs))
+	selected_samples = samples.filter(lambda example: example['example_id'] in ssi)
+	filtered_score_ordered_idx = selected_samples._indices['indices'].to_pylist()
+
+	print('We added {} unique ssi in this query to get {} unique ssi and {} instances in total.\n'.format(current_ssi, len(ssi), len(filtered_score_ordered_idx)))
+	return np.array(filtered_score_ordered_idx), ssi_
 
 def get_us(labeled_idxs, score_ordered_idxs, n_pool, features, iteration=0):
 	ssi = set()
@@ -159,7 +161,7 @@ def get_us(labeled_idxs, score_ordered_idxs, n_pool, features, iteration=0):
 		for sample in samples:
 			ssi.add(sample['example_id'])
 	print('Before filter, we already have {} instances.'.format(len(samples)))
-	ssi_ = ssi.copy()
+	ssi_before = ssi.copy()
 
 	# filter out all unique samples
 	for soi in tqdm(score_ordered_idxs, desc="Get ssi"):
@@ -182,20 +184,19 @@ def get_us(labeled_idxs, score_ordered_idxs, n_pool, features, iteration=0):
 		total = NUM_QUERY * iteration + NUM_INIT_LB
 
 	assert len(ssi) == total, "Not enough with {} :( We need {}".format(len(ssi), total)
-	
+
+	ssi_after = ssi.copy()
+	ssi_ = ssi_after - ssi_before
+
 	# select all instances belonging to unique samples
-	filtered_score_ordered_idx = []
-	for idxs in tqdm(score_ordered_idxs, desc="Get instances"):
-		sample = features.select(indices=np.array([idxs]))
-		if sample[0]['example_id'] in ssi:
-			filtered_score_ordered_idx.append(idxs)
-	
-	labeled_idxs[filtered_score_ordered_idx] = True
+	samples = features.select(indices=np.array(score_ordered_idxs))
+	selected_samples = samples.filter(lambda example: example['example_id'] in ssi)
+	filtered_score_ordered_idx = selected_samples._indices['indices'].to_pylist()
 
 	# dataset = dataset.filter(lambda instance: instance['sample_id'] in set_of_selected_sample_ids)
 	# num_proc=
 	print('We added {} unique ssi in this query to get {} unique ssi and {} instances in total.\n'.format(current_ssi, len(ssi), len(filtered_score_ordered_idx)))
-	return np.arange(n_pool)[labeled_idxs], ssi_
+	return np.array(filtered_score_ordered_idx), ssi_
 
 # kmeans ++ initialization
 def init_centers(X, K):
