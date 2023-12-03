@@ -99,8 +99,9 @@ def get_us_ue(labeled_idxs, score_ordered_idxs, n_pool, dataset, features, devic
 	selected_samples = samples.filter(lambda example: example['example_id'] in ssi)
 	filtered_score_ordered_idx = selected_samples._indices['indices'].to_pylist()
 
-	print('We added {} unique ssi in this query to get {} unique ssi and {} instances in total.\n'.format(current_ssi, len(ssi), len(filtered_score_ordered_idx)))
-	return np.array(filtered_score_ordered_idx), ssi_
+	labeled_idxs[filtered_score_ordered_idx] = True
+	print('We added {} uniq ssi to get {} unique ssi/uniq embedding cluster and {} instances in total.\n'.format(current_ssi, len(ssi), len(filtered_score_ordered_idx)))
+	return np.arange(n_pool)[labeled_idxs], ssi_
 
 def get_us_uc(labeled_idxs, score_ordered_idxs, n_pool, features, iteration=0):
 	ssi = set()
@@ -149,8 +150,9 @@ def get_us_uc(labeled_idxs, score_ordered_idxs, n_pool, features, iteration=0):
 	selected_samples = samples.filter(lambda example: example['example_id'] in ssi)
 	filtered_score_ordered_idx = selected_samples._indices['indices'].to_pylist()
 
-	print('We added {} unique ssi in this query to get {} unique ssi and {} instances in total.\n'.format(current_ssi, len(ssi), len(filtered_score_ordered_idx)))
-	return np.array(filtered_score_ordered_idx), ssi_
+	labeled_idxs[filtered_score_ordered_idx] = True
+	print('We added {} uniq ssi to get {} unique ssi/uniq context and {} instances in total.\n'.format(current_ssi, len(ssi), len(filtered_score_ordered_idx)))
+	return np.arange(n_pool)[labeled_idxs], ssi_
 
 def get_us(labeled_idxs, score_ordered_idxs, n_pool, features, iteration=0):
 	ssi = set()
@@ -195,8 +197,9 @@ def get_us(labeled_idxs, score_ordered_idxs, n_pool, features, iteration=0):
 
 	# dataset = dataset.filter(lambda instance: instance['sample_id'] in set_of_selected_sample_ids)
 	# num_proc=
+	labeled_idxs[filtered_score_ordered_idx] = True
 	print('We added {} unique ssi in this query to get {} unique ssi and {} instances in total.\n'.format(current_ssi, len(ssi), len(filtered_score_ordered_idx)))
-	return np.array(filtered_score_ordered_idx), ssi_
+	return np.arange(n_pool)[labeled_idxs], ssi_
 
 # kmeans ++ initialization
 def init_centers(X, K):
