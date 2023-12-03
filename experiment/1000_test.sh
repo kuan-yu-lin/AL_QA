@@ -1,10 +1,12 @@
 #!/bin/bash
 
-# python main.py \
-# 	--exp_id 111at \
-# 	--exp_round 1 \
-# 	--dev_mode True \
-#     -g 2
+python main.py \
+	--exp_id 111at \
+	--exp_round 1 \
+	--dev_mode True \
+	-q 1500 \
+    -b 500 \
+    -g 7
 
 python main.py \
 	--exp_id 111ct \
@@ -17,7 +19,7 @@ python main_adapter.py \
     --exp_round 1 \
     -q 200 \
     -b 50 \
-    -g 3
+    -g 7
 
 python main_adapter.py \
     --exp_id 122bt \

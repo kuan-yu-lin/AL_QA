@@ -112,7 +112,8 @@ python main_adapter.py \
 	-g 3
 
 python main_adapter.py \
-	--exp_id 523h \
+	--exp_id 523ht \
+	--exp_round 1 \
 	-q 200 \
 	-b 50 \
 	-g 3
