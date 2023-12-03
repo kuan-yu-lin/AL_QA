@@ -36,19 +36,18 @@ MODEL_BATCH = args_input.model_batch
 NUM_TRAIN_EPOCH = args_input.train_epochs
 
 ## set dir
+CACHE_DIR = os.path.abspath('') + '/.cache'
+file_name_res = EXP_ID + '.json'
+OUTPUT_DIR = os.path.abspath('') + '/results/' + file_name_res
+SSI_DIR = os.path.abspath('') + '/results/' + EXP_ID + '_ssi.json'
 if args_input.dev_mode:
 	MODEL_DIR = os.path.abspath('') + '/dev_models'
 else:
 	MODEL_DIR = os.path.abspath('') + '/models'
-CACHE_DIR = os.path.abspath('') + '/.cache'
-file_name_res = EXP_ID + '.json'
-OUTPUT_DIR = os.path.abspath('') + '/results/' + file_name_res
-
-
 init_pool = NUM_INIT_LB
 setting = 'regular'
-## set dir
 strategy_model_dir = MODEL_DIR + '/' + EXP_ID
+
 ## load data
 train_data, val_data = load_dataset_mrqa(DATA_NAME.lower())
 if args_input.dev_mode:
@@ -74,8 +73,10 @@ all_acc = []
 all_acc_dict = {}
 all_acc_em_dict = {}
 acq_time = []
+log_query = {'time': {},
+			 'ssi': {}}
 
-begin = datetime.datetime.now()
+exp_start_time = datetime.datetime.now()
 
 res = {'exp': EXP_ID,
 	   'setting': setting,
@@ -94,7 +95,7 @@ res = {'exp': EXP_ID,
 	   'devMode': args_input.dev_mode,
 	   'uniqueContex': UNIQ_CONTEXT,
 		'time': {
-		   'start': str(begin),
+		   'start': str(exp_start_time),
 		}
 	}
 
@@ -105,7 +106,7 @@ while (EXP_ROUND > 0):
 	EXP_ROUND = EXP_ROUND - 1
 	print('\n{}: ExpRound_{} start.'.format(EXP_ID, args_input.exp_round - EXP_ROUND))
 	
-	start = datetime.datetime.now()
+	exp_rd_start_time = datetime.datetime.now()
 
 	## record acc performance 
 	acc = np.zeros(ITERATION + 1) # quota/batch runs + iter_0
@@ -119,9 +120,14 @@ while (EXP_ROUND > 0):
 	np.random.shuffle(tmp_idxs)
 	
 	if UNIQ_CONTEXT:
-		iter_0_labeled_idxs = get_us_uc(labeled_idxs, tmp_idxs, n_pool, train_features)
+		iter_0_labeled_idxs, ssi_ =  get_us_uc(labeled_idxs, tmp_idxs, n_pool, train_features)
 	else:
-		iter_0_labeled_idxs = get_us(labeled_idxs, tmp_idxs, n_pool, train_features)
+		iter_0_labeled_idxs, ssi_ =  get_us(labeled_idxs, tmp_idxs, n_pool, train_features)
+
+	## save query time and ssi
+	key = 'ExpRound_' + str(args_input.exp_round - EXP_ROUND) + '_Iteration_0'
+	log_query['time'][key] = str(datetime.datetime.now() - exp_rd_start_time)
+	log_query['ssi'][key] = list(ssi_)
 
 	## load the selected train data to DataLoader
 	train_dataloader = DataLoader(
@@ -163,18 +169,21 @@ while (EXP_ROUND > 0):
 	print('Testing accuracy: {}'.format(acc[0]))
 	print('Testing accuracy em {}'.format(acc_em[0]))
 
-	time = datetime.datetime.now()
-	print('Time spent: {}\n'.format(time - start))
+	print('Time spent: {}\n'.format(datetime.datetime.now() - exp_rd_start_time))
 	
 	## iteration 1 to i
 	for i in range(1, ITERATION+1):
 		print('{}: Iteraion {} in exp_round_{} start.'.format(EXP_ID, i, args_input.exp_round - EXP_ROUND))
-		
+		iter_start_time = datetime.datetime.now()
+
 		## query
 		iter_i_labeled_idxs, ssi_ = query(n_pool, labeled_idxs, train_dataset, train_features, train_data, device, i)
 		
-		print('Time spent for querying: {}\n'.format(datetime.datetime.now() - time))
-		time = datetime.datetime.now()
+		## save query time and ssi
+		print('Time spent for querying: {}\n'.format(datetime.datetime.now() - iter_start_time))
+		key = 'ExpRound_' + str(args_input.exp_round - EXP_ROUND) + '_Iteration_' + str(i)
+		log_query['time'][key] = str(datetime.datetime.now() - iter_start_time)
+		log_query['ssi'][key] = list(ssi_)
 		 
 		train_dataloader_i = DataLoader(
 			train_dataset.select(indices=iter_i_labeled_idxs),
@@ -207,8 +216,7 @@ while (EXP_ROUND > 0):
 		print('Iterantion {} done.'.format(i))
 		print('Testing accuracy: {}'.format(acc[i]))
 		print('Testing accuracy em: {}'.format(acc_em[i]))
-		print('Time spent: {}\n'.format(datetime.datetime.now() - time))
-		time = datetime.datetime.now()
+		print('Time spent: {}\n'.format(datetime.datetime.now() - iter_start_time))
 		torch.cuda.empty_cache()
 	
 	## print results
@@ -221,13 +229,13 @@ while (EXP_ROUND > 0):
 	
 	## record acq time
 	timestamp = re.sub('\.[0-9]*', '_', str(datetime.datetime.now())).replace(" ", "_").replace("-", "").replace(":","")
-	end = datetime.datetime.now()
-	acq_time.append(round(float((end-start).seconds), 3))
+	exp_rd_end_time = datetime.datetime.now()
+	acq_time.append(round(float((exp_rd_end_time - exp_rd_start_time).seconds), 3))
 
 # cal mean & standard deviation
-total_time = datetime.datetime.now() - begin
+total_time = datetime.datetime.now() - exp_start_time
 print('Time spent in total: {}.\n'.format(total_time))
-res['time']['end'] = str(end)
+res['time']['end'] = str(exp_rd_end_time) # the end time of the last exp_rd == exp_end_time
 res['time']['total'] = str(total_time)
 res['em'] = all_acc_em_dict
 res['f1'] = all_acc_dict
@@ -271,3 +279,6 @@ print('mean time: ' + res['time']['mean'] + '. std dev acc: ' + res['time']['std
 
 with open(OUTPUT_DIR, "w") as fw:
 	json.dump(res, fw, indent=4)
+
+with open(SSI_DIR, "w") as fs:
+	json.dump(log_query, fs, indent=4)
