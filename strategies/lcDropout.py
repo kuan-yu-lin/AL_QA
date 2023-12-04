@@ -46,4 +46,4 @@ def least_confidence_dropout(n_pool, labeled_idxs, dataset, features, examples, 
 	else:
 		iter_i_labeled_idxs, ssi_ = get_us(labeled_idxs, score_ordered_idxs, n_pool, features, i)
 
-	return iter_i_labeled_idxs
+	return iter_i_labeled_idxs, ssi_

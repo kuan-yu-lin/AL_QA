@@ -106,4 +106,4 @@ def batch_bald(n_pool, labeled_idxs, dataset, features, examples, device, i):
 	else:
 		iter_i_labeled_idxs, ssi_ = get_us(labeled_idxs, best_global_indices, n_pool, features, i)
 	
-	return iter_i_labeled_idxs
+	return iter_i_labeled_idxs, ssi_
