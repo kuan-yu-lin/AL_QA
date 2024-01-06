@@ -1,73 +1,73 @@
 #!/bin/bash
 
 python main_adapter.py \
-	--exp_id 527a \
+	--exp_id 627a \
 	-q 200 \
 	-b 50 \
-	-g 3
+	-g 5
 
 python main_adapter.py \
-	--exp_id 527b \
+	--exp_id 627b \
 	-q 200 \
 	-b 50 \
-	-g 3
+	-g 5
 
 python main_adapter.py \
-	--exp_id 527c \
+	--exp_id 627c \
 	-q 200 \
 	-b 50 \
-	-g 3
+	-g 5
 
 python main_adapter.py \
-	--exp_id 527d \
+	--exp_id 627d \
 	-q 200 \
 	-b 50 \
-	-g 3
+	-g 5
 
 python main_adapter.py \
-	--exp_id 527e \
+	--exp_id 627e \
 	-q 200 \
 	-b 50 \
-	-g 3
+	-g 5
 
 python main_adapter.py \
-	--exp_id 527f \
+	--exp_id 627f \
 	-q 200 \
 	-b 50 \
-	-g 3
+	-g 5
 
 python main_adapter.py \
-	--exp_id 527g \
+	--exp_id 627g \
 	-q 200 \
 	-b 50 \
-	-g 3
+	-g 5
 
 python main_adapter.py \
-	--exp_id 527h \
+	--exp_id 627h \
 	-q 200 \
 	-b 50 \
-	-g 3
+	-g 5
 
 python main_adapter.py \
-	--exp_id 527i \
+	--exp_id 627i \
 	-q 200 \
 	-b 50 \
-	-g 3
+	-g 5
 
 python main_adapter.py \
-	--exp_id 527j \
+	--exp_id 627j \
 	-q 200 \
 	-b 50 \
-	-g 3
+	-g 5
 
 python main_adapter.py \
-	--exp_id 527k \
+	--exp_id 627k \
 	-q 200 \
 	-b 50 \
-	-g 3
+	-g 5
 
 python main_adapter.py \
-	--exp_id 527l \
+	--exp_id 627l \
 	-q 200 \
 	-b 50 \
-	-g 3
+	-g 5

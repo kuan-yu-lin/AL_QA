@@ -14,4 +14,4 @@ python main.py \
 
 python main.py \
 	--exp_id 511j \
-	-g 3
+	-g 2

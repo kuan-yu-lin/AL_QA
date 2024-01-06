@@ -4,9 +4,9 @@ python main.py \
     --exp_id 111h \
     -g 8
 
-# python main.py \
-#     --exp_id 111b \
-#     -g 8
+python main.py \
+    --exp_id 111b \
+    -g 4
 
 # python main.py \
 #     --exp_id 111e \
@@ -14,4 +14,4 @@ python main.py \
 
 python main.py \
     --exp_id 111j \
-    -g 8
+    -g 2
