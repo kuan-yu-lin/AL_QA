@@ -79,31 +79,6 @@ def to_train_adapter(num_train_epochs, train_dataloader, device, model, optimize
 	model_to_save.save_pretrained(strategy_model_dir)
 	print('TRAIN done!')
 
-def to_train_adapter_(num_train_epochs, train_dataloader, device, model, optimizer, lr_scheduler, record_loss=False):
-	print('Training was performed using {} data in total.'.format(len(train_dataloader.dataset)))
-	model.to(device)
-	for epoch in range(num_train_epochs):
-		model.train_adapter("unipelt") # Freeze all model weights except of those of this adapter
-		model.set_active_adapters("unipelt") # Set the adapters to be used in every forward pass
-		model.train()
-
-		for step, batch in enumerate(tqdm(train_dataloader, desc="Training")):
-			batch = {key: value.to(device) for key, value in batch.items()}
-			outputs = model(**batch)
-			loss = outputs.loss
-			loss.backward()
-
-			optimizer.step()
-			lr_scheduler.step()
-			optimizer.zero_grad()
-
-		if record_loss:
-			print('Train Epoch: {}\tLoss: {:.6f}'.format(epoch, loss.item()))
-
-	model_to_save = model.module if hasattr(model, 'module') else model
-	model_to_save.save_pretrained(strategy_model_dir)
-	print('TRAIN done!')
-
 def to_pretrain(num_train_epochs, train_dataloader, device, model, optimizer, lr_scheduler, scaler):
 	print('Training was performed using the full dataset ({} data).'.format(len(train_dataloader.dataset)))
 	for epoch in range(num_train_epochs):
