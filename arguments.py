@@ -61,7 +61,7 @@ def decode_id(exp_id):
 	elif p4 == 'l':
 		STRATEGY_NAME = 'BadgeSampling'
 	elif p4 == 'm':
-		STRATEGY_NAME = 'BatchBALD'
+		STRATEGY_NAME = 'BatchBALDDropout'
 	
 	return MODEL_NAME, UNIQ_CONTEXT, DIST_EMBED, LOW_RES, DATA_NAME, STRATEGY_NAME
 
