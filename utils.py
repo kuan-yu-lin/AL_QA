@@ -205,12 +205,3 @@ def save_model(device, pretrain_dir, strategy_dir):
 	pretrain_model.add_adapter("unipelt", config=config)
 	model_to_save = pretrain_model.module if hasattr(pretrain_model, 'module') else pretrain_model
 	model_to_save.save_pretrained(strategy_dir)
-
-# def save_model(device, pretrain_dir, strategy_dir):
-#     '''
-#     Copy and save model from pretrain_models to current trained models.
-#     '''
-#     pretrain_model = AutoModelForQuestionAnswering.from_pretrained(pretrain_dir).to(device)
-#     model_to_save = pretrain_model.module if hasattr(pretrain_model, 'module') else pretrain_model 
-#     model_to_save.save_pretrained(strategy_dir)
-	
